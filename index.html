@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Candy Mass – 10,000 Levels | Free Online Game</title>
-<meta name="description" content="Play Candy Mass online free. Catch candies, avoid bombs, complete 10,000 levels, fight bosses, earn daily rewards. No download required. Play now!">
+<title>Candy Mass</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -22,12 +21,19 @@
     <div class="auth-divider"><hr><span>OR</span><hr></div>
     <button class="guest-btn" onclick="guestLogin()">🎮 Play as Guest</button>
   </div>
+  
+  <!-- SEO Description - only visible on login screen, not during gameplay -->
+  <div class="seo-description" style="max-width:90%; margin:20px auto 10px; padding:12px; background:rgba(255,255,255,0.05); border-radius:16px; text-align:center;">
+    <h3 style="color:#FFD700; font-size:14px; margin:0 0 6px;">🍬 Candy Mass – Free Online Candy Catch Game</h3>
+    <p style="color:#fff; font-size:11px; margin:0;">Catch falling candies, avoid bombs, complete 10,000 levels, daily rewards, boss battles, and global leaderboard. Play now!</p>
+  </div>
+  
   <div class="studio-credit">
     🍭 Mass Interactive Games | <a href="/privacy.html" style="color: rgba(255,255,255,0.5); text-decoration: none;">Privacy Policy</a>
   </div>
 </div>
 
-<!-- GAME WRAP -->
+<!-- GAME WRAP (same as before, no extra description inside) -->
 <div id="gameWrap" style="display:none;">
   <div id="topBar">
     <div id="userRow">
@@ -123,14 +129,6 @@
   <div class="overlay" id="goOv"><div class="ov-card"><div class="ov-emoji" id="goEmoji">💔</div><div class="ov-title" id="goTitle">Game Over!</div><div class="ov-stat" id="goScore"></div><div class="ov-sub" id="goSub">-</div><button class="gbtn gbtn-gold" onclick="startGame(true)">Continue from Saved</button><button class="gbtn gbtn-red" onclick="startGame(false)">Restart</button></div></div>
   <div class="overlay" id="themeOv"><div class="ov-card"><div class="ov-emoji" id="themeEmoji">🚀</div><div class="ov-title" id="themeTitle">New World!</div><div class="ov-sub" id="themeSub">-</div><button class="gbtn gbtn-gold" onclick="enterNewTheme()">Enter World</button></div></div>
 </div>
-
-<!-- Rich SEO Content for Google Indexing -->
-<div class="seo-content" style="max-width:600px; margin:20px auto; padding:20px; background:rgba(255,255,255,0.05); border-radius:16px; text-align:center;">
-    <h1 style="color:#FFD700; font-size:20px;">Candy Mass – Free Online Candy Catch Game</h1>
-    <p style="color:#fff; font-size:14px; line-height:1.5;">Candy Mass is an exciting free online game where you catch falling candies while avoiding bombs. With over 10,000 levels, daily rewards, boss battles, and a global leaderboard, it offers endless fun for all ages. Play now without any download!</p>
-    <p style="color:#FFD700; font-size:12px;">🎮 Features: 10,000+ levels | Daily rewards | Boss fights | Google login | Save progress</p>
-</div>
-
 </div>
 <script src="script.js"></script>
 </body>
