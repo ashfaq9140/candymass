@@ -51,25 +51,44 @@ body {
   width: 100%; 
   display: none; 
   flex-direction: column; 
-  height: 100%;           /* FIX: full container height, no extra gaps */
+  height: 100%;           
   background: #060012;
 }
 #topBar { 
   background: linear-gradient(90deg, #0A001E, #1A0040); 
   padding: 8px 10px; 
-  border-radius: 0 0 14px 14px;   /* only bottom corners rounded, top flat */
+  border-radius: 0 0 14px 14px;
 }
-#userRow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+#userRow { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 2px;   /* reduced to fix vertical alignment */
+}
 #userName { font-size: 11px; color: #FFFFFF; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 20px; font-weight: 500; }
 #themeTag { font-size: 11px; font-weight: bold; color: #FFD700; background: rgba(0,0,0,0.4); padding: 2px 8px; border-radius: 20px; }
 .top-icons { display: flex; gap: 5px; }
 .top-icons button { background: rgba(0,0,0,0.3); border: none; border-radius: 50%; width: 30px; height: 30px; font-size: 16px; color: #FFD700; cursor: pointer; }
-#hudRow { display: flex; justify-content: space-between; margin: 6px 0; }
+#hudRow { 
+  display: flex; 
+  justify-content: space-between; 
+  margin: 0 0 2px 0;   /* reduced from 6px 0 */
+}
 .hb { text-align: center; background: rgba(255,255,255,0.07); border-radius: 10px; padding: 3px 8px; }
 .hl { font-size: 9px; color: #FFB8D0; }
-.hv { font-size: 18px; font-weight: 800; color: #FFD700; }
+.hv { font-size: 18px; font-weight: 800; color: #FFD700; line-height: 1.2; }
 #li { font-size: 14px; letter-spacing: 2px; }
-#taskHud { display: flex; align-items: center; gap: 5px; font-size: 9px; color: #FFD700; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 20px; margin-top: 4px; }
+#taskHud { 
+  display: flex; 
+  align-items: center; 
+  gap: 5px; 
+  font-size: 9px; 
+  color: #FFD700; 
+  background: rgba(0,0,0,0.3); 
+  padding: 2px 6px; 
+  border-radius: 20px; 
+  margin-top: 0;        /* removed extra top margin */
+}
 #taskHudBar { flex: 1; height: 5px; background: rgba(255,255,255,0.2); border-radius: 4px; }
 #taskHudFill { height: 100%; background: linear-gradient(90deg, #FFD700, #FF8C00); width: 0%; }
 #modeTag { font-size: 8px; background: rgba(255,80,0,0.4); padding: 2px 5px; border-radius: 12px; }
