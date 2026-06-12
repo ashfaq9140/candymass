@@ -1,3 +1,4 @@
+
 * {
   margin: 0;
   padding: 0;
@@ -45,7 +46,13 @@ body {
 .auth-divider hr { flex: 1; border: none; border-top: 1px solid rgba(255,255,255,0.1); }
 .guest-btn { width: 100%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,215,0,0.3); border-radius: 60px; padding: 12px; font-size: 16px; font-weight: 600; color: #FFD700; cursor: pointer; }
 .studio-credit { font-size: 10px; color: rgba(255,255,255,0.2); margin-top: 20px; text-align: center; }
-#gameWrap { width: 100%; display: none; flex-direction: column; }
+#gameWrap { 
+  width: 100%; 
+  display: none; 
+  flex-direction: column; 
+  height: 100vh;           /* FIX: full viewport height */
+  background: #060012;
+}
 #topBar { background: linear-gradient(90deg, #0A001E, #1A0040); padding: 8px 10px; border-radius: 0 0 14px 14px; }
 #userRow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 #userName { font-size: 11px; color: #FFFFFF; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 20px; font-weight: 500; }
@@ -61,8 +68,22 @@ body {
 #taskHudBar { flex: 1; height: 5px; background: rgba(255,255,255,0.2); border-radius: 4px; }
 #taskHudFill { height: 100%; background: linear-gradient(90deg, #FFD700, #FF8C00); width: 0%; }
 #modeTag { font-size: 8px; background: rgba(255,80,0,0.4); padding: 2px 5px; border-radius: 12px; }
-#cw { position: relative; width: 100%; background: #060012; }
-#canvas { display: block; width: 100%; height: auto; max-height: 540px; touch-action: none; }
+#cw { 
+  position: relative; 
+  width: 100%; 
+  background: #060012;
+  flex: 1;                 /* FIX: take remaining space */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#canvas { 
+  display: block; 
+  width: 100%; 
+  height: auto; 
+  max-height: 100%;        /* FIX: fit inside container */
+  touch-action: none; 
+}
 .overlay {
   position: absolute;
   top: 0;
@@ -206,23 +227,4 @@ input:checked + .slider:before { transform: translateX(22px); background-color: 
   .ov-card { padding: 16px 14px; }
   .ov-title { font-size: 20px; }
   .game-title { font-size: 24px; }
-}
-/* Mobile scroll fix – game ke time page scroll bandh karne ke liye */
-body.game-active {
-    overflow: hidden;
-    position: fixed;
-    width: 100%;
-    height: 100%;
-}
-
-/* Description text ko chota karne ke liye, taki scroll na ho */
-.seo-content {
-    margin: 10px auto !important;
-    padding: 12px !important;
-}
-.seo-content h1 {
-    font-size: 16px !important;
-}
-.seo-content p {
-    font-size: 12px !important;
 }
