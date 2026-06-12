@@ -37,13 +37,14 @@ function parseJwt(token) {
 function getUsers() { try { return JSON.parse(localStorage.getItem('cr_users_v2') || '[]'); } catch { return []; } }
 function saveUsers(u) { localStorage.setItem('cr_users_v2', JSON.stringify(u)); }
 function guestLogin() {
+  document.body.classList.add('game-active');
   const name = 'Guest_' + Math.floor(Math.random() * 10000);
   const email = 'guest_' + Date.now() + '@local.candymass';
   saveSession({ email, name, via: 'guest' });
   document.getElementById('loginScreen').style.display = 'none';
   enterGame(name, email);
 }
-function logout() { clearSession(); stopMusic(); document.getElementById('gameWrap').style.display = 'none'; document.getElementById('loginScreen').style.display = 'flex'; if (typeof st !== 'undefined') st.running = false; }
+function logout() { document.body.classList.remove('game-active');clearSession(); stopMusic(); document.getElementById('gameWrap').style.display = 'none'; document.getElementById('loginScreen').style.display = 'flex'; if (typeof st !== 'undefined') st.running = false; }
 function enterGame(name, email) {
   currentUserEmail = email; currentUserName = name;
   document.getElementById('userName').textContent = '👤 ' + name;
@@ -1010,6 +1011,7 @@ function showSettings() { showOv('settingsOv'); }
 function closeSettings() { saveSettings(); showOv('homeOv'); }
 function showHelp() { showOv('helpOv'); }
 function exitGame() {
+  document.body.classList.remove('game-active');
   clearSession();
   if (typeof st !== 'undefined') st.running = false;
   stopMusic();
