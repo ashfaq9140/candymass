@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Candy Mass</title>
 <link rel="stylesheet" href="style.css">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- Firebase SDK (Google Login Backend) -->
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
 </head>
 <body>
 <div id="app">
@@ -17,23 +19,19 @@
   <div class="auth-sub">10,000 Levels · Pro Edition</div>
   <div class="auth-card">
     <div class="auth-err" id="loginErr"></div>
-    <div id="googleBtnContainer" style="width:100%; margin-bottom:12px;"></div>
+    <!-- NEW: Google Sign-In Button (Firebase) -->
+    <button class="guest-btn" style="background:#4285F4; color:white; margin-bottom:12px;" onclick="handleFirebaseLogin()">
+        🔐 Sign in with Google
+    </button>
     <div class="auth-divider"><hr><span>OR</span><hr></div>
     <button class="guest-btn" onclick="guestLogin()">🎮 Play as Guest</button>
   </div>
-  
-  <!-- SEO Description - only visible on login screen, not during gameplay -->
-  <div class="seo-description" style="max-width:90%; margin:20px auto 10px; padding:12px; background:rgba(255,255,255,0.05); border-radius:16px; text-align:center;">
-    <h3 style="color:#FFD700; font-size:14px; margin:0 0 6px;">🍬 Candy Mass – Free Online Candy Catch Game</h3>
-    <p style="color:#fff; font-size:11px; margin:0;">Catch falling candies, avoid bombs, complete 10,000 levels, daily rewards, boss battles, and global leaderboard. Play now!</p>
-  </div>
-  
   <div class="studio-credit">
     🍭 Mass Interactive Games | <a href="/privacy.html" style="color: rgba(255,255,255,0.5); text-decoration: none;">Privacy Policy</a>
   </div>
 </div>
 
-<!-- GAME WRAP (same as before, no extra description inside) -->
+<!-- GAME WRAP -->
 <div id="gameWrap" style="display:none;">
   <div id="topBar">
     <div id="userRow">
