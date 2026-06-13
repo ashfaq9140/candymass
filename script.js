@@ -69,7 +69,17 @@ function initFirebaseAuth() {
 }
 
 function handleFirebaseLogin() {
-    if (!auth) { alert("Firebase not ready. Try again."); return; }
+    if (!auth) {
+        alert("Firebase is initializing, please wait...");
+        setTimeout(() => {
+            if (auth) {
+                handleFirebaseLogin();
+            } else {
+                alert("Still not ready. Please refresh and try again.");
+            }
+        }, 1000);
+        return;
+    }
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider)
         .then(result => {
@@ -89,6 +99,7 @@ function handleFirebaseLogin() {
             console.error(error);
             document.getElementById('loginErr').textContent = 'Google login failed: ' + error.message;
         });
+}
 }
 
 function getUsers() { try { return JSON.parse(localStorage.getItem('cr_users_v2') || '[]'); } catch { return []; } }
