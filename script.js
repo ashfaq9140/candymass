@@ -1,5 +1,4 @@
-// ===== CANDY MASS - FINAL WITH FIREBASE & GUEST LOGIN =====
-// ===== RESPONSIVE SCALING =====
+// ===== RESPONSIVE SCALING (same as before) =====
 const BASE_W = 400, BASE_H = 540;
 let gameW = BASE_W, gameH = BASE_H;
 let scaleX = 1, scaleY = 1;
@@ -38,7 +37,7 @@ function moveB(cx) {
     st.basket.x = Math.max(st.basket.w/2, Math.min(gameW - st.basket.w/2, newX));
 }
 
-// ===== AUTH (FIREBASE + GUEST) =====
+// ===== FIREBASE AUTH (Google + Guest) =====
 const SESSION_KEY = 'cr_session_v4';
 function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } }
 function saveSession(s) { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
@@ -49,7 +48,7 @@ let currentUserName = 'Guest';
 let auth = null;
 
 function initFirebaseAuth() {
-    if (typeof firebase === 'undefined') { setTimeout(initFirebaseAuth, 200); return; }
+    if (typeof firebase === 'undefined') { setTimeout(initFirebaseAuth, 300); return; }
     if (!firebase.apps.length) {
         const firebaseConfig = {
             apiKey: "AIzaSyAsorqvEzqBGSPlGnJiEW79GD0diwNpau0",
@@ -67,11 +66,7 @@ function initFirebaseAuth() {
 
 function handleFirebaseLogin() {
     if (!auth) {
-        alert("Firebase is initializing. Please wait...");
-        setTimeout(() => {
-            if (auth) handleFirebaseLogin();
-            else alert("Still not ready. Refresh and try again.");
-        }, 1000);
+        alert("Firebase initializing, please click again after 2 seconds.");
         return;
     }
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -81,9 +76,7 @@ function handleFirebaseLogin() {
             const name = user.displayName;
             const email = user.email;
             const users = getUsers();
-            if (!users.find(u => u.email === email)) {
-                users.push({ name, email, via: 'google', id: user.uid });
-            }
+            if (!users.find(u => u.email === email)) users.push({ name, email, via: 'google', id: user.uid });
             saveUsers(users);
             saveSession({ email, name, via: 'google' });
             document.getElementById('loginScreen').style.display = 'none';
@@ -91,7 +84,9 @@ function handleFirebaseLogin() {
         })
         .catch(error => {
             console.error(error);
-            document.getElementById('loginErr').textContent = 'Google login failed: ' + error.message;
+            let msg = error.message;
+            if (msg.includes('auth/unauthorized-domain')) msg = "Add massgms.com to Firebase Authorized domains.";
+            document.getElementById('loginErr').innerHTML = msg;
         });
 }
 
@@ -167,6 +162,8 @@ function showLeaderboard() {
 }
 function closeLB() { showOv('homeOv'); }
 
+// ===== THE REST OF YOUR ORIGINAL GAME CODE GOES HERE (AUDIO, SKINS, CANVAS, GAMELOOP, ETC.) =====
+// Make sure you paste everything from your original script.js starting from "// ===== AUDIO ====="
 // ===== AUDIO =====
 let soundEnabled = localStorage.getItem('cm_sound') !== 'off';
 let musicEnabled = localStorage.getItem('cm_music') !== 'off';
