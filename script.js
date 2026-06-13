@@ -1,7 +1,5 @@
-// ===== CANDY MASS - FIREBASE GOOGLE LOGIN INTEGRATION =====
-// All original features preserved. Firebase backend for Google Sign-In.
-
-// ===== CANDY MASS - RESPONSIVE SCALING =====
+// ===== CANDY MASS - FINAL WITH FIREBASE & GUEST LOGIN =====
+// ===== RESPONSIVE SCALING =====
 const BASE_W = 400, BASE_H = 540;
 let gameW = BASE_W, gameH = BASE_H;
 let scaleX = 1, scaleY = 1;
@@ -40,7 +38,7 @@ function moveB(cx) {
     st.basket.x = Math.max(st.basket.w/2, Math.min(gameW - st.basket.w/2, newX));
 }
 
-// ===== AUTH (Firebase with retry) =====
+// ===== AUTH (FIREBASE + GUEST) =====
 const SESSION_KEY = 'cr_session_v4';
 function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } }
 function saveSession(s) { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
@@ -141,12 +139,34 @@ window.addEventListener('load', () => {
 function saveKey(e) { return 'cr_save_v4_' + e; }
 function saveProgress() { if (!currentUserEmail) return; try { localStorage.setItem(saveKey(currentUserEmail), JSON.stringify({ level: st.level, score: st.score })); } catch(e) {} }
 function loadProgress() { if (!currentUserEmail) return null; try { const r = localStorage.getItem(saveKey(currentUserEmail)); return r ? JSON.parse(r) : null; } catch { return null; } }
-function saveLB() { /* existing code */ }
-function showLeaderboard() { /* existing code */ }
+function saveLB() {
+  try {
+    const lb = JSON.parse(localStorage.getItem('cr_lb_v4') || '[]');
+    const idx = lb.findIndex(r => r.email === currentUserEmail);
+    const entry = { name: currentUserName, email: currentUserEmail, score: st.score, level: st.level };
+    if (idx >= 0) { if (st.score > lb[idx].score) lb[idx] = entry; } else lb.push(entry);
+    lb.sort((a,b) => b.score - a.score);
+    localStorage.setItem('cr_lb_v4', JSON.stringify(lb.slice(0,100)));
+  } catch(e) {}
+}
+function showLeaderboard() {
+  showOv('lbOv');
+  const content = document.getElementById('lbContent');
+  try {
+    const lb = JSON.parse(localStorage.getItem('cr_lb_v4') || '[]');
+    if (!lb.length) { content.innerHTML = '<div style="text-align:center;">No scores yet.</div>'; return; }
+    const medals = ['🥇','🥈','🥉'];
+    let html = '<div>';
+    lb.slice(0,20).forEach((r,i) => {
+      const isMe = r.email === currentUserEmail;
+      html += `<div class="lb-row"><span class="lb-rank">${i<3?medals[i]:i+1}</span><span class="lb-name">${r.name}${isMe?' ★':''}</span><span class="lb-score">${r.score.toLocaleString()}</span><span class="lb-lv">L${r.level}</span></div>`;
+    });
+    html += '</div>';
+    content.innerHTML = html;
+  } catch(e) { content.innerHTML = '<div>Error</div>'; }
+}
 function closeLB() { showOv('homeOv'); }
 
-// ===== REST OF YOUR ORIGINAL GAME CODE GOES HERE (AUDIO, SKINS, CANVAS, GAMELOOP, ETC.) =====
-// Ensure you paste everything from your original script.js that comes after this line.
 // ===== AUDIO =====
 let soundEnabled = localStorage.getItem('cm_sound') !== 'off';
 let musicEnabled = localStorage.getItem('cm_music') !== 'off';
@@ -237,8 +257,266 @@ function cycleSkin() {
   currentSkinIndex = (currentSkinIndex + 1) % BASKET_SKINS.length;
   saveSkin();
 }
-window.cycleSkin = cycleSkin;
-// ===== CANVAS & GAME =====
+window.cycleSkin = cycleSkin;// ===== CANDY MASS - FINAL WITH FIREBASE & GUEST LOGIN =====
+// ===== RESPONSIVE SCALING =====
+const BASE_W = 400, BASE_H = 540;
+let gameW = BASE_W, gameH = BASE_H;
+let scaleX = 1, scaleY = 1;
+
+function resizeCanvas() {
+    const container = document.getElementById('cw');
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    gameW = rect.width;
+    gameH = rect.height;
+    const canvas = document.getElementById('canvas');
+    if (canvas) {
+        canvas.width = gameW;
+        canvas.height = gameH;
+    }
+    scaleX = gameW / BASE_W;
+    scaleY = gameH / BASE_H;
+    if (st && st.basket) {
+        st.basket.w = 86 * scaleX;
+        st.basket.h = 26 * scaleY;
+        st.basket.y = gameH - 52 * scaleY;
+        st.basket.x = Math.min(Math.max(st.basket.x, st.basket.w/2), gameW - st.basket.w/2);
+    }
+}
+
+function getScaledX(clientX) {
+    const canvas = document.getElementById('canvas');
+    const rect = canvas.getBoundingClientRect();
+    const relX = (clientX - rect.left) / rect.width;
+    return relX * gameW;
+}
+
+function moveB(cx) {
+    if (!st) return;
+    const newX = getScaledX(cx);
+    st.basket.x = Math.max(st.basket.w/2, Math.min(gameW - st.basket.w/2, newX));
+}
+
+// ===== AUTH (FIREBASE + GUEST) =====
+const SESSION_KEY = 'cr_session_v4';
+function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } }
+function saveSession(s) { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
+function clearSession() { localStorage.removeItem(SESSION_KEY); }
+
+let currentUserEmail = 'guest';
+let currentUserName = 'Guest';
+let auth = null;
+
+function initFirebaseAuth() {
+    if (typeof firebase === 'undefined') { setTimeout(initFirebaseAuth, 200); return; }
+    if (!firebase.apps.length) {
+        const firebaseConfig = {
+            apiKey: "AIzaSyAsorqvEzqBGSPlGnJiEW79GD0diwNpau0",
+            authDomain: "candy-mass-games.firebaseapp.com",
+            projectId: "candy-mass-games",
+            storageBucket: "candy-mass-games.firebasestorage.app",
+            messagingSenderId: "407968632399",
+            appId: "1:407968632399:web:7d131377d8f7965be6243a"
+        };
+        firebase.initializeApp(firebaseConfig);
+    }
+    auth = firebase.auth();
+    console.log("Firebase Auth ready");
+}
+
+function handleFirebaseLogin() {
+    if (!auth) {
+        alert("Firebase is initializing. Please wait...");
+        setTimeout(() => {
+            if (auth) handleFirebaseLogin();
+            else alert("Still not ready. Refresh and try again.");
+        }, 1000);
+        return;
+    }
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+        .then(result => {
+            const user = result.user;
+            const name = user.displayName;
+            const email = user.email;
+            const users = getUsers();
+            if (!users.find(u => u.email === email)) {
+                users.push({ name, email, via: 'google', id: user.uid });
+            }
+            saveUsers(users);
+            saveSession({ email, name, via: 'google' });
+            document.getElementById('loginScreen').style.display = 'none';
+            enterGame(name, email);
+        })
+        .catch(error => {
+            console.error(error);
+            document.getElementById('loginErr').textContent = 'Google login failed: ' + error.message;
+        });
+}
+
+function getUsers() { try { return JSON.parse(localStorage.getItem('cr_users_v2') || '[]'); } catch { return []; } }
+function saveUsers(u) { localStorage.setItem('cr_users_v2', JSON.stringify(u)); }
+
+function guestLogin() {
+    document.body.classList.add('game-active');
+    const name = 'Guest_' + Math.floor(Math.random() * 10000);
+    const email = 'guest_' + Date.now() + '@local.candymass';
+    saveSession({ email, name, via: 'guest' });
+    document.getElementById('loginScreen').style.display = 'none';
+    enterGame(name, email);
+}
+
+function logout() {
+    document.body.classList.remove('game-active');
+    if (auth && auth.currentUser) auth.signOut();
+    clearSession();
+    stopMusic();
+    document.getElementById('gameWrap').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    if (typeof st !== 'undefined') st.running = false;
+}
+
+function enterGame(name, email) {
+    currentUserEmail = email;
+    currentUserName = name;
+    document.getElementById('userName').textContent = '👤 ' + name;
+    document.getElementById('gameWrap').style.display = 'flex';
+    initSoundBtn();
+    showOv('homeOv');
+    resizeCanvas();
+}
+
+window.addEventListener('load', () => {
+    initFirebaseAuth();
+    loadSkin();
+    const sess = getSession();
+    if (sess) enterGame(sess.name, sess.email);
+    checkDailyBadge();
+    loadSettings();
+});
+
+function saveKey(e) { return 'cr_save_v4_' + e; }
+function saveProgress() { if (!currentUserEmail) return; try { localStorage.setItem(saveKey(currentUserEmail), JSON.stringify({ level: st.level, score: st.score })); } catch(e) {} }
+function loadProgress() { if (!currentUserEmail) return null; try { const r = localStorage.getItem(saveKey(currentUserEmail)); return r ? JSON.parse(r) : null; } catch { return null; } }
+function saveLB() {
+  try {
+    const lb = JSON.parse(localStorage.getItem('cr_lb_v4') || '[]');
+    const idx = lb.findIndex(r => r.email === currentUserEmail);
+    const entry = { name: currentUserName, email: currentUserEmail, score: st.score, level: st.level };
+    if (idx >= 0) { if (st.score > lb[idx].score) lb[idx] = entry; } else lb.push(entry);
+    lb.sort((a,b) => b.score - a.score);
+    localStorage.setItem('cr_lb_v4', JSON.stringify(lb.slice(0,100)));
+  } catch(e) {}
+}
+function showLeaderboard() {
+  showOv('lbOv');
+  const content = document.getElementById('lbContent');
+  try {
+    const lb = JSON.parse(localStorage.getItem('cr_lb_v4') || '[]');
+    if (!lb.length) { content.innerHTML = '<div style="text-align:center;">No scores yet.</div>'; return; }
+    const medals = ['🥇','🥈','🥉'];
+    let html = '<div>';
+    lb.slice(0,20).forEach((r,i) => {
+      const isMe = r.email === currentUserEmail;
+      html += `<div class="lb-row"><span class="lb-rank">${i<3?medals[i]:i+1}</span><span class="lb-name">${r.name}${isMe?' ★':''}</span><span class="lb-score">${r.score.toLocaleString()}</span><span class="lb-lv">L${r.level}</span></div>`;
+    });
+    html += '</div>';
+    content.innerHTML = html;
+  } catch(e) { content.innerHTML = '<div>Error</div>'; }
+}
+function closeLB() { showOv('homeOv'); }
+
+// ===== AUDIO =====
+let soundEnabled = localStorage.getItem('cm_sound') !== 'off';
+let musicEnabled = localStorage.getItem('cm_music') !== 'off';
+let musicNodes = [], musicInterval = null, musicPlaying = false;
+const MUSIC_THEMES = [{ melody:[523,659,784,1047,784,659,523,440,523,659,784,880], bass:[131,131,131,131,165,165,131,131,131,165,165,131], tempo:300, name:'Candy' }];
+const BOSS_MUSIC = { melody:[220,247,262,220,196,220,247,220], bass:[55,55,55,55,55,55,55,55], tempo:200 };
+function startMusic(themeId) {
+  if (!musicEnabled) return;
+  stopMusic();
+  const isBoss = themeId === -1 || (st && st.isBossActive);
+  const theme = isBoss ? BOSS_MUSIC : MUSIC_THEMES[0];
+  let noteIdx = 0;
+  musicPlaying = true;
+  function playNote() {
+    if (!musicPlaying || !musicEnabled) return;
+    try {
+      const ac = getAC();
+      const mFreq = theme.melody[noteIdx % theme.melody.length];
+      const mo = ac.createOscillator(), mg = ac.createGain();
+      mo.connect(mg); mg.connect(ac.destination);
+      mo.type = 'sine';
+      mo.frequency.setValueAtTime(mFreq, ac.currentTime);
+      mg.gain.setValueAtTime(0.08, ac.currentTime);
+      mg.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + theme.tempo/1200);
+      mo.start(ac.currentTime); mo.stop(ac.currentTime + theme.tempo/1000);
+      musicNodes.push(mo, mg);
+      if (noteIdx % 2 === 0) {
+        const bo = ac.createOscillator(), bg = ac.createGain();
+        bo.connect(bg); bg.connect(ac.destination);
+        bo.type = 'triangle';
+        bo.frequency.setValueAtTime(theme.bass[noteIdx % theme.bass.length], ac.currentTime);
+        bg.gain.setValueAtTime(0.06, ac.currentTime);
+        bg.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + theme.tempo/800);
+        bo.start(ac.currentTime); bo.stop(ac.currentTime + theme.tempo/600);
+        musicNodes.push(bo, bg);
+      }
+      noteIdx++;
+      if (musicNodes.length > 40) musicNodes.splice(0,20);
+    } catch(e) {}
+  }
+  playNote();
+  musicInterval = setInterval(playNote, theme.tempo);
+}
+function stopMusic() { musicPlaying = false; if(musicInterval){ clearInterval(musicInterval); musicInterval=null; } musicNodes.forEach(n=>{ try{ n.stop(); n.disconnect(); }catch(e){} }); musicNodes=[]; }
+function toggleMusic() { musicEnabled = !musicEnabled; localStorage.setItem('cm_music', musicEnabled?'on':'off'); const btn=document.getElementById('musicToggleBtn'); if(btn) btn.textContent = musicEnabled?'🎵':'🎵'; if(btn) btn.style.opacity = musicEnabled?'1':'0.35'; if(musicEnabled && st && st.running) startMusic(st.currentTheme?st.currentTheme.id:0); else stopMusic(); }
+function toggleSound() { soundEnabled = !soundEnabled; localStorage.setItem('cm_sound', soundEnabled?'on':'off'); const btn=document.getElementById('soundToggleBtn'); if(btn) btn.textContent = soundEnabled?'🔊':'🔇'; if(soundEnabled) beep(800,'sine',0.1,0.2); }
+function initSoundBtn() { const btn=document.getElementById('soundToggleBtn'); if(btn) btn.textContent = soundEnabled?'🔊':'🔇'; initMusicBtn(); }
+function initMusicBtn() { const btn=document.getElementById('musicToggleBtn'); if(btn) btn.style.opacity = musicEnabled?'1':'0.35'; }
+let AC;
+function getAC() { if(!AC) AC = new (window.AudioContext||window.webkitAudioContext)(); return AC; }
+function beep(f,t,d,v,dl=0) { if(!soundEnabled) return; try{ const ac=getAC(), o=ac.createOscillator(), g=ac.createGain(); o.connect(g); g.connect(ac.destination); o.type=t; o.frequency.setValueAtTime(f,ac.currentTime+dl); g.gain.setValueAtTime(v,ac.currentTime+dl); g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+dl+d); o.start(ac.currentTime+dl); o.stop(ac.currentTime+dl+d+0.05); }catch(e){} }
+function sfxCatch() { beep(660,'sine',0.08,0.28); beep(880,'sine',0.07,0.22,0.06); }
+function sfxWrong() { beep(180,'sawtooth',0.18,0.25); beep(140,'sawtooth',0.12,0.2,0.1); }
+function sfxMiss() { beep(220,'sawtooth',0.12,0.18); }
+function sfxLevelUp() { [523,659,784,1047].forEach((f,i)=>beep(f,'sine',0.12,0.28,i*0.1)); }
+function sfxTaskDone() { [440,550,660,880,1100].forEach((f,i)=>beep(f,'triangle',0.14,0.3,i*0.08)); }
+function sfxLife() { beep(880,'sine',0.12,0.32); beep(1100,'sine',0.1,0.28,0.12); beep(1320,'sine',0.09,0.22,0.22); }
+function sfxBomb() { beep(80,'sawtooth',0.4,0.5); beep(60,'sawtooth',0.3,0.4,0.1); beep(40,'sine',0.5,0.3,0.2); }
+function sfxCombo(n) { beep(440+n*80,'sine',0.1,0.3); beep(550+n*80,'sine',0.08,0.25,0.06); }
+function sfxShield() { beep(300,'sine',0.08,0.22); beep(500,'sine',0.1,0.28,0.08); beep(800,'sine',0.12,0.3,0.16); beep(1100,'sine',0.1,0.25,0.24); }
+function sfxBossWarning() { [200,170,140,110,80].forEach((f,i)=>beep(f,'sawtooth',0.22,0.3,i*0.1)); }
+function sfxBossWin() { [523,659,784,1047,1318,1047,784,1047,1318,1568].forEach((f,i)=>beep(f,'sine',0.14,0.28,i*0.09)); }
+function sfxSurprise() { [400,600,900,1200,1600,2000,2600].forEach((f,i)=>beep(f,'sine',0.18,0.32,i*0.08)); }
+function sfxGameOver() { beep(300,'sawtooth',0.18,0.25); beep(250,'sawtooth',0.15,0.22,0.12); beep(200,'sawtooth',0.12,0.2,0.22); beep(150,'sine',0.3,0.18,0.32); }
+
+// ===== BASKET SKINS =====
+const BASKET_SKINS = [
+  { name:'Candy', emoji:'🍬', b1:'#F0A060', b2:'#C8752A', b3:'#7A3A08', bt:'#FFD090', bm:'#E08830' },
+  { name:'Space', emoji:'🚀', b1:'#2a2a7a', b2:'#1a1a5a', b3:'#0a0a3a', bt:'#4a4aff', bm:'#2a2aff' },
+  { name:'Neon', emoji:'🌆', b1:'#FF1493', b2:'#FF00FF', b3:'#8A2BE2', bt:'#00FFFF', bm:'#FF00FF' },
+  { name:'Golden', emoji:'👑', b1:'#FFD700', b2:'#FFA500', b3:'#FF8C00', bt:'#FFF0A0', bm:'#FFB347' }
+];
+let currentSkinIndex = 0;
+function loadSkin() {
+  const saved = localStorage.getItem('cm_basket_skin');
+  if(saved !== null){
+    currentSkinIndex = parseInt(saved);
+    if(isNaN(currentSkinIndex)||currentSkinIndex<0||currentSkinIndex>=BASKET_SKINS.length) currentSkinIndex=0;
+  }
+  updateSkinButton();
+}
+function saveSkin() { localStorage.setItem('cm_basket_skin', currentSkinIndex); updateSkinButton(); }
+function updateSkinButton() {
+  const btn = document.getElementById('skinBtn');
+  if (btn) btn.textContent = `🎨 ${BASKET_SKINS[currentSkinIndex].emoji} ${BASKET_SKINS[currentSkinIndex].name}`;
+}
+function cycleSkin() {
+  currentSkinIndex = (currentSkinIndex + 1) % BASKET_SKINS.length;
+  saveSkin();
+}
+window.cycleSkin = cycleSkin;// ===== CANVAS & GAME =====
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 if(!CanvasRenderingContext2D.prototype.roundRect){
@@ -1085,9 +1363,3 @@ window.showRoadmap = showRoadmap; window.closeRoadmap = closeRoadmap; window.sho
 window.closeDailyReward = closeDailyReward; window.spinWheel = spinWheel; window.cycleSkin = cycleSkin;
 window.showSettings = showSettings; window.closeSettings = closeSettings; window.showHelp = showHelp;
 window.togglePause = togglePause; window.toggleMusic = toggleMusic; window.toggleSound = toggleSound;
-setTimeout(() => {
-  const sess = getSession();
-  if (!sess) {
-    // No session, optionally show login screen. But Google button will be handled by Firebase.
-  }
-}, 100);
