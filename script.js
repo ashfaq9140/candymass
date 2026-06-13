@@ -1,5 +1,5 @@
-// ===== CANDY MASS - RESPONSIVE FULL SCREEN VERSION =====
-// All original features preserved. Now fits any screen.
+// ===== CANDY MASS - FIREBASE GOOGLE LOGIN INTEGRATION =====
+// All original features preserved. Firebase backend for Google Sign-In.
 
 // ===== RESPONSIVE SCALING =====
 const BASE_W = 400, BASE_H = 540;
@@ -40,7 +40,7 @@ function moveB(cx) {
     st.basket.x = Math.max(st.basket.w/2, Math.min(gameW - st.basket.w/2, newX));
 }
 
-// ===== AUTH =====
+// ===== AUTH (Firebase + Guest) =====
 const SESSION_KEY = 'cr_session_v4';
 function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } }
 function saveSession(s) { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
@@ -48,61 +48,95 @@ function clearSession() { localStorage.removeItem(SESSION_KEY); }
 
 let currentUserEmail = 'guest';
 let currentUserName = 'Guest';
-const GOOGLE_CLIENT_ID = '567345536211-ejlrjaobcsv6ru1pnvchbabsu5htal4f.apps.googleusercontent.com';
-function initGoogleSignIn() {
-  if (typeof google === 'undefined') { setTimeout(initGoogleSignIn, 500); return; }
-  google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential });
-  google.accounts.id.renderButton(document.getElementById('googleBtnContainer'), { theme: 'outline', size: 'large', text: 'continue_with', shape: 'pill' });
+let auth = null;
+
+function initFirebaseAuth() {
+    if (typeof firebase === 'undefined') { setTimeout(initFirebaseAuth, 200); return; }
+    if (!firebase.apps.length) {
+        const firebaseConfig = {
+            apiKey: "AIzaSyAsorqvEzqBGSPlGnJiEW79GD0diwNpau0",
+            authDomain: "candy-mass-games.firebaseapp.com",
+            projectId: "candy-mass-games",
+            storageBucket: "candy-mass-games.firebasestorage.app",
+            messagingSenderId: "407968632399",
+            appId: "1:407968632399:web:7d131377d8f7965be6243a",
+            measurementId: "G-83H0KXNS0N"
+        };
+        firebase.initializeApp(firebaseConfig);
+    }
+    auth = firebase.auth();
+    // Auto-login from persisted session? We'll handle on page load with existing localStorage session.
 }
-function handleGoogleCredential(response) {
-  const payload = parseJwt(response.credential);
-  if (!payload) { document.getElementById('loginErr').textContent = 'Google login failed.'; return; }
-  const name = payload.name, email = payload.email;
-  const users = getUsers();
-  if (!users.find(u => u.email === email)) users.push({ name, email, via: 'google', id: payload.sub });
-  saveUsers(users);
-  saveSession({ email, name, via: 'google' });
-  document.getElementById('loginScreen').style.display = 'none';
-  enterGame(name, email);
+
+function handleFirebaseLogin() {
+    if (!auth) { alert("Firebase not ready. Try again."); return; }
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+        .then(result => {
+            const user = result.user;
+            const name = user.displayName;
+            const email = user.email;
+            const users = getUsers();
+            if (!users.find(u => u.email === email)) {
+                users.push({ name, email, via: 'google', id: user.uid });
+            }
+            saveUsers(users);
+            saveSession({ email, name, via: 'google' });
+            document.getElementById('loginScreen').style.display = 'none';
+            enterGame(name, email);
+        })
+        .catch(error => {
+            console.error(error);
+            document.getElementById('loginErr').textContent = 'Google login failed: ' + error.message;
+        });
 }
-function parseJwt(token) {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
-    return JSON.parse(jsonPayload);
-  } catch(e) { return null; }
-}
+
 function getUsers() { try { return JSON.parse(localStorage.getItem('cr_users_v2') || '[]'); } catch { return []; } }
 function saveUsers(u) { localStorage.setItem('cr_users_v2', JSON.stringify(u)); }
+
 function guestLogin() {
-  document.body.classList.add('game-active');
-  const name = 'Guest_' + Math.floor(Math.random() * 10000);
-  const email = 'guest_' + Date.now() + '@local.candymass';
-  saveSession({ email, name, via: 'guest' });
-  document.getElementById('loginScreen').style.display = 'none';
-  enterGame(name, email);
+    document.body.classList.add('game-active');
+    const name = 'Guest_' + Math.floor(Math.random() * 10000);
+    const email = 'guest_' + Date.now() + '@local.candymass';
+    saveSession({ email, name, via: 'guest' });
+    document.getElementById('loginScreen').style.display = 'none';
+    enterGame(name, email);
 }
-function logout() { document.body.classList.remove('game-active');clearSession(); stopMusic(); document.getElementById('gameWrap').style.display = 'none'; document.getElementById('loginScreen').style.display = 'flex'; if (typeof st !== 'undefined') st.running = false; }
+
+function logout() {
+    document.body.classList.remove('game-active');
+    if (auth && auth.currentUser) auth.signOut();
+    clearSession();
+    stopMusic();
+    document.getElementById('gameWrap').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    if (typeof st !== 'undefined') st.running = false;
+}
+
 function enterGame(name, email) {
-  currentUserEmail = email; currentUserName = name;
-  document.getElementById('userName').textContent = '👤 ' + name;
-  document.getElementById('gameWrap').style.display = 'flex';
-  initSoundBtn();
-  showOv('homeOv');
-  resizeCanvas();
+    currentUserEmail = email;
+    currentUserName = name;
+    document.getElementById('userName').textContent = '👤 ' + name;
+    document.getElementById('gameWrap').style.display = 'flex';
+    initSoundBtn();
+    showOv('homeOv');
+    resizeCanvas();
 }
+
 window.addEventListener('load', () => {
-  loadSkin();
-  const sess = getSession();
-  if (sess) {
-    enterGame(sess.name, sess.email);
-  } else {
-    initGoogleSignIn();
-  }
-  checkDailyBadge();
-  loadSettings();
+    initFirebaseAuth();
+    loadSkin();
+    const sess = getSession();
+    if (sess) {
+        enterGame(sess.name, sess.email);
+    } else {
+        // No session, show login screen (Google button already there)
+        // We need to ensure Google button is rendered. We'll add a simple button in HTML.
+    }
+    checkDailyBadge();
+    loadSettings();
 });
+
 function saveKey(e) { return 'cr_save_v4_' + e; }
 function saveProgress() { if (!currentUserEmail) return; try { localStorage.setItem(saveKey(currentUserEmail), JSON.stringify({ level: st.level, score: st.score })); } catch(e) {} }
 function loadProgress() { if (!currentUserEmail) return null; try { const r = localStorage.getItem(saveKey(currentUserEmail)); return r ? JSON.parse(r) : null; } catch { return null; } }
@@ -133,7 +167,6 @@ function showLeaderboard() {
   } catch(e) { content.innerHTML = '<div>Error</div>'; }
 }
 function closeLB() { showOv('homeOv'); }
-
 // ===== AUDIO =====
 let soundEnabled = localStorage.getItem('cm_sound') !== 'off';
 let musicEnabled = localStorage.getItem('cm_music') !== 'off';
@@ -225,7 +258,6 @@ function cycleSkin() {
   saveSkin();
 }
 window.cycleSkin = cycleSkin;
-
 // ===== CANVAS & GAME =====
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -1075,5 +1107,7 @@ window.showSettings = showSettings; window.closeSettings = closeSettings; window
 window.togglePause = togglePause; window.toggleMusic = toggleMusic; window.toggleSound = toggleSound;
 setTimeout(() => {
   const sess = getSession();
-  if (!sess) initGoogleSignIn();
+  if (!sess) {
+    // No session, optionally show login screen. But Google button will be handled by Firebase.
+  }
 }, 100);
