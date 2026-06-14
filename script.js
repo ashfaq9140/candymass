@@ -1,4 +1,6 @@
-// ===== RESPONSIVE SCALING =====
+// ============================================================
+// 1. RESPONSIVE SCALING (only once)
+// ============================================================
 const BASE_W = 400, BASE_H = 540;
 let gameW = BASE_W, gameH = BASE_H;
 let scaleX = 1, scaleY = 1;
@@ -37,7 +39,9 @@ function moveB(cx) {
     st.basket.x = Math.max(st.basket.w/2, Math.min(gameW - st.basket.w/2, newX));
 }
 
-// ===== AUTH (FIREBASE - REDIRECT METHOD FOR MOBILE) =====
+// ============================================================
+// 2. AUTH (Firebase Redirect – works on mobile)
+// ============================================================
 const SESSION_KEY = 'cr_session_v4';
 function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } }
 function saveSession(s) { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
@@ -65,7 +69,7 @@ function initFirebaseAuth() {
     firebaseReady = true;
     console.log("Firebase Auth ready");
 
-    // Handle redirect result (for mobile)
+    // Handle redirect result (mobile)
     auth.getRedirectResult().then(result => {
         if (result.user) {
             const user = result.user;
@@ -94,7 +98,6 @@ function handleFirebaseLogin() {
         return;
     }
     const provider = new firebase.auth.GoogleAuthProvider();
-    // Use redirect method for mobile (works on all devices)
     auth.signInWithRedirect(provider);
 }
 
@@ -170,7 +173,9 @@ function showLeaderboard() {
 }
 function closeLB() { showOv('homeOv'); }
 
-// ===== AUDIO (ORIGINAL) =====
+// ============================================================
+// 3. AUDIO, SKINS, GAME LOGIC (your original, no duplicates)
+// ============================================================
 let soundEnabled = localStorage.getItem('cm_sound') !== 'off';
 let musicEnabled = localStorage.getItem('cm_music') !== 'off';
 let musicNodes = [], musicInterval = null, musicPlaying = false;
@@ -262,7 +267,9 @@ function cycleSkin() {
 }
 window.cycleSkin = cycleSkin;
 
-// ===== CANVAS & GAME (ORIGINAL, NO DUPLICATES) =====
+// ============================================================
+// 4. GAME LOGIC (canvas, ALL_TYPES, game variables, loops, draws, daily reward, etc.)
+// ============================================================
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 if(!CanvasRenderingContext2D.prototype.roundRect){
@@ -943,7 +950,8 @@ function showRoadmap() {
   document.getElementById('roadmapContent').innerHTML = html;
 }
 function closeRoadmap() { showOv('homeOv'); }
-// Daily Reward (simplified)
+
+// ===== DAILY REWARD (fixed claimReward) =====
 const DAILY_KEY = 'cm_daily_v1';
 const STREAK_KEY = 'cm_streak_v1';
 const WHEEL_SEGMENTS = [
@@ -1081,14 +1089,21 @@ function claimReward(seg) {
             spawnConfetti();
             break;
     }
-  
-  saveProgress(); saveLB();
-  document.getElementById('rewardEmoji').textContent = seg.emoji;
-  document.getElementById('rewardText').textContent = msg;
-  document.getElementById('rewardResult').style.display = 'block';
-  setTimeout(()=>{ document.getElementById('rewardResult').style.display = 'none'; }, 3000);
-  showDailyReward();
+    saveProgress();
+    saveLB();
+
+    const rewardEmoji = document.getElementById('rewardEmoji');
+    const rewardText = document.getElementById('rewardText');
+    const resultDiv = document.getElementById('rewardResult');
+    if (rewardEmoji) rewardEmoji.textContent = seg.emoji;
+    if (rewardText) rewardText.textContent = msg;
+    if (resultDiv) resultDiv.style.display = 'block';
+    setTimeout(() => {
+        if (resultDiv) resultDiv.style.display = 'none';
+    }, 3000);
+    showDailyReward();
 }
+
 function closeDailyReward() { if(cooldownTimerInterval) clearInterval(cooldownTimerInterval); showOv('homeOv'); }
 function loadSettings() {
   const sound = localStorage.getItem('game_sound');
