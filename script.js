@@ -1,6 +1,6 @@
-// ============================================================
-// 1. RESPONSIVE SCALING (only once)
-// ============================================================
+// ===== CANDY MASS - FULLY WORKING (GOOGLE REDIRECT + AUTO START) =====
+
+// ===== RESPONSIVE SCALING =====
 const BASE_W = 400, BASE_H = 540;
 let gameW = BASE_W, gameH = BASE_H;
 let scaleX = 1, scaleY = 1;
@@ -39,9 +39,7 @@ function moveB(cx) {
     st.basket.x = Math.max(st.basket.w/2, Math.min(gameW - st.basket.w/2, newX));
 }
 
-// ============================================================
-// 2. AUTH (Firebase Redirect – works on mobile)
-// ============================================================
+// ===== AUTH (FIREBASE REDIRECT) =====
 const SESSION_KEY = 'cr_session_v4';
 function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } }
 function saveSession(s) { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
@@ -69,7 +67,7 @@ function initFirebaseAuth() {
     firebaseReady = true;
     console.log("Firebase Auth ready");
 
-    // Handle redirect result (mobile)
+    // Handle redirect result (for mobile)
     auth.getRedirectResult().then(result => {
         if (result.user) {
             const user = result.user;
@@ -79,6 +77,7 @@ function initFirebaseAuth() {
             if (!users.find(u => u.email === email)) users.push({ name, email, via: 'google', id: user.uid });
             saveUsers(users);
             saveSession({ email, name, via: 'google' });
+            // Hide login screen and start game
             document.getElementById('loginScreen').style.display = 'none';
             enterGame(name, email);
         }
@@ -129,7 +128,13 @@ function enterGame(name, email) {
     document.getElementById('userName').textContent = '👤 ' + name;
     document.getElementById('gameWrap').style.display = 'flex';
     initSoundBtn();
-    showOv('homeOv');
+    // Auto-start game (continue if saved, else new game)
+    const saved = loadProgress();
+    if (saved && saved.level > 1) {
+        startGame(true);
+    } else {
+        startGame(false);
+    }
     resizeCanvas();
 }
 
@@ -137,7 +142,12 @@ window.addEventListener('load', () => {
     initFirebaseAuth();
     loadSkin();
     const sess = getSession();
-    if (sess) enterGame(sess.name, sess.email);
+    if (sess && sess.email && sess.email !== 'guest') {
+        document.getElementById('loginScreen').style.display = 'none';
+        enterGame(sess.name, sess.email);
+    } else {
+        document.getElementById('loginScreen').style.display = 'flex';
+    }
     checkDailyBadge();
     loadSettings();
 });
@@ -173,9 +183,7 @@ function showLeaderboard() {
 }
 function closeLB() { showOv('homeOv'); }
 
-// ============================================================
-// 3. AUDIO, SKINS, GAME LOGIC (your original, no duplicates)
-// ============================================================
+// ===== AUDIO (original) =====
 let soundEnabled = localStorage.getItem('cm_sound') !== 'off';
 let musicEnabled = localStorage.getItem('cm_music') !== 'off';
 let musicNodes = [], musicInterval = null, musicPlaying = false;
@@ -267,9 +275,7 @@ function cycleSkin() {
 }
 window.cycleSkin = cycleSkin;
 
-// ============================================================
-// 4. GAME LOGIC (canvas, ALL_TYPES, game variables, loops, draws, daily reward, etc.)
-// ============================================================
+// ===== CANVAS & GAME (full original logic) =====
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 if(!CanvasRenderingContext2D.prototype.roundRect){
@@ -951,7 +957,7 @@ function showRoadmap() {
 }
 function closeRoadmap() { showOv('homeOv'); }
 
-// ===== DAILY REWARD (fixed claimReward) =====
+// ===== DAILY REWARD (fully fixed) =====
 const DAILY_KEY = 'cm_daily_v1';
 const STREAK_KEY = 'cm_streak_v1';
 const WHEEL_SEGMENTS = [
