@@ -50,17 +50,15 @@ let currentUserEmail = 'guest';
 let currentUserName = 'Guest';
 let auth = null;
 
-function initFirebaseAuth() {
-    if (typeof firebase === 'undefined') { setTimeout(initFirebaseAuth, 300); return; }
-    if (!firebase.apps.length) {
-        firebase.initializeApp({
-            apiKey: "AIzaSyAsorqvEzqBGSPlGnJiEW79GD0diwNpau0",
-            authDomain: "candy-mass-games.firebaseapp.com",
-            projectId: "candy-mass-games",
-            storageBucket: "candy-mass-games.firebasestorage.app",
-            messagingSenderId: "407968632399",
-            appId: "1:407968632399:web:7d131377d8f7965be6243a"
-        });
+const firebaseConfig = {
+  apiKey: "AIzaSyAsorqvEzqBGSPlGnJiEW79GD0diwNpau0",
+  authDomain: "candy-mass-games.firebaseapp.com",
+  projectId: "candy-mass-games",
+  storageBucket: "candy-mass-games.firebasestorage.app",
+  messagingSenderId: "407968632399",
+  appId: "1:407968632399:web:7d131377d8f7965be6243a",
+  measurementId: "G-83H0KXNS0N"
+};
     }
     auth = firebase.auth();
     console.log("Firebase Auth ready");
