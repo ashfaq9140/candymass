@@ -1045,16 +1045,43 @@ function spinWheel() {
   requestAnimationFrame(animate);
 }
 function claimReward(seg) {
-    // ... existing code ...
-    const rewardEmoji = document.getElementById('rewardEmoji');
-    const rewardText = document.getElementById('rewardText');
-    if (rewardEmoji) rewardEmoji.textContent = seg.emoji;
-    if (rewardText) rewardText.textContent = msg;
-    const resultDiv = document.getElementById('rewardResult');
-    if (resultDiv) resultDiv.style.display = 'block';
-    setTimeout(() => { if (resultDiv) resultDiv.style.display = 'none'; }, 3000);
-    // ...
-}
+    setDailyData({lastClaim: getTodayStr()});
+    const sd = getStreak();
+    const today = getTodayStr();
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    let streak = sd.streak || 0;
+    if (sd.lastDate === yesterday) streak++;
+    else if (sd.lastDate !== today) streak = 1;
+    setStreak({ streak, lastDate: today });
+
+    let msg = '';
+    switch (seg.reward.type) {
+        case 'pts':
+            st.score += seg.reward.val;
+            updateHUD();
+            msg = `+${seg.reward.val} Points!`;
+            sfxCatch();
+            break;
+        case 'lives':
+            st.lives = Math.min(st.lives + seg.reward.val, 5);
+            updateHUD();
+            msg = `+${seg.reward.val} Life!`;
+            sfxLife();
+            break;
+        case 'shield':
+            activateShield();
+            msg = 'Shield Activated!';
+            break;
+        case 'jackpot':
+            st.score += seg.reward.val;
+            st.lives = Math.min(st.lives + 2, 5);
+            updateHUD();
+            msg = `JACKPOT! +${seg.reward.val} pts & +2❤️!`;
+            sfxCeleb();
+            spawnConfetti();
+            break;
+    }
+  
   saveProgress(); saveLB();
   document.getElementById('rewardEmoji').textContent = seg.emoji;
   document.getElementById('rewardText').textContent = msg;
