@@ -1,6 +1,3 @@
-// ===== CANDY MASS - FINAL (GOOGLE + GUEST LOGIN) =====
-// Firebase Global SDK, no duplicates, game fully working
-
 // ===== RESPONSIVE SCALING =====
 const BASE_W = 400, BASE_H = 540;
 let gameW = BASE_W, gameH = BASE_H;
@@ -40,7 +37,7 @@ function moveB(cx) {
     st.basket.x = Math.max(st.basket.w/2, Math.min(gameW - st.basket.w/2, newX));
 }
 
-// ===== AUTH (FIREBASE + GUEST) =====
+// ===== AUTH (FIREBASE - REDIRECT METHOD FOR MOBILE) =====
 const SESSION_KEY = 'cr_session_v4';
 function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } }
 function saveSession(s) { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
@@ -49,29 +46,28 @@ function clearSession() { localStorage.removeItem(SESSION_KEY); }
 let currentUserEmail = 'guest';
 let currentUserName = 'Guest';
 let auth = null;
+let firebaseReady = false;
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAsorqvEzqBGSPlGnJiEW79GD0diwNpau0",
-  authDomain: "candy-mass-games.firebaseapp.com",
-  projectId: "candy-mass-games",
-  storageBucket: "candy-mass-games.firebasestorage.app",
-  messagingSenderId: "407968632399",
-  appId: "1:407968632399:web:7d131377d8f7965be6243a",
-  measurementId: "G-83H0KXNS0N"
-};
+function initFirebaseAuth() {
+    if (typeof firebase === 'undefined') { setTimeout(initFirebaseAuth, 200); return; }
+    if (!firebase.apps.length) {
+        const firebaseConfig = {
+            apiKey: "AIzaSyAsorqvEzqBGSPlGnJiEW79GD0diwNpau0",
+            authDomain: "candy-mass-games.firebaseapp.com",
+            projectId: "candy-mass-games",
+            storageBucket: "candy-mass-games.firebasestorage.app",
+            messagingSenderId: "407968632399",
+            appId: "1:407968632399:web:7d131377d8f7965be6243a"
+        };
+        firebase.initializeApp(firebaseConfig);
     }
     auth = firebase.auth();
+    firebaseReady = true;
     console.log("Firebase Auth ready");
-}
 
-function handleFirebaseLogin() {
-    if (!auth) {
-        alert("Firebase initializing, please click again in 2 seconds.");
-        return;
-    }
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider)
-        .then(result => {
+    // Handle redirect result (for mobile)
+    auth.getRedirectResult().then(result => {
+        if (result.user) {
             const user = result.user;
             const name = user.displayName;
             const email = user.email;
@@ -81,13 +77,25 @@ function handleFirebaseLogin() {
             saveSession({ email, name, via: 'google' });
             document.getElementById('loginScreen').style.display = 'none';
             enterGame(name, email);
-        })
-        .catch(error => {
-            console.error(error);
-            let msg = error.message;
-            if (msg.includes('auth/unauthorized-domain')) msg = "Add massgms.com to Firebase Authorized domains.";
-            document.getElementById('loginErr').innerHTML = msg;
-        });
+        }
+    }).catch(error => {
+        console.error(error);
+        document.getElementById('loginErr').innerHTML = error.message;
+    });
+}
+
+function handleFirebaseLogin() {
+    if (!firebaseReady || !auth) {
+        document.getElementById('loginErr').innerHTML = "Loading Firebase, please wait...";
+        setTimeout(() => {
+            if (firebaseReady) handleFirebaseLogin();
+            else document.getElementById('loginErr').innerHTML = "Firebase not loaded. Refresh.";
+        }, 500);
+        return;
+    }
+    const provider = new firebase.auth.GoogleAuthProvider();
+    // Use redirect method for mobile (works on all devices)
+    auth.signInWithRedirect(provider);
 }
 
 function getUsers() { try { return JSON.parse(localStorage.getItem('cr_users_v2') || '[]'); } catch { return []; } }
@@ -1037,18 +1045,16 @@ function spinWheel() {
   requestAnimationFrame(animate);
 }
 function claimReward(seg) {
-  setDailyData({lastClaim: getTodayStr()});
-  const sd = getStreak(); const today = getTodayStr(); const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
-  let streak = sd.streak||0;
-  if(sd.lastDate === yesterday) streak++; else if(sd.lastDate !== today) streak = 1;
-  setStreak({streak, lastDate: today});
-  let msg = '';
-  switch(seg.reward.type){
-    case 'pts': st.score += seg.reward.val; updateHUD(); msg = `+${seg.reward.val} Points!`; sfxCatch(); break;
-    case 'lives': st.lives = Math.min(st.lives+seg.reward.val,5); updateHUD(); msg = `+${seg.reward.val} Life!`; sfxLife(); break;
-    case 'shield': activateShield(); msg = 'Shield Activated!'; break;
-    case 'jackpot': st.score += seg.reward.val; st.lives = Math.min(st.lives+2,5); updateHUD(); msg = `JACKPOT! +${seg.reward.val} pts & +2❤️!`; sfxCeleb(); spawnConfetti(); break;
-  }
+    // ... existing code ...
+    const rewardEmoji = document.getElementById('rewardEmoji');
+    const rewardText = document.getElementById('rewardText');
+    if (rewardEmoji) rewardEmoji.textContent = seg.emoji;
+    if (rewardText) rewardText.textContent = msg;
+    const resultDiv = document.getElementById('rewardResult');
+    if (resultDiv) resultDiv.style.display = 'block';
+    setTimeout(() => { if (resultDiv) resultDiv.style.display = 'none'; }, 3000);
+    // ...
+}
   saveProgress(); saveLB();
   document.getElementById('rewardEmoji').textContent = seg.emoji;
   document.getElementById('rewardText').textContent = msg;
