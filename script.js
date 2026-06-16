@@ -1,4 +1,6 @@
 // ===== CANDY MASS - COMPLETE WORKING (GOOGLE REDIRECT + GUEST) =====
+// All game features included. Firebase Auth integrated.
+
 // ===== RESPONSIVE SCALING =====
 const BASE_W = 400, BASE_H = 540;
 let gameW = BASE_W, gameH = BASE_H;
@@ -38,7 +40,7 @@ function moveB(cx) {
     st.basket.x = Math.max(st.basket.w/2, Math.min(gameW - st.basket.w/2, newX));
 }
 
-// ===== AUTH (FIREBASE REDIRECT + MANUAL GUEST) =====
+// ===== AUTH (FIREBASE REDIRECT + GUEST) =====
 const SESSION_KEY = 'cr_session_v4';
 function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } }
 function saveSession(s) { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
@@ -48,6 +50,19 @@ let currentUserEmail = 'guest';
 let currentUserName = 'Guest';
 let auth = null;
 let gameStarted = false;
+
+function onUserLoggedIn(user) {
+    if (gameStarted) return;
+    gameStarted = true;
+    const name = user.displayName;
+    const email = user.email;
+    const users = JSON.parse(localStorage.getItem('cr_users_v2') || '[]');
+    if (!users.find(u => u.email === email)) users.push({ name, email, via: 'google', id: user.uid });
+    localStorage.setItem('cr_users_v2', JSON.stringify(users));
+    saveSession({ email, name, via: 'google' });
+    document.getElementById('loginScreen').style.display = 'none';
+    enterGame(name, email);
+}
 
 function initFirebaseAuth() {
     if (typeof firebase === 'undefined') { setTimeout(initFirebaseAuth, 200); return; }
@@ -75,19 +90,6 @@ function initFirebaseAuth() {
     setTimeout(() => {
         if (auth.currentUser && !gameStarted) onUserLoggedIn(auth.currentUser);
     }, 1000);
-}
-
-function onUserLoggedIn(user) {
-    if (gameStarted) return;
-    gameStarted = true;
-    const name = user.displayName;
-    const email = user.email;
-    const users = JSON.parse(localStorage.getItem('cr_users_v2') || '[]');
-    if (!users.find(u => u.email === email)) users.push({ name, email, via: 'google', id: user.uid });
-    localStorage.setItem('cr_users_v2', JSON.stringify(users));
-    saveSession({ email, name, via: 'google' });
-    document.getElementById('loginScreen').style.display = 'none';
-    enterGame(name, email);
 }
 
 function handleFirebaseLogin() {
@@ -173,7 +175,7 @@ function showLeaderboard() {
 }
 function closeLB() { showOv('homeOv'); }
 
-// ===== AUDIO (ORIGINAL) =====
+// ===== AUDIO =====
 let soundEnabled = localStorage.getItem('cm_sound') !== 'off';
 let musicEnabled = localStorage.getItem('cm_music') !== 'off';
 let musicNodes = [], musicInterval = null, musicPlaying = false;
@@ -265,7 +267,7 @@ function cycleSkin() {
 }
 window.cycleSkin = cycleSkin;
 
-// ===== CANVAS & GAME (ORIGINAL) =====
+// ===== CANVAS & GAME (full original logic) =====
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 if(!CanvasRenderingContext2D.prototype.roundRect){
@@ -947,7 +949,7 @@ function showRoadmap() {
 }
 function closeRoadmap() { showOv('homeOv'); }
 
-// ===== DAILY REWARD =====
+// ===== DAILY REWARD (fixed) =====
 const DAILY_KEY = 'cm_daily_v1';
 const STREAK_KEY = 'cm_streak_v1';
 const WHEEL_SEGMENTS = [
