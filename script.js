@@ -1,5 +1,5 @@
-// ===== CANDY MASS - COMPLETE WORKING (GOOGLE REDIRECT + GUEST) =====
-// All game features included. Firebase Auth integrated.
+// ===== CANDY MASS - COMPLETE WORKING (FIREBASE REDIRECT + GUEST) =====
+// All game features included. No external dependencies other than Firebase.
 
 // ===== RESPONSIVE SCALING =====
 const BASE_W = 400, BASE_H = 540;
@@ -40,7 +40,7 @@ function moveB(cx) {
     st.basket.x = Math.max(st.basket.w/2, Math.min(gameW - st.basket.w/2, newX));
 }
 
-// ===== AUTH (FIREBASE REDIRECT + GUEST) =====
+// ===== AUTH (FIREBASE REDIRECT + MANUAL GUEST) =====
 const SESSION_KEY = 'cr_session_v4';
 function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } }
 function saveSession(s) { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
@@ -77,19 +77,9 @@ function initFirebaseAuth() {
         });
     }
     auth = firebase.auth();
-    console.log("Firebase ready");
-
-    auth.getRedirectResult().then(result => {
-        if (result.user && !gameStarted) onUserLoggedIn(result.user);
-    }).catch(e => console.error(e));
-
-    auth.onAuthStateChanged(user => {
-        if (user && !gameStarted && !getSession()) onUserLoggedIn(user);
-    });
-
-    setTimeout(() => {
-        if (auth.currentUser && !gameStarted) onUserLoggedIn(auth.currentUser);
-    }, 1000);
+    auth.getRedirectResult().then(result => { if (result.user && !gameStarted) onUserLoggedIn(result.user); }).catch(e => console.error(e));
+    auth.onAuthStateChanged(user => { if (user && !gameStarted && !getSession()) onUserLoggedIn(user); });
+    setTimeout(() => { if (auth.currentUser && !gameStarted) onUserLoggedIn(auth.currentUser); }, 1000);
 }
 
 function handleFirebaseLogin() {
@@ -144,6 +134,7 @@ window.addEventListener('load', () => {
     loadSettings();
 });
 
+// ===== GAME SAVE & LEADERBOARD =====
 function saveKey(e) { return 'cr_save_v4_' + e; }
 function saveProgress() { if (!currentUserEmail) return; try { localStorage.setItem(saveKey(currentUserEmail), JSON.stringify({ level: st.level, score: st.score })); } catch(e) {} }
 function loadProgress() { if (!currentUserEmail) return null; try { const r = localStorage.getItem(saveKey(currentUserEmail)); return r ? JSON.parse(r) : null; } catch { return null; } }
@@ -267,7 +258,7 @@ function cycleSkin() {
 }
 window.cycleSkin = cycleSkin;
 
-// ===== CANVAS & GAME (full original logic) =====
+// ===== CANVAS & GAME (FULL ORIGINAL LOGIC) =====
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 if(!CanvasRenderingContext2D.prototype.roundRect){
@@ -949,7 +940,7 @@ function showRoadmap() {
 }
 function closeRoadmap() { showOv('homeOv'); }
 
-// ===== DAILY REWARD (fixed) =====
+// ===== DAILY REWARD =====
 const DAILY_KEY = 'cm_daily_v1';
 const STREAK_KEY = 'cm_streak_v1';
 const WHEEL_SEGMENTS = [
