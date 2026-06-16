@@ -1,5 +1,5 @@
-// ===== FINAL WORKING SCRIPT (GOOGLE REDIRECT + MANUAL GUEST) =====
-// Responsive scaling (same as before)
+// ===== CANDY MASS - COMPLETE WORKING (GOOGLE REDIRECT + GUEST) =====
+// ===== RESPONSIVE SCALING =====
 const BASE_W = 400, BASE_H = 540;
 let gameW = BASE_W, gameH = BASE_H;
 let scaleX = 1, scaleY = 1;
@@ -38,7 +38,7 @@ function moveB(cx) {
     st.basket.x = Math.max(st.basket.w/2, Math.min(gameW - st.basket.w/2, newX));
 }
 
-// ===== AUTH (RELIABLE REDIRECT) =====
+// ===== AUTH (FIREBASE REDIRECT + MANUAL GUEST) =====
 const SESSION_KEY = 'cr_session_v4';
 function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } }
 function saveSession(s) { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
@@ -47,7 +47,7 @@ function clearSession() { localStorage.removeItem(SESSION_KEY); }
 let currentUserEmail = 'guest';
 let currentUserName = 'Guest';
 let auth = null;
-let gameStarted = false;  // prevent multiple starts
+let gameStarted = false;
 
 function initFirebaseAuth() {
     if (typeof firebase === 'undefined') { setTimeout(initFirebaseAuth, 200); return; }
@@ -64,43 +64,26 @@ function initFirebaseAuth() {
     auth = firebase.auth();
     console.log("Firebase ready");
 
-    // 1. Handle redirect result (mobile)
     auth.getRedirectResult().then(result => {
-        if (result.user && !gameStarted) {
-            console.log("Redirect result user:", result.user.displayName);
-            startGameWithUser(result.user);
-        }
-    }).catch(e => console.error("Redirect error:", e));
+        if (result.user && !gameStarted) onUserLoggedIn(result.user);
+    }).catch(e => console.error(e));
 
-    // 2. Listen for auth state changes (backup)
     auth.onAuthStateChanged(user => {
-        if (user && !gameStarted) {
-            console.log("onAuthStateChanged user:", user.displayName);
-            startGameWithUser(user);
-        } else if (!user && !getSession()) {
-            // No user, show login screen
-            document.getElementById('loginScreen').style.display = 'flex';
-        }
+        if (user && !gameStarted && !getSession()) onUserLoggedIn(user);
     });
 
-    // 3. Fallback: manual check after 1 second (for some mobile browsers)
     setTimeout(() => {
-        if (auth.currentUser && !gameStarted) {
-            console.log("Manual check found user:", auth.currentUser.displayName);
-            startGameWithUser(auth.currentUser);
-        }
+        if (auth.currentUser && !gameStarted) onUserLoggedIn(auth.currentUser);
     }, 1000);
 }
 
-function startGameWithUser(user) {
+function onUserLoggedIn(user) {
     if (gameStarted) return;
     gameStarted = true;
     const name = user.displayName;
     const email = user.email;
     const users = JSON.parse(localStorage.getItem('cr_users_v2') || '[]');
-    if (!users.find(u => u.email === email)) {
-        users.push({ name, email, via: 'google', id: user.uid });
-    }
+    if (!users.find(u => u.email === email)) users.push({ name, email, via: 'google', id: user.uid });
     localStorage.setItem('cr_users_v2', JSON.stringify(users));
     saveSession({ email, name, via: 'google' });
     document.getElementById('loginScreen').style.display = 'none';
@@ -108,10 +91,7 @@ function startGameWithUser(user) {
 }
 
 function handleFirebaseLogin() {
-    if (!auth) {
-        document.getElementById('loginErr').innerHTML = "Firebase loading, try again.";
-        return;
-    }
+    if (!auth) { alert("Firebase loading, try again."); return; }
     auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
 }
 
@@ -151,7 +131,6 @@ window.addEventListener('load', () => {
     initFirebaseAuth();
     loadSkin();
     const sess = getSession();
-    // Auto-start only for Google session, not guest
     if (sess && sess.email && !sess.email.startsWith('guest_')) {
         document.getElementById('loginScreen').style.display = 'none';
         enterGame(sess.name, sess.email);
@@ -162,6 +141,37 @@ window.addEventListener('load', () => {
     checkDailyBadge();
     loadSettings();
 });
+
+function saveKey(e) { return 'cr_save_v4_' + e; }
+function saveProgress() { if (!currentUserEmail) return; try { localStorage.setItem(saveKey(currentUserEmail), JSON.stringify({ level: st.level, score: st.score })); } catch(e) {} }
+function loadProgress() { if (!currentUserEmail) return null; try { const r = localStorage.getItem(saveKey(currentUserEmail)); return r ? JSON.parse(r) : null; } catch { return null; } }
+function saveLB() {
+  try {
+    const lb = JSON.parse(localStorage.getItem('cr_lb_v4') || '[]');
+    const idx = lb.findIndex(r => r.email === currentUserEmail);
+    const entry = { name: currentUserName, email: currentUserEmail, score: st.score, level: st.level };
+    if (idx >= 0) { if (st.score > lb[idx].score) lb[idx] = entry; } else lb.push(entry);
+    lb.sort((a,b) => b.score - a.score);
+    localStorage.setItem('cr_lb_v4', JSON.stringify(lb.slice(0,100)));
+  } catch(e) {}
+}
+function showLeaderboard() {
+  showOv('lbOv');
+  const content = document.getElementById('lbContent');
+  try {
+    const lb = JSON.parse(localStorage.getItem('cr_lb_v4') || '[]');
+    if (!lb.length) { content.innerHTML = '<div style="text-align:center;">No scores yet.</div>'; return; }
+    const medals = ['🥇','🥈','🥉'];
+    let html = '<div>';
+    lb.slice(0,20).forEach((r,i) => {
+      const isMe = r.email === currentUserEmail;
+      html += `<div class="lb-row"><span class="lb-rank">${i<3?medals[i]:i+1}</span><span class="lb-name">${r.name}${isMe?' ★':''}</span><span class="lb-score">${r.score.toLocaleString()}</span><span class="lb-lv">L${r.level}</span></div>`;
+    });
+    html += '</div>';
+    content.innerHTML = html;
+  } catch(e) { content.innerHTML = '<div>Error</div>'; }
+}
+function closeLB() { showOv('homeOv'); }
 
 // ===== AUDIO (ORIGINAL) =====
 let soundEnabled = localStorage.getItem('cm_sound') !== 'off';
@@ -255,7 +265,7 @@ function cycleSkin() {
 }
 window.cycleSkin = cycleSkin;
 
-// ===== CANVAS & GAME (ORIGINAL LOGIC) =====
+// ===== CANVAS & GAME (ORIGINAL) =====
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 if(!CanvasRenderingContext2D.prototype.roundRect){
