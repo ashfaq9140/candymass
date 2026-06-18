@@ -1,6 +1,4 @@
-// ===== CANDY MASS - COMPLETE WORKING (FIREBASE REDIRECT + GUEST) =====
-// All game features included. No external dependencies other than Firebase.
-
+// ===== CANDY MASS - COMPLETE SCRIPT (MODULAR FIREBASE + GUEST) =====
 // ===== RESPONSIVE SCALING =====
 const BASE_W = 400, BASE_H = 540;
 let gameW = BASE_W, gameH = BASE_H;
@@ -40,7 +38,7 @@ function moveB(cx) {
     st.basket.x = Math.max(st.basket.w/2, Math.min(gameW - st.basket.w/2, newX));
 }
 
-// ===== AUTH (FIREBASE REDIRECT + MANUAL GUEST) =====
+// ===== AUTH (USING MODULAR FIREBASE FROM HTML) =====
 const SESSION_KEY = 'cr_session_v4';
 function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } }
 function saveSession(s) { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
@@ -48,45 +46,30 @@ function clearSession() { localStorage.removeItem(SESSION_KEY); }
 
 let currentUserEmail = 'guest';
 let currentUserName = 'Guest';
-let auth = null;
 let gameStarted = false;
 
-function onUserLoggedIn(user) {
+// Firebase auth instance from window (set by index.html)
+function getAuth() {
+    return window.firebaseAuth || null;
+}
+
+// This function is called from the HTML when popup login succeeds
+window.onUserLoggedIn = function(user) {
     if (gameStarted) return;
     gameStarted = true;
     const name = user.displayName;
     const email = user.email;
     const users = JSON.parse(localStorage.getItem('cr_users_v2') || '[]');
-    if (!users.find(u => u.email === email)) users.push({ name, email, via: 'google', id: user.uid });
+    if (!users.find(u => u.email === email)) {
+        users.push({ name, email, via: 'google', id: user.uid });
+    }
     localStorage.setItem('cr_users_v2', JSON.stringify(users));
     saveSession({ email, name, via: 'google' });
     document.getElementById('loginScreen').style.display = 'none';
     enterGame(name, email);
-}
+};
 
-function initFirebaseAuth() {
-    if (typeof firebase === 'undefined') { setTimeout(initFirebaseAuth, 200); return; }
-    if (!firebase.apps.length) {
-        firebase.initializeApp({
-            apiKey: "AIzaSyAsorqvEzqBGSPlGnJiEW79GD0diwNpau0",
-            authDomain: "candy-mass-games.firebaseapp.com",
-            projectId: "candy-mass-games",
-            storageBucket: "candy-mass-games.firebasestorage.app",
-            messagingSenderId: "407968632399",
-            appId: "1:407968632399:web:7d131377d8f7965be6243a"
-        });
-    }
-    auth = firebase.auth();
-    auth.getRedirectResult().then(result => { if (result.user && !gameStarted) onUserLoggedIn(result.user); }).catch(e => console.error(e));
-    auth.onAuthStateChanged(user => { if (user && !gameStarted && !getSession()) onUserLoggedIn(user); });
-    setTimeout(() => { if (auth.currentUser && !gameStarted) onUserLoggedIn(auth.currentUser); }, 1000);
-}
-
-function handleFirebaseLogin() {
-    if (!auth) { alert("Firebase loading, try again."); return; }
-    auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
-}
-
+// Guest login (manual)
 function guestLogin() {
     document.body.classList.add('game-active');
     const name = 'Guest_' + Math.floor(Math.random() * 10000);
@@ -98,7 +81,10 @@ function guestLogin() {
 
 function logout() {
     document.body.classList.remove('game-active');
-    if (auth && auth.currentUser) auth.signOut();
+    const auth = getAuth();
+    if (auth && auth.currentUser) {
+        auth.signOut();
+    }
     clearSession();
     stopMusic();
     document.getElementById('gameWrap').style.display = 'none';
@@ -114,13 +100,16 @@ function enterGame(name, email) {
     document.getElementById('gameWrap').style.display = 'flex';
     initSoundBtn();
     const saved = loadProgress();
-    if (saved && saved.level > 1) startGame(true);
-    else startGame(false);
+    if (saved && saved.level > 1) {
+        startGame(true);
+    } else {
+        startGame(false);
+    }
     resizeCanvas();
 }
 
+// Check session on page load
 window.addEventListener('load', () => {
-    initFirebaseAuth();
     loadSkin();
     const sess = getSession();
     if (sess && sess.email && !sess.email.startsWith('guest_')) {
@@ -134,7 +123,7 @@ window.addEventListener('load', () => {
     loadSettings();
 });
 
-// ===== GAME SAVE & LEADERBOARD =====
+// ===== SAVE & LEADERBOARD =====
 function saveKey(e) { return 'cr_save_v4_' + e; }
 function saveProgress() { if (!currentUserEmail) return; try { localStorage.setItem(saveKey(currentUserEmail), JSON.stringify({ level: st.level, score: st.score })); } catch(e) {} }
 function loadProgress() { if (!currentUserEmail) return null; try { const r = localStorage.getItem(saveKey(currentUserEmail)); return r ? JSON.parse(r) : null; } catch { return null; } }
@@ -940,7 +929,7 @@ function showRoadmap() {
 }
 function closeRoadmap() { showOv('homeOv'); }
 
-// ===== DAILY REWARD =====
+// ===== DAILY REWARD (fully fixed) =====
 const DAILY_KEY = 'cm_daily_v1';
 const STREAK_KEY = 'cm_streak_v1';
 const WHEEL_SEGMENTS = [
