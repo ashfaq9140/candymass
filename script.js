@@ -92,14 +92,18 @@ function logout() {
 
 // ===== CLOUD SAVE (FIRESTORE) =====
 async function saveProgressToCloud() {
-    // Sirf Google login users ke liye (guest ko skip)
     if (!currentUserEmail || currentUserEmail.startsWith('guest_')) {
         console.log("Guest user, skipping cloud save");
         return;
     }
     try {
         const db = window.firebaseDb;
-        if (!db) { console.error("Firestore not initialized"); return; }
+        const doc = window.firebaseDoc;
+        const setDoc = window.firebaseSetDoc;
+        if (!db || !doc || !setDoc) {
+            console.error("Firestore not initialized");
+            return;
+        }
         const userRef = doc(db, "users", currentUserEmail);
         await setDoc(userRef, {
             name: currentUserName,
@@ -115,14 +119,18 @@ async function saveProgressToCloud() {
 }
 
 async function loadProgressFromCloud() {
-    // Sirf Google login users ke liye
     if (!currentUserEmail || currentUserEmail.startsWith('guest_')) {
         console.log("Guest user, skipping cloud load");
         return null;
     }
     try {
         const db = window.firebaseDb;
-        if (!db) { console.error("Firestore not initialized"); return null; }
+        const doc = window.firebaseDoc;
+        const getDoc = window.firebaseGetDoc;
+        if (!db || !doc || !getDoc) {
+            console.error("Firestore not initialized");
+            return null;
+        }
         const userRef = doc(db, "users", currentUserEmail);
         const docSnap = await getDoc(userRef);
         if (docSnap.exists()) {
