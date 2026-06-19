@@ -125,13 +125,12 @@
 </div>
 </div>
 
-<!-- ⚠️ FIREBASE MODULAR SDK (type="module") – Put this at the end of body -->
+<!-- ⚠️ FIREBASE MODULAR SDK (type="module") – WITH FIRESTORE -->
 <script type="module">
-  // Import the functions you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
   import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
-  // Your web app's Firebase configuration
   const firebaseConfig = {
     apiKey: "AIzaSyAISLDYHY59ULcHeWtPIrExEvWE18C-7ds",
     authDomain: "candy-mass-game.firebaseapp.com",
@@ -142,30 +141,26 @@
     measurementId: "G-1FERW0XRGR"
   };
 
-  // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
+  const db = getFirestore(app);
   const provider = new GoogleAuthProvider();
 
-  // Expose auth functions to global scope (so your game code can use them)
   window.firebaseAuth = auth;
-  window.firebaseProvider = provider;
+  window.firebaseDb = db;
 
-  // Handle Google Login with Popup (works on mobile too)
   window.handleFirebaseLogin = async function() {
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       console.log("User signed in:", user.displayName);
       
-      // Save user data
       const users = JSON.parse(localStorage.getItem('cr_users_v2') || '[]');
       if (!users.find(u => u.email === user.email)) {
         users.push({ name: user.displayName, email: user.email, via: 'google', id: user.uid });
       }
       localStorage.setItem('cr_users_v2', JSON.stringify(users));
       
-      // Save session
       const SESSION_KEY = 'cr_session_v4';
       localStorage.setItem(SESSION_KEY, JSON.stringify({ 
         email: user.email, 
@@ -173,13 +168,11 @@
         via: 'google' 
       }));
 
-      // Hide login screen and start game
       document.getElementById('loginScreen').style.display = 'none';
-      // Call your existing enterGame function (make sure it's globally available)
       if (typeof enterGame === 'function') {
         enterGame(user.displayName, user.email);
       } else {
-        console.error("enterGame function not found. Make sure script.js loads before this.");
+        console.error("enterGame function not found.");
       }
     } catch (error) {
       console.error("Google login error:", error);
@@ -187,11 +180,9 @@
     }
   };
 
-  // Listen for auth state changes (auto-login if already signed in)
   onAuthStateChanged(auth, (user) => {
     if (user) {
       console.log("User already signed in:", user.displayName);
-      // Check if session exists, if not, create it
       const SESSION_KEY = 'cr_session_v4';
       const session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
       if (!session || session.email !== user.email) {
@@ -206,7 +197,6 @@
           via: 'google' 
         }));
       }
-      // Hide login and start game
       document.getElementById('loginScreen').style.display = 'none';
       if (typeof enterGame === 'function') {
         enterGame(user.displayName, user.email);
@@ -214,15 +204,13 @@
     }
   });
 
-  // Attach click handler to the Google Login button
   document.getElementById('googleLoginBtn').addEventListener('click', () => {
     window.handleFirebaseLogin();
   });
 
-  console.log("Firebase Auth ready!");
+  console.log("Firebase Auth + Firestore ready!");
 </script>
 
-<!-- Your main game script -->
 <script src="script.js"></script>
 </body>
 </html>
