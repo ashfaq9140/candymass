@@ -1,4 +1,4 @@
-// ===== CANDY MASS - COMPLETE SCRIPT (MODULAR FIREBASE + GUEST) =====
+// ===== CANDY MASS - COMPLETE SCRIPT (WITH CLOUD SAVE) =====
 // ===== RESPONSIVE SCALING =====
 const BASE_W = 400, BASE_H = 540;
 let gameW = BASE_W, gameH = BASE_H;
@@ -48,12 +48,10 @@ let currentUserEmail = 'guest';
 let currentUserName = 'Guest';
 let gameStarted = false;
 
-// Firebase auth instance from window (set by index.html)
 function getAuth() {
     return window.firebaseAuth || null;
 }
 
-// This function is called from the HTML when popup login succeeds
 window.onUserLoggedIn = function(user) {
     if (gameStarted) return;
     gameStarted = true;
@@ -69,7 +67,6 @@ window.onUserLoggedIn = function(user) {
     enterGame(name, email);
 };
 
-// Guest login (manual)
 function guestLogin() {
     document.body.classList.add('game-active');
     const name = 'Guest_' + Math.floor(Math.random() * 10000);
@@ -93,22 +90,82 @@ function logout() {
     gameStarted = false;
 }
 
-function enterGame(name, email) {
+// ===== CLOUD SAVE (FIRESTORE) =====
+async function saveProgressToCloud() {
+    // Sirf Google login users ke liye (guest ko skip)
+    if (!currentUserEmail || currentUserEmail.startsWith('guest_')) {
+        console.log("Guest user, skipping cloud save");
+        return;
+    }
+    try {
+        const db = window.firebaseDb;
+        if (!db) { console.error("Firestore not initialized"); return; }
+        const userRef = doc(db, "users", currentUserEmail);
+        await setDoc(userRef, {
+            name: currentUserName,
+            level: st.level,
+            score: st.score,
+            lives: st.lives,
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
+        console.log("✅ Progress saved to cloud!");
+    } catch (e) {
+        console.error("❌ Cloud save error:", e);
+    }
+}
+
+async function loadProgressFromCloud() {
+    // Sirf Google login users ke liye
+    if (!currentUserEmail || currentUserEmail.startsWith('guest_')) {
+        console.log("Guest user, skipping cloud load");
+        return null;
+    }
+    try {
+        const db = window.firebaseDb;
+        if (!db) { console.error("Firestore not initialized"); return null; }
+        const userRef = doc(db, "users", currentUserEmail);
+        const docSnap = await getDoc(userRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            console.log("✅ Cloud data loaded:", data);
+            return { level: data.level, score: data.score, lives: data.lives || 3 };
+        } else {
+            console.log("No cloud data found for this user");
+            return null;
+        }
+    } catch (e) {
+        console.error("❌ Cloud load error:", e);
+        return null;
+    }
+}
+
+async function enterGame(name, email) {
     currentUserEmail = email;
     currentUserName = name;
     document.getElementById('userName').textContent = '👤 ' + name;
     document.getElementById('gameWrap').style.display = 'flex';
     initSoundBtn();
-    const saved = loadProgress();
+
+    // 1. Try to load from cloud first (for Google users)
+    let saved = null;
+    if (!email.startsWith('guest_')) {
+        saved = await loadProgressFromCloud();
+    }
+    
+    // 2. If no cloud data, try local storage
+    if (!saved) {
+        saved = loadProgress();
+    }
+    
+    // 3. Start game with saved data (or fresh)
     if (saved && saved.level > 1) {
-        startGame(true);
+        startGame(true, saved);
     } else {
         startGame(false);
     }
     resizeCanvas();
 }
 
-// Check session on page load
 window.addEventListener('load', () => {
     loadSkin();
     const sess = getSession();
@@ -123,10 +180,19 @@ window.addEventListener('load', () => {
     loadSettings();
 });
 
-// ===== SAVE & LEADERBOARD =====
 function saveKey(e) { return 'cr_save_v4_' + e; }
-function saveProgress() { if (!currentUserEmail) return; try { localStorage.setItem(saveKey(currentUserEmail), JSON.stringify({ level: st.level, score: st.score })); } catch(e) {} }
-function loadProgress() { if (!currentUserEmail) return null; try { const r = localStorage.getItem(saveKey(currentUserEmail)); return r ? JSON.parse(r) : null; } catch { return null; } }
+function saveProgress() { if (!currentUserEmail) return; try { localStorage.setItem(saveKey(currentUserEmail), JSON.stringify({ level: st.level, score: st.score, lives: st.lives })); } catch(e) {} }
+function loadProgress() {
+    if (!currentUserEmail) return null;
+    try {
+        const r = localStorage.getItem(saveKey(currentUserEmail));
+        if (r) {
+            const data = JSON.parse(r);
+            return { level: data.level, score: data.score, lives: data.lives || 3 };
+        }
+        return null;
+    } catch { return null; }
+}
 function saveLB() {
   try {
     const lb = JSON.parse(localStorage.getItem('cr_lb_v4') || '[]');
@@ -384,14 +450,18 @@ function showOv(id){
   overlays.forEach(s=>{ const el=document.getElementById(s); if(el) el.style.display='none'; });
   if(id) document.getElementById(id).style.display='flex';
 }
-function startGame(resume){
-  try{ getAC().resume(); }catch(e){}
-  const saved = loadProgress();
-  if(resume && saved && saved.level>1) initLevel(saved.level, saved.score, 3);
-  else initLevel(1,0,3);
-  showOv(null); st.running=true;
-  startMusic(st.currentTheme?st.currentTheme.id:0);
-  requestAnimationFrame(gameLoop);
+function startGame(resume, savedData) {
+    try{ getAC().resume(); }catch(e){}
+    let saved = savedData || loadProgress();
+    if (resume && saved && saved.level > 1) {
+        initLevel(saved.level, saved.score, saved.lives || 3);
+    } else {
+        initLevel(1, 0, 3);
+    }
+    showOv(null);
+    st.running = true;
+    startMusic(st.currentTheme ? st.currentTheme.id : 0);
+    requestAnimationFrame(gameLoop);
 }
 function nextLevel(){
   st.level++;
@@ -404,7 +474,10 @@ function nextLevel(){
 function isBossLevel(lvl){ return lvl%100===0 && lvl>0; }
 function onLevelComplete(){
   st.running = false;
-  saveProgress(); saveLB(); sfxLevelUp();
+  saveProgress();
+  saveProgressToCloud();
+  saveLB();
+  sfxLevelUp();
   const prevTh = getTheme(st.level);
   const nextTh = getTheme(st.level+1);
   if(prevTh.id !== nextTh.id){ showThemeUnlock(nextTh); return; }
@@ -459,7 +532,10 @@ function onBossComplete(){
   st.running=false; sfxBossWin(); spawnConfetti();
   const bd=st.bossData||getBossData(st.level);
   st.lives=Math.min(st.lives+bd.bonusLives,5); st.score+=bd.bonusScore; st.isBossActive=false;
-  updateHUD(); saveProgress(); saveLB();
+  updateHUD();
+  saveProgress();
+  saveProgressToCloud();
+  saveLB();
   document.getElementById('bossWinEmoji').textContent='🏆';
   document.getElementById('bossWinTitle').textContent='BOSS DEFEATED! 🎉';
   document.getElementById('bossWinSub').innerHTML=bd.emoji+' '+bd.name+' defeated!\n\n+'+bd.bonusLives+'❤️ Lives!\n+'+bd.bonusScore.toLocaleString()+' Bonus!\n\nTotal: '+st.score.toLocaleString();
@@ -516,7 +592,7 @@ function onTaskComplete(){
   document.getElementById('celebSub').innerHTML = 'Excellent! +1 ❤️ Life gained!\nClick Continue to finish the level.';
   showOv('celebOv');
 }
-function endGame(isBomb=false){
+function endGame(isBomb){
   st.running=false; stopMusic();
   if(isBomb){
     sfxBomb(); triggerShake(18,35);
@@ -534,7 +610,10 @@ function endGame(isBomb=false){
     document.getElementById('goScore').textContent='Score: '+st.score.toLocaleString();
     document.getElementById('goSub').innerHTML='You reached level '+st.level+'.\nSaved progress — you can continue!';
   }
-  showOv('goOv'); saveLB();
+  saveProgress();
+  saveProgressToCloud();
+  saveLB();
+  showOv('goOv');
 }
 function updatePowerupHud() {
   const hud = document.getElementById('powerupHud');
@@ -929,7 +1008,7 @@ function showRoadmap() {
 }
 function closeRoadmap() { showOv('homeOv'); }
 
-// ===== DAILY REWARD (fully fixed) =====
+// ===== DAILY REWARD (FULLY FIXED) =====
 const DAILY_KEY = 'cm_daily_v1';
 const STREAK_KEY = 'cm_streak_v1';
 const WHEEL_SEGMENTS = [
