@@ -1240,3 +1240,116 @@ window.showRoadmap = showRoadmap; window.closeRoadmap = closeRoadmap; window.sho
 window.closeDailyReward = closeDailyReward; window.spinWheel = spinWheel; window.cycleSkin = cycleSkin;
 window.showSettings = showSettings; window.closeSettings = closeSettings; window.showHelp = showHelp;
 window.togglePause = togglePause; window.toggleMusic = toggleMusic; window.toggleSound = toggleSound;
+// ===== HOME PAGE BUTTONS - EVENT LISTENERS =====
+document.addEventListener('DOMContentLoaded', () => {
+    // Home page buttons
+    const homeBtns = {
+        'homeMusicBtn': toggleMusic,
+        'homeSoundBtn': toggleSound,
+        'homeSkinBtn': cycleSkin,
+        'homeLogoutBtn': logout,
+        'homeNewGameBtn': () => startGame(false),
+        'homeContinueBtn': () => startGame(true),
+        'homeLbBtn': showLeaderboard,
+        'homeMapBtn': showRoadmap,
+        'homeDailyBtn': showDailyReward,
+        'homeSettingsBtn': showSettings,
+        'homeSkinBtn2': cycleSkin,
+        'homeHelpBtn': showHelp
+    };
+    Object.keys(homeBtns).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('click', homeBtns[id]);
+    });
+
+    // Google Login button (already has listener in module)
+    // Guest Login
+    const guestBtn = document.getElementById('guestLoginBtn');
+    if (guestBtn) guestBtn.addEventListener('click', guestLogin);
+
+    // Settings overlay buttons
+    const settingsLogout = document.getElementById('settingsLogoutBtn');
+    if (settingsLogout) settingsLogout.addEventListener('click', logout);
+    const exitGameBtn = document.getElementById('exitGameBtn');
+    if (exitGameBtn) exitGameBtn.addEventListener('click', exitGame);
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettings);
+
+    // Help back
+    const helpBack = document.getElementById('helpBackBtn');
+    if (helpBack) helpBack.addEventListener('click', () => showOv('homeOv'));
+
+    // Pause resume
+    const resumeBtn = document.getElementById('resumeBtn');
+    if (resumeBtn) resumeBtn.addEventListener('click', togglePause);
+
+    // Level complete
+    const nextLevelBtn = document.getElementById('nextLevelBtn');
+    if (nextLevelBtn) nextLevelBtn.addEventListener('click', nextLevel);
+
+    // Task
+    const startTaskBtn = document.getElementById('startTaskBtn');
+    if (startTaskBtn) startTaskBtn.addEventListener('click', startTaskPlay);
+
+    // Celebration
+    const celebContinue = document.getElementById('celebContinueBtn');
+    if (celebContinue) celebContinue.addEventListener('click', afterCeleb);
+
+    // Leaderboard
+    const lbBack = document.getElementById('lbBackBtn');
+    if (lbBack) lbBack.addEventListener('click', closeLB);
+
+    // Roadmap
+    const roadmapBack = document.getElementById('roadmapBackBtn');
+    if (roadmapBack) roadmapBack.addEventListener('click', closeRoadmap);
+
+    // Daily Reward
+    const spinBtn = document.getElementById('spinBtnEl');
+    if (spinBtn) spinBtn.addEventListener('click', spinWheel);
+    const dailyBack = document.getElementById('dailyBackBtn');
+    if (dailyBack) dailyBack.addEventListener('click', closeDailyReward);
+
+    // Boss
+    const bossFight = document.getElementById('bossFightBtn');
+    if (bossFight) bossFight.addEventListener('click', startBossLevel);
+    const bossWinContinue = document.getElementById('bossWinContinueBtn');
+    if (bossWinContinue) bossWinContinue.addEventListener('click', afterBossWin);
+
+    // Game Over
+    const goContinue = document.getElementById('goContinueBtn');
+    if (goContinue) goContinue.addEventListener('click', () => startGame(true));
+    const goRestart = document.getElementById('goRestartBtn');
+    if (goRestart) goRestart.addEventListener('click', () => startGame(false));
+
+    // Theme
+    const enterTheme = document.getElementById('enterThemeBtn');
+    if (enterTheme) enterTheme.addEventListener('click', enterNewTheme);
+
+    // Old home screen buttons (if needed)
+    const oldNewGame = document.getElementById('oldNewGameBtn');
+    if (oldNewGame) oldNewGame.addEventListener('click', () => startGame(false));
+    const oldContinue = document.getElementById('oldContinueBtn');
+    if (oldContinue) oldContinue.addEventListener('click', () => startGame(true));
+    const oldLb = document.getElementById('oldLbBtn');
+    if (oldLb) oldLb.addEventListener('click', showLeaderboard);
+    const oldMap = document.getElementById('oldMapBtn');
+    if (oldMap) oldMap.addEventListener('click', showRoadmap);
+    const oldDaily = document.getElementById('oldDailyBtn');
+    if (oldDaily) oldDaily.addEventListener('click', showDailyReward);
+    const oldSkin = document.getElementById('oldSkinBtn');
+    if (oldSkin) oldSkin.addEventListener('click', cycleSkin);
+    const oldSettings = document.getElementById('oldSettingsBtn');
+    if (oldSettings) oldSettings.addEventListener('click', showSettings);
+    const oldHelp = document.getElementById('oldHelpBtn');
+    if (oldHelp) oldHelp.addEventListener('click', showHelp);
+
+    // Top bar buttons (game)
+    const settingsBtn = document.getElementById('settingsBtn');
+    if (settingsBtn) settingsBtn.addEventListener('click', showSettings);
+    const musicToggleBtn = document.getElementById('musicToggleBtn');
+    if (musicToggleBtn) musicToggleBtn.addEventListener('click', toggleMusic);
+    const soundToggleBtn = document.getElementById('soundToggleBtn');
+    if (soundToggleBtn) soundToggleBtn.addEventListener('click', toggleSound);
+    const pauseBtn = document.getElementById('pauseBtn');
+    if (pauseBtn) pauseBtn.addEventListener('click', togglePause);
+});
