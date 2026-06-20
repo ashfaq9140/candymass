@@ -1,4 +1,6 @@
-/* ===== NEW HOME PAGE STYLES (added without breaking existing game) ===== */
+/* ============================================================
+   NEW HOME PAGE STYLES (Game ke saath interfere nahi karenge)
+   ============================================================ */
 
 /* Home Page Overlay – same as other overlays */
 #homePageOv {
@@ -115,7 +117,7 @@
   background: rgba(255,215,0,0.15);
 }
 
-/* Feature Grid – reusing existing .icon-grid but with custom styles */
+/* Feature Grid – using ID to avoid conflicts with existing .icon-grid */
 #homePageOv .icon-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
