@@ -1,4 +1,4 @@
-// ===== CANDY MASS - COMPLETE SCRIPT (WITH CLOUD SAVE + HOME PAGE) =====
+// ===== CANDY MASS - COMPLETE SCRIPT (WITH HOME PAGE) =====
 // ===== RESPONSIVE SCALING =====
 const BASE_W = 400, BASE_H = 540;
 let gameW = BASE_W, gameH = BASE_H;
@@ -38,27 +38,6 @@ function moveB(cx) {
     st.basket.x = Math.max(st.basket.w/2, Math.min(gameW - st.basket.w/2, newX));
 }
 
-// ============================================================
-// 🏠 HOME PAGE FUNCTIONS (New Addition)
-// ============================================================
-function showHomePage() {
-    // Hide all overlays
-    document.querySelectorAll('.overlay').forEach(el => el.style.display = 'none');
-    // Show home page
-    const homePage = document.getElementById('homePageOv');
-    if (homePage) homePage.style.display = 'flex';
-    // Ensure game is not running (canvas hidden behind overlay)
-    if (st) st.running = false;
-    console.log('🏠 Home page shown');
-}
-
-function hideHomePage() {
-    const homePage = document.getElementById('homePageOv');
-    if (homePage) homePage.style.display = 'none';
-    console.log('🏠 Home page hidden');
-}
-// ============================================================
-
 // ===== AUTH (USING MODULAR FIREBASE FROM HTML) =====
 const SESSION_KEY = 'cr_session_v4';
 function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } }
@@ -68,6 +47,7 @@ function clearSession() { localStorage.removeItem(SESSION_KEY); }
 let currentUserEmail = 'guest';
 let currentUserName = 'Guest';
 let gameStarted = false;
+let isOnHomePage = false;
 
 function getAuth() {
     return window.firebaseAuth || null;
@@ -85,16 +65,56 @@ window.onUserLoggedIn = function(user) {
     localStorage.setItem('cr_users_v2', JSON.stringify(users));
     saveSession({ email, name, via: 'google' });
     document.getElementById('loginScreen').style.display = 'none';
-    enterGame(name, email);
+    showHomePage(name, email);
 };
 
+// ===== HOME PAGE FUNCTIONS =====
+function showHomePage(name, email) {
+    if (name) {
+        currentUserName = name;
+        currentUserEmail = email;
+    }
+    document.getElementById('gameWrap').style.display = 'flex';
+    document.getElementById('homePageOv').style.display = 'flex';
+    document.getElementById('homeOv').style.display = 'none';
+    document.getElementById('userName').textContent = '👤 ' + currentUserName;
+    isOnHomePage = true;
+    // Update skin button
+    updateSkinButton();
+    // Update sound/music buttons
+    initSoundBtn();
+    initMusicBtn();
+    resizeCanvas();
+}
+
+function hideHomePage() {
+    document.getElementById('homePageOv').style.display = 'none';
+    isOnHomePage = false;
+}
+
+// ===== HOME PAGE BUTTON HANDLERS =====
+function startGameFromHome(resume) {
+    hideHomePage();
+    // Check if we have saved progress
+    const saved = loadProgress();
+    if (resume && saved && saved.level > 1) {
+        startGame(true, saved);
+    } else {
+        startGame(false);
+    }
+}
+
+// Expose home page functions to HTML onclick
+window.startGameFromHome = startGameFromHome;
+
+// ===== GUEST LOGIN =====
 function guestLogin() {
     document.body.classList.add('game-active');
     const name = 'Guest_' + Math.floor(Math.random() * 10000);
     const email = 'guest_' + Date.now() + '@local.candymass';
     saveSession({ email, name, via: 'guest' });
     document.getElementById('loginScreen').style.display = 'none';
-    enterGame(name, email);
+    showHomePage(name, email);
 }
 
 function logout() {
@@ -105,13 +125,77 @@ function logout() {
     }
     clearSession();
     stopMusic();
-    // Hide all overlays including home page
-    document.querySelectorAll('.overlay').forEach(el => el.style.display = 'none');
     document.getElementById('gameWrap').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('homePageOv').style.display = 'none';
     if (typeof st !== 'undefined') st.running = false;
     gameStarted = false;
+    isOnHomePage = false;
 }
+
+function enterGame(name, email) {
+    // This function is called from login flow – show home page instead of direct game start
+    currentUserEmail = email;
+    currentUserName = name;
+    showHomePage(name, email);
+}
+
+window.addEventListener('load', () => {
+    loadSkin();
+    const sess = getSession();
+    if (sess && sess.email && !sess.email.startsWith('guest_')) {
+        document.getElementById('loginScreen').style.display = 'none';
+        showHomePage(sess.name, sess.email);
+        gameStarted = true;
+    } else {
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('homePageOv').style.display = 'none';
+    }
+    checkDailyBadge();
+    loadSettings();
+});
+
+// ===== SAVE & LEADERBOARD =====
+function saveKey(e) { return 'cr_save_v4_' + e; }
+function saveProgress() { if (!currentUserEmail) return; try { localStorage.setItem(saveKey(currentUserEmail), JSON.stringify({ level: st.level, score: st.score, lives: st.lives })); } catch(e) {} }
+function loadProgress() {
+    if (!currentUserEmail) return null;
+    try {
+        const r = localStorage.getItem(saveKey(currentUserEmail));
+        if (r) {
+            const data = JSON.parse(r);
+            return { level: data.level, score: data.score, lives: data.lives || 3 };
+        }
+        return null;
+    } catch { return null; }
+}
+function saveLB() {
+  try {
+    const lb = JSON.parse(localStorage.getItem('cr_lb_v4') || '[]');
+    const idx = lb.findIndex(r => r.email === currentUserEmail);
+    const entry = { name: currentUserName, email: currentUserEmail, score: st.score, level: st.level };
+    if (idx >= 0) { if (st.score > lb[idx].score) lb[idx] = entry; } else lb.push(entry);
+    lb.sort((a,b) => b.score - a.score);
+    localStorage.setItem('cr_lb_v4', JSON.stringify(lb.slice(0,100)));
+  } catch(e) {}
+}
+function showLeaderboard() {
+  showOv('lbOv');
+  const content = document.getElementById('lbContent');
+  try {
+    const lb = JSON.parse(localStorage.getItem('cr_lb_v4') || '[]');
+    if (!lb.length) { content.innerHTML = '<div style="text-align:center;">No scores yet.</div>'; return; }
+    const medals = ['🥇','🥈','🥉'];
+    let html = '<div>';
+    lb.slice(0,20).forEach((r,i) => {
+      const isMe = r.email === currentUserEmail;
+      html += `<div class="lb-row"><span class="lb-rank">${i<3?medals[i]:i+1}</span><span class="lb-name">${r.name}${isMe?' ★':''}</span><span class="lb-score">${r.score.toLocaleString()}</span><span class="lb-lv">L${r.level}</span></div>`;
+    });
+    html += '</div>';
+    content.innerHTML = html;
+  } catch(e) { content.innerHTML = '<div>Error</div>'; }
+}
+function closeLB() { showOv('homeOv'); }
 
 // ===== CLOUD SAVE (FIRESTORE) =====
 async function saveProgressToCloud() {
@@ -169,110 +253,6 @@ async function loadProgressFromCloud() {
         return null;
     }
 }
-
-// ===== ENTER GAME (MODIFIED - SHOWS HOME PAGE) =====
-async function enterGame(name, email) {
-    currentUserEmail = email;
-    currentUserName = name;
-    document.getElementById('userName').textContent = '👤 ' + name;
-    document.getElementById('gameWrap').style.display = 'flex';
-    initSoundBtn();
-
-    // 1. Try to load from cloud first (for Google users)
-    let saved = null;
-    if (!email.startsWith('guest_')) {
-        saved = await loadProgressFromCloud();
-    }
-    
-    // 2. If no cloud data, try local storage
-    if (!saved) {
-        saved = loadProgress();
-    }
-    
-    // 3. Load game state into st (but don't start game yet)
-    if (saved && saved.level > 1) {
-        initLevel(saved.level, saved.score, saved.lives || 3);
-    } else {
-        initLevel(1, 0, 3);
-    }
-    resizeCanvas();
-
-    // 4. 🏠 Show home page instead of starting game directly
-    showHomePage();
-}
-
-// ===== START GAME (MODIFIED - HIDES HOME PAGE) =====
-function startGame(resume, savedData) {
-    hideHomePage(); // 🏠 Hide home page before starting game
-    try{ getAC().resume(); }catch(e){}
-    let saved = savedData || loadProgress();
-    if (resume && saved && saved.level > 1) {
-        initLevel(saved.level, saved.score, saved.lives || 3);
-    } else {
-        initLevel(1, 0, 3);
-    }
-    showOv(null);
-    st.running = true;
-    startMusic(st.currentTheme ? st.currentTheme.id : 0);
-    requestAnimationFrame(gameLoop);
-}
-
-window.addEventListener('load', () => {
-    loadSkin();
-    const sess = getSession();
-    if (sess && sess.email && !sess.email.startsWith('guest_')) {
-        document.getElementById('loginScreen').style.display = 'none';
-        enterGame(sess.name, sess.email);
-        gameStarted = true;
-    } else {
-        document.getElementById('loginScreen').style.display = 'flex';
-        // If no session, ensure home page is hidden
-        hideHomePage();
-    }
-    checkDailyBadge();
-    loadSettings();
-});
-
-function saveKey(e) { return 'cr_save_v4_' + e; }
-function saveProgress() { if (!currentUserEmail) return; try { localStorage.setItem(saveKey(currentUserEmail), JSON.stringify({ level: st.level, score: st.score, lives: st.lives })); } catch(e) {} }
-function loadProgress() {
-    if (!currentUserEmail) return null;
-    try {
-        const r = localStorage.getItem(saveKey(currentUserEmail));
-        if (r) {
-            const data = JSON.parse(r);
-            return { level: data.level, score: data.score, lives: data.lives || 3 };
-        }
-        return null;
-    } catch { return null; }
-}
-function saveLB() {
-  try {
-    const lb = JSON.parse(localStorage.getItem('cr_lb_v4') || '[]');
-    const idx = lb.findIndex(r => r.email === currentUserEmail);
-    const entry = { name: currentUserName, email: currentUserEmail, score: st.score, level: st.level };
-    if (idx >= 0) { if (st.score > lb[idx].score) lb[idx] = entry; } else lb.push(entry);
-    lb.sort((a,b) => b.score - a.score);
-    localStorage.setItem('cr_lb_v4', JSON.stringify(lb.slice(0,100)));
-  } catch(e) {}
-}
-function showLeaderboard() {
-  showOv('lbOv');
-  const content = document.getElementById('lbContent');
-  try {
-    const lb = JSON.parse(localStorage.getItem('cr_lb_v4') || '[]');
-    if (!lb.length) { content.innerHTML = '<div style="text-align:center;">No scores yet.</div>'; return; }
-    const medals = ['🥇','🥈','🥉'];
-    let html = '<div>';
-    lb.slice(0,20).forEach((r,i) => {
-      const isMe = r.email === currentUserEmail;
-      html += `<div class="lb-row"><span class="lb-rank">${i<3?medals[i]:i+1}</span><span class="lb-name">${r.name}${isMe?' ★':''}</span><span class="lb-score">${r.score.toLocaleString()}</span><span class="lb-lv">L${r.level}</span></div>`;
-    });
-    html += '</div>';
-    content.innerHTML = html;
-  } catch(e) { content.innerHTML = '<div>Error</div>'; }
-}
-function closeLB() { showOv('homeOv'); }
 
 // ===== AUDIO =====
 let soundEnabled = localStorage.getItem('cm_sound') !== 'off';
@@ -502,6 +482,20 @@ function showOv(id){
   const overlays = ['homeOv','levelOv','taskOv','celebOv','lbOv','themeOv','roadmapOv','dailyOv','bossOv','bossWinOv','goOv','settingsOv','helpOv','pauseOv'];
   overlays.forEach(s=>{ const el=document.getElementById(s); if(el) el.style.display='none'; });
   if(id) document.getElementById(id).style.display='flex';
+}
+function startGame(resume, savedData) {
+    try{ getAC().resume(); }catch(e){}
+    let saved = savedData || loadProgress();
+    if (resume && saved && saved.level > 1) {
+        initLevel(saved.level, saved.score, saved.lives || 3);
+    } else {
+        initLevel(1, 0, 3);
+    }
+    hideHomePage();
+    showOv(null);
+    st.running = true;
+    startMusic(st.currentTheme ? st.currentTheme.id : 0);
+    requestAnimationFrame(gameLoop);
 }
 function nextLevel(){
   st.level++;
@@ -927,7 +921,7 @@ function gameLoop(){
   if(st.shieldActive){ st.shieldFrames--; if(st.shieldFrames<=0) st.shieldActive=false; updatePowerupHud(); }
   if(st.comboTimer>0){ st.comboTimer--; if(st.comboTimer===0) st.combo=0; }
   st.spawnTimer++; if(st.spawnTimer>=st.spawnInterval){ spawnItem(); st.spawnTimer=0; }
-  const {x:bx, y:by, w:bw, h:bh}=st.basket;
+  const {x:bx,y:by,w:bw,h:bh}=st.basket;
   st.items = st.items.filter(item=>{
     item.y+=item.speed; item.wobble+=0.028;
     if(item.isBomb){ item.fuseTimer=(item.fuseTimer||0)+1; item.rot+=0.03; }
