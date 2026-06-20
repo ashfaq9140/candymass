@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Candy Mass</title>
 <link rel="stylesheet" href="style.css">
- <link rel="icon" href="candymass_icon.png" type="image/png"> 
+<link rel="icon" href="candymass_icon.png" type="image/png">
 </head>
 <body>
 <div id="app">
@@ -59,7 +59,7 @@
   </div>
   <div id="cw"><canvas id="canvas"></canvas></div>
 
-  <!-- HOME SCREEN -->
+  <!-- HOME SCREEN (existing - game ke andar) -->
   <div class="overlay" id="homeOv" style="display:flex;">
     <div class="ov-card">
       <div class="candy-icon">🍬</div>
@@ -75,6 +75,39 @@
         <button class="icon-btn" onclick="showSettings()">⚙️ Settings</button>
         <button class="icon-btn" onclick="showHelp()">❓ Help</button>
       </div>
+      <div class="version">v3.0 | Mass Interactive Games</div>
+    </div>
+  </div>
+
+  <!-- ===== NEW HOME PAGE OVERLAY (login ke baad dikhega) ===== -->
+  <div class="overlay" id="homePageOv" style="display:none;">
+    <div class="home-card">
+      <!-- Top Bar: Settings -->
+      <div class="home-top-bar">
+        <button onclick="toggleMusic()" title="Music">🎵</button>
+        <button onclick="toggleSound()" title="Sound">🔊</button>
+        <button onclick="cycleSkin()" title="Basket Skin">🎨</button>
+        <button onclick="logout()" title="Logout">🚪</button>
+      </div>
+      <!-- Hero Section -->
+      <div class="home-hero">
+        <div class="candy-icon">🍬</div>
+        <div class="game-title">Candy Mass</div>
+        <div class="sub">10,000 LEVELS · PRO EDITION</div>
+      </div>
+      <!-- Main Buttons -->
+      <button class="primary-btn" onclick="startGame(false)">🎮 New Game</button>
+      <button class="secondary-btn" onclick="startGame(true)">💾 Continue</button>
+      <!-- Feature Grid -->
+      <div class="icon-grid">
+        <div class="icon-btn" onclick="showLeaderboard()">🏆 LB</div>
+        <div class="icon-btn" onclick="showRoadmap()">🗺️ Map</div>
+        <div class="icon-btn" onclick="showDailyReward()">🎁 Daily</div>
+        <div class="icon-btn" onclick="showSettings()">⚙️ Settings</div>
+        <div class="icon-btn" onclick="cycleSkin()">🎨 Skin</div>
+        <div class="icon-btn" onclick="showHelp()">❓ Help</div>
+      </div>
+      <!-- Footer -->
       <div class="version">v3.0 | Mass Interactive Games</div>
     </div>
   </div>
