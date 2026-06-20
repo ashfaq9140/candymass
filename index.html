@@ -21,7 +21,7 @@
         🔐 Sign in with Google
     </button>
     <div class="auth-divider"><hr><span>OR</span><hr></div>
-    <button class="guest-btn" onclick="guestLogin()">🎮 Play as Guest</button>
+    <button class="guest-btn" id="guestLoginBtn">🎮 Play as Guest</button>
   </div>
   <div class="studio-credit">
     🍭 Mass Interactive Games | <a href="/privacy.html" style="color: rgba(255,255,255,0.5); text-decoration: none;">Privacy Policy</a>
@@ -35,10 +35,10 @@
       <span id="userName">👤 Guest</span>
       <span id="themeTag">👑 Candy Kingdom</span>
       <div class="top-icons">
-        <button id="settingsBtn" onclick="showSettings()">⚙️</button>
-        <button id="musicToggleBtn" onclick="toggleMusic()">🎵</button>
-        <button id="soundToggleBtn" onclick="toggleSound()">🔊</button>
-        <button id="pauseBtn" onclick="togglePause()">⏸️</button>
+        <button id="settingsBtn">⚙️</button>
+        <button id="musicToggleBtn">🎵</button>
+        <button id="soundToggleBtn">🔊</button>
+        <button id="pauseBtn">⏸️</button>
       </div>
     </div>
     <div id="hudRow">
@@ -59,55 +59,50 @@
   </div>
   <div id="cw"><canvas id="canvas"></canvas></div>
 
-  <!-- HOME SCREEN (OLD) — hidden -->
+  <!-- OLD HOME SCREEN (hidden) -->
   <div class="overlay" id="homeOv" style="display:none;">
     <div class="ov-card">
       <div class="candy-icon">🍬</div>
       <div class="game-title">Candy Mass</div>
       <div class="sub">10,000 LEVELS · PRO EDITION</div>
-      <button class="gbtn gbtn-gold" onclick="startGame(false)">🎮 New Game</button>
-      <button class="gbtn gbtn-purple" onclick="startGame(true)">💾 Continue</button>
+      <button class="gbtn gbtn-gold" id="oldNewGameBtn">🎮 New Game</button>
+      <button class="gbtn gbtn-purple" id="oldContinueBtn">💾 Continue</button>
       <div class="icon-grid">
-        <button class="icon-btn" onclick="showLeaderboard()">🏆 LB</button>
-        <button class="icon-btn" onclick="showRoadmap()">🗺️ Map</button>
-        <button class="icon-btn" onclick="showDailyReward()">🎁 Daily</button>
-        <button class="icon-btn" id="skinBtn" onclick="cycleSkin()">🎨 Skin</button>
-        <button class="icon-btn" onclick="showSettings()">⚙️ Settings</button>
-        <button class="icon-btn" onclick="showHelp()">❓ Help</button>
+        <button class="icon-btn" id="oldLbBtn">🏆 LB</button>
+        <button class="icon-btn" id="oldMapBtn">🗺️ Map</button>
+        <button class="icon-btn" id="oldDailyBtn">🎁 Daily</button>
+        <button class="icon-btn" id="oldSkinBtn">🎨 Skin</button>
+        <button class="icon-btn" id="oldSettingsBtn">⚙️ Settings</button>
+        <button class="icon-btn" id="oldHelpBtn">❓ Help</button>
       </div>
       <div class="version">v3.0 | Mass Interactive Games</div>
     </div>
   </div>
 
-  <!-- ===== NEW HOME PAGE OVERLAY (login ke baad dikhega) ===== -->
+  <!-- ===== NEW HOME PAGE ===== -->
   <div class="overlay" id="homePageOv" style="display:none;">
     <div class="home-card">
-      <!-- Top Bar: Settings -->
       <div class="home-top-bar">
-        <button onclick="window.toggleMusic()" title="Music">🎵</button>
-        <button onclick="window.toggleSound()" title="Sound">🔊</button>
-        <button onclick="window.cycleSkin()" title="Basket Skin">🎨</button>
-        <button onclick="window.logout()" title="Logout">🚪</button>
+        <button id="homeMusicBtn">🎵</button>
+        <button id="homeSoundBtn">🔊</button>
+        <button id="homeSkinBtn">🎨</button>
+        <button id="homeLogoutBtn">🚪</button>
       </div>
-      <!-- Hero Section -->
       <div class="home-hero">
         <div class="candy-icon">🍬</div>
         <div class="game-title">Candy Mass</div>
         <div class="sub">10,000 LEVELS · PRO EDITION</div>
       </div>
-      <!-- Main Buttons -->
-      <button class="primary-btn" onclick="window.startGame(false)">🎮 New Game</button>
-      <button class="secondary-btn" onclick="window.startGame(true)">💾 Continue</button>
-      <!-- Feature Grid — FIXED with window. prefix -->
+      <button class="primary-btn" id="homeNewGameBtn">🎮 New Game</button>
+      <button class="secondary-btn" id="homeContinueBtn">💾 Continue</button>
       <div class="icon-grid">
-        <div class="icon-btn" onclick="window.showLeaderboard()">🏆 LB</div>
-        <div class="icon-btn" onclick="window.showRoadmap()">🗺️ Map</div>
-        <div class="icon-btn" onclick="window.showDailyReward()">🎁 Daily</div>
-        <div class="icon-btn" onclick="window.showSettings()">⚙️ Settings</div>
-        <div class="icon-btn" onclick="window.cycleSkin()">🎨 Skin</div>
-        <div class="icon-btn" onclick="window.showHelp()">❓ Help</div>
+        <button class="icon-btn" id="homeLbBtn">🏆 LB</button>
+        <button class="icon-btn" id="homeMapBtn">🗺️ Map</button>
+        <button class="icon-btn" id="homeDailyBtn">🎁 Daily</button>
+        <button class="icon-btn" id="homeSettingsBtn">⚙️ Settings</button>
+        <button class="icon-btn" id="homeSkinBtn2">🎨 Skin</button>
+        <button class="icon-btn" id="homeHelpBtn">❓ Help</button>
       </div>
-      <!-- Footer -->
       <div class="version">v3.0 | Mass Interactive Games</div>
     </div>
   </div>
@@ -120,9 +115,9 @@
       <div class="setting-item"><span>🎵 Music</span><label class="switch"><input type="checkbox" id="setMusic"><span class="slider"></span></label></div>
       <div class="setting-item"><span>📳 Vibration</span><label class="switch"><input type="checkbox" id="setVibration"><span class="slider"></span></label></div>
       <div class="setting-item"><span>✨ Pocket Effects</span><label class="switch"><input type="checkbox" id="setPocket"><span class="slider"></span></label></div>
-      <div class="setting-item"><span>🚪 Logout</span><button onclick="logout()" style="background:#FF4466; border:none; border-radius:20px; padding:5px 12px; color:white;">Logout</button></div>
-      <div class="setting-item"><span>❌ Exit Game</span><button onclick="exitGame()" style="background:#444; border:none; border-radius:20px; padding:5px 12px; color:white;">Exit</button></div>
-      <button class="gbtn gbtn-gold" onclick="closeSettings()">Save & Close</button>
+      <div class="setting-item"><span>🚪 Logout</span><button id="settingsLogoutBtn" style="background:#FF4466; border:none; border-radius:20px; padding:5px 12px; color:white;">Logout</button></div>
+      <div class="setting-item"><span>❌ Exit Game</span><button id="exitGameBtn" style="background:#444; border:none; border-radius:20px; padding:5px 12px; color:white;">Exit</button></div>
+      <button class="gbtn gbtn-gold" id="closeSettingsBtn">Save & Close</button>
     </div>
   </div>
 
@@ -133,7 +128,7 @@
       <div class="faq-item"><b>❄️ Game freeze?</b><br>Restart game from menu.</div>
       <div class="faq-item"><b>💾 Progress lost?</b><br>Login with Google to save across devices.</div>
       <div class="faq-item"><b>🔊 No sound?</b><br>Check settings.</div>
-      <button class="gbtn" onclick="showOv('homeOv')">Back</button>
+      <button class="gbtn" id="helpBackBtn">Back</button>
     </div>
   </div>
 
@@ -141,21 +136,21 @@
   <div class="overlay" id="pauseOv" style="display:none;">
     <div class="ov-card">
       <div class="ov-title">⏸️ Game Paused</div>
-      <button class="gbtn gbtn-gold" onclick="togglePause()">▶️ Resume</button>
+      <button class="gbtn gbtn-gold" id="resumeBtn">▶️ Resume</button>
     </div>
   </div>
 
   <!-- OTHER OVERLAYS -->
-  <div class="overlay" id="levelOv"><div class="ov-card"><div class="ov-emoji" id="lvEmoji">🎉</div><div class="ov-title" id="lvTitle">Level Complete!</div><div class="ov-stat" id="lvScore"></div><div class="ov-sub" id="lvSub"></div><button class="gbtn gbtn-gold" onclick="nextLevel()">Next Level →</button></div></div>
-  <div class="overlay" id="taskOv"><div class="ov-card"><div class="ov-emoji">🎯</div><div class="ov-title">Bonus Task!</div><div class="ov-sub" id="taskDesc">-</div><div id="taskBar"><div id="taskFill"></div></div><div id="taskProg">0/0</div><button class="gbtn gbtn-blue" onclick="startTaskPlay()">Start Task</button></div></div>
-  <div class="overlay" id="celebOv"><div class="ov-card"><div class="ov-emoji" id="celebEmoji">🏆</div><div class="ov-title" id="celebTitle">Awesome!</div><div class="ov-sub" id="celebSub">-</div><button class="gbtn gbtn-gold" onclick="afterCeleb()">Continue</button></div></div>
-  <div class="overlay" id="lbOv"><div class="ov-card"><div class="ov-title">🏆 Leaderboard</div><div id="lbContent"></div><button class="gbtn" onclick="closeLB()">Back</button></div></div>
-  <div class="overlay" id="roadmapOv"><div class="ov-card"><div class="ov-title">🗺️ Level Roadmap</div><div id="roadmapContent"></div><button class="gbtn" onclick="closeRoadmap()">Back</button></div></div>
-  <div class="overlay" id="dailyOv"><div class="ov-card"><div class="ov-title">🎁 Daily Reward</div><div id="streakRow"></div><div id="streakMsg"></div><canvas id="wheelCanvas" width="220" height="220"></canvas><button class="gbtn gbtn-gold" id="spinBtnEl" onclick="spinWheel()">Spin Now</button><div id="spinCooldown"></div><div id="rewardResult"></div><button class="gbtn" onclick="closeDailyReward()">Back</button></div></div>
-  <div class="overlay" id="bossOv"><div class="ov-card"><div id="bossEmoji">👹</div><div class="ov-title" id="bossTitle">⚠️ BOSS LEVEL!</div><div id="bossName">Sugar Demon</div><div class="ov-sub" id="bossSub">-</div><button class="gbtn" style="background:linear-gradient(135deg,#FF4400,#CC0000);" onclick="startBossLevel()">Fight Boss</button></div></div>
-  <div class="overlay" id="bossWinOv"><div class="ov-card"><div id="bossWinEmoji">🏆</div><div class="ov-title" id="bossWinTitle">BOSS DEFEATED!</div><div class="ov-sub" id="bossWinSub">-</div><button class="gbtn gbtn-gold" onclick="afterBossWin()">Continue</button></div></div>
-  <div class="overlay" id="goOv"><div class="ov-card"><div class="ov-emoji" id="goEmoji">💔</div><div class="ov-title" id="goTitle">Game Over!</div><div class="ov-stat" id="goScore"></div><div class="ov-sub" id="goSub">-</div><button class="gbtn gbtn-gold" onclick="startGame(true)">Continue from Saved</button><button class="gbtn gbtn-red" onclick="startGame(false)">Restart</button></div></div>
-  <div class="overlay" id="themeOv"><div class="ov-card"><div class="ov-emoji" id="themeEmoji">🚀</div><div class="ov-title" id="themeTitle">New World!</div><div class="ov-sub" id="themeSub">-</div><button class="gbtn gbtn-gold" onclick="enterNewTheme()">Enter World</button></div></div>
+  <div class="overlay" id="levelOv"><div class="ov-card"><div class="ov-emoji" id="lvEmoji">🎉</div><div class="ov-title" id="lvTitle">Level Complete!</div><div class="ov-stat" id="lvScore"></div><div class="ov-sub" id="lvSub"></div><button class="gbtn gbtn-gold" id="nextLevelBtn">Next Level →</button></div></div>
+  <div class="overlay" id="taskOv"><div class="ov-card"><div class="ov-emoji">🎯</div><div class="ov-title">Bonus Task!</div><div class="ov-sub" id="taskDesc">-</div><div id="taskBar"><div id="taskFill"></div></div><div id="taskProg">0/0</div><button class="gbtn gbtn-blue" id="startTaskBtn">Start Task</button></div></div>
+  <div class="overlay" id="celebOv"><div class="ov-card"><div class="ov-emoji" id="celebEmoji">🏆</div><div class="ov-title" id="celebTitle">Awesome!</div><div class="ov-sub" id="celebSub">-</div><button class="gbtn gbtn-gold" id="celebContinueBtn">Continue</button></div></div>
+  <div class="overlay" id="lbOv"><div class="ov-card"><div class="ov-title">🏆 Leaderboard</div><div id="lbContent"></div><button class="gbtn" id="lbBackBtn">Back</button></div></div>
+  <div class="overlay" id="roadmapOv"><div class="ov-card"><div class="ov-title">🗺️ Level Roadmap</div><div id="roadmapContent"></div><button class="gbtn" id="roadmapBackBtn">Back</button></div></div>
+  <div class="overlay" id="dailyOv"><div class="ov-card"><div class="ov-title">🎁 Daily Reward</div><div id="streakRow"></div><div id="streakMsg"></div><canvas id="wheelCanvas" width="220" height="220"></canvas><button class="gbtn gbtn-gold" id="spinBtnEl">Spin Now</button><div id="spinCooldown"></div><div id="rewardResult"></div><button class="gbtn" id="dailyBackBtn">Back</button></div></div>
+  <div class="overlay" id="bossOv"><div class="ov-card"><div id="bossEmoji">👹</div><div class="ov-title" id="bossTitle">⚠️ BOSS LEVEL!</div><div id="bossName">Sugar Demon</div><div class="ov-sub" id="bossSub">-</div><button class="gbtn" style="background:linear-gradient(135deg,#FF4400,#CC0000);" id="bossFightBtn">Fight Boss</button></div></div>
+  <div class="overlay" id="bossWinOv"><div class="ov-card"><div id="bossWinEmoji">🏆</div><div class="ov-title" id="bossWinTitle">BOSS DEFEATED!</div><div class="ov-sub" id="bossWinSub">-</div><button class="gbtn gbtn-gold" id="bossWinContinueBtn">Continue</button></div></div>
+  <div class="overlay" id="goOv"><div class="ov-card"><div class="ov-emoji" id="goEmoji">💔</div><div class="ov-title" id="goTitle">Game Over!</div><div class="ov-stat" id="goScore"></div><div class="ov-sub" id="goSub">-</div><button class="gbtn gbtn-gold" id="goContinueBtn">Continue from Saved</button><button class="gbtn gbtn-red" id="goRestartBtn">Restart</button></div></div>
+  <div class="overlay" id="themeOv"><div class="ov-card"><div class="ov-emoji" id="themeEmoji">🚀</div><div class="ov-title" id="themeTitle">New World!</div><div class="ov-sub" id="themeSub">-</div><button class="gbtn gbtn-gold" id="enterThemeBtn">Enter World</button></div></div>
 </div>
 </div>
 
