@@ -48,6 +48,7 @@ let currentUserEmail = 'guest';
 let currentUserName = 'Guest';
 let gameStarted = false;
 let isOnHomePage = false;
+let wasGamePausedBeforeSettings = false; // NEW: For settings pause toggle
 
 function getAuth() {
     return window.firebaseAuth || null;
@@ -338,13 +339,10 @@ function loadSkin() {
 function saveSkin() { localStorage.setItem('cm_basket_skin', currentSkinIndex); updateSkinButton(); }
 function updateSkinButton() {
   const skinText = `🎨 ${BASKET_SKINS[currentSkinIndex].emoji} ${BASKET_SKINS[currentSkinIndex].name}`;
-  // Update old button (if exists)
   const btn = document.getElementById('skinBtn');
   if (btn) btn.textContent = skinText;
-  // Update new home page grid button
   const btn2 = document.getElementById('homeSkinBtn2');
   if (btn2) btn2.textContent = skinText;
-  // Top bar skin button remains '🎨' to keep layout clean
 }
 function cycleSkin() {
   currentSkinIndex = (currentSkinIndex + 1) % BASKET_SKINS.length;
@@ -487,7 +485,6 @@ function updateTaskHud(){
 function showOv(id){
   const overlays = ['homeOv','levelOv','taskOv','celebOv','lbOv','themeOv','roadmapOv','dailyOv','bossOv','bossWinOv','goOv','settingsOv','helpOv','pauseOv'];
   overlays.forEach(s=>{ const el=document.getElementById(s); if(el) el.style.display='none'; });
-  // CRITICAL FIX: Hide the new home page when showing an overlay popup
   const homePage = document.getElementById('homePageOv');
   if (homePage) homePage.style.display = 'none';
   if(id) document.getElementById(id).style.display='flex';
@@ -998,17 +995,24 @@ canvas.addEventListener('mousemove', e=>{ if(st.running) moveB(e.clientX); });
 canvas.addEventListener('touchmove', e=>{ e.preventDefault(); if(st.running) moveB(e.touches[0].clientX); },{passive:false});
 canvas.addEventListener('touchstart', e=>{ e.preventDefault(); if(st.running) moveB(e.touches[0].clientX); },{passive:false});
 
+// ===== TOGGLE PAUSE (WITH MUSIC) =====
 function togglePause(){
   if(!st.running) return;
   const pauseOv = document.getElementById('pauseOv');
   if(!isGamePaused){
+    // PAUSE
     isGamePaused = true;
     if(pauseOv) pauseOv.style.display = 'flex';
+    stopMusic(); // Music band karo
   } else {
+    // RESUME
     isGamePaused = false;
     if(pauseOv) pauseOv.style.display = 'none';
+    if (musicEnabled) startMusic(st.currentTheme ? st.currentTheme.id : 0);
   }
 }
+
+// ===== SHOW ROADMAP =====
 function showRoadmap() {
   showOv('roadmapOv');
   const saved = loadProgress();
@@ -1205,6 +1209,8 @@ function claimReward(seg) {
 }
 
 function closeDailyReward() { if(cooldownTimerInterval) clearInterval(cooldownTimerInterval); showHomePage(); }
+
+// ===== SETTINGS =====
 function loadSettings() {
   const sound = localStorage.getItem('game_sound');
   const music = localStorage.getItem('game_music');
@@ -1227,33 +1233,49 @@ function saveSettings() {
   musicEnabled = document.getElementById('setMusic').checked;
   if(musicEnabled && st && st.running) startMusic(st.currentTheme?st.currentTheme.id:0); else stopMusic();
 }
-function showSettings() { showOv('settingsOv'); }
-function closeSettings() { saveSettings(); showHomePage(); }
+function showSettings() {
+  // Agar game chal raha hai aur pause nahi hai toh pause kar do
+  if (st && st.running && !isGamePaused) {
+    wasGamePausedBeforeSettings = true;
+    isGamePaused = true;
+    stopMusic();
+  } else {
+    wasGamePausedBeforeSettings = false;
+  }
+  showOv('settingsOv');
+}
+function closeSettings() {
+  saveSettings();
+  // Agar settings khulne se pehle game chal raha tha toh wapas resume karo
+  if (wasGamePausedBeforeSettings && st && st.running) {
+    isGamePaused = false;
+    wasGamePausedBeforeSettings = false;
+    if (musicEnabled) startMusic(st.currentTheme ? st.currentTheme.id : 0);
+  }
+  // Navigation logic
+  if (isOnHomePage) {
+    showHomePage();
+  } else {
+    showOv(null);
+  }
+}
 function showHelp() { showOv('helpOv'); }
 function exitGame() {
   document.body.classList.remove('game-active');
-  
-  // Stop the game loop
   if (typeof st !== 'undefined') {
     st.running = false;
   }
   stopMusic();
-  
-  // Hide any game overlays
   const overlays = ['levelOv','taskOv','celebOv','lbOv','themeOv','roadmapOv','dailyOv','bossOv','bossWinOv','goOv','settingsOv','helpOv','pauseOv'];
   overlays.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
-  
-  // CRITICAL FIX: Do NOT clear session or logout.
-  // Just go back to the home page (main menu) while staying logged in.
   showHomePage(currentUserName, currentUserEmail);
-  
-  // Optional: let user know
   alert("Game closed. You can start a new game or continue from the home page.");
 }
-// Global exports
+
+// ===== GLOBAL EXPORTS =====
 window.startGame = startGame; window.nextLevel = nextLevel; window.startTaskPlay = startTaskPlay;
 window.afterCeleb = afterCeleb; window.enterNewTheme = enterNewTheme; window.logout = logout;
 window.guestLogin = guestLogin; window.showLeaderboard = showLeaderboard; window.closeLB = closeLB;
@@ -1261,7 +1283,9 @@ window.showRoadmap = showRoadmap; window.closeRoadmap = closeRoadmap; window.sho
 window.closeDailyReward = closeDailyReward; window.spinWheel = spinWheel; window.cycleSkin = cycleSkin;
 window.showSettings = showSettings; window.closeSettings = closeSettings; window.showHelp = showHelp;
 window.togglePause = togglePause; window.toggleMusic = toggleMusic; window.toggleSound = toggleSound;
-// ===== HOME PAGE BUTTONS - EVENT LISTENERS =====
+window.exitGame = exitGame;
+
+// ===== EVENT LISTENERS (DOM READY) =====
 document.addEventListener('DOMContentLoaded', () => {
     // Home page buttons
     const homeBtns = {
@@ -1284,7 +1308,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Google Login button (already has listener in module)
-    // Guest Login
     const guestBtn = document.getElementById('guestLoginBtn');
     if (guestBtn) guestBtn.addEventListener('click', guestLogin);
 
@@ -1298,7 +1321,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Help back
     const helpBack = document.getElementById('helpBackBtn');
-    if (helpBack) helpBack.addEventListener('click', showHomePage);
+    if (helpBack) helpBack.addEventListener('click', () => {
+      if (isOnHomePage) showHomePage();
+      else showOv(null);
+    });
 
     // Pause resume
     const resumeBtn = document.getElementById('resumeBtn');
