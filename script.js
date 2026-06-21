@@ -1232,14 +1232,26 @@ function closeSettings() { saveSettings(); showHomePage(); }
 function showHelp() { showOv('helpOv'); }
 function exitGame() {
   document.body.classList.remove('game-active');
-  clearSession();
-  if (typeof st !== 'undefined') st.running = false;
+  
+  // Stop the game loop
+  if (typeof st !== 'undefined') {
+    st.running = false;
+  }
   stopMusic();
-  const gameWrap = document.getElementById('gameWrap');
-  const loginScreen = document.getElementById('loginScreen');
-  if (gameWrap) gameWrap.style.display = 'none';
-  if (loginScreen) loginScreen.style.display = 'flex';
-  alert("You have exited the game. Reload the page to play again.");
+  
+  // Hide any game overlays
+  const overlays = ['levelOv','taskOv','celebOv','lbOv','themeOv','roadmapOv','dailyOv','bossOv','bossWinOv','goOv','settingsOv','helpOv','pauseOv'];
+  overlays.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  
+  // CRITICAL FIX: Do NOT clear session or logout.
+  // Just go back to the home page (main menu) while staying logged in.
+  showHomePage(currentUserName, currentUserEmail);
+  
+  // Optional: let user know
+  alert("Game closed. You can start a new game or continue from the home page.");
 }
 // Global exports
 window.startGame = startGame; window.nextLevel = nextLevel; window.startTaskPlay = startTaskPlay;
