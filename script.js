@@ -195,7 +195,7 @@ function showLeaderboard() {
     content.innerHTML = html;
   } catch(e) { content.innerHTML = '<div>Error</div>'; }
 }
-function closeLB() { showOv('homeOv'); }
+function closeLB() { showHomePage(); }
 
 // ===== CLOUD SAVE (FIRESTORE) =====
 async function saveProgressToCloud() {
@@ -337,8 +337,14 @@ function loadSkin() {
 }
 function saveSkin() { localStorage.setItem('cm_basket_skin', currentSkinIndex); updateSkinButton(); }
 function updateSkinButton() {
+  const skinText = `🎨 ${BASKET_SKINS[currentSkinIndex].emoji} ${BASKET_SKINS[currentSkinIndex].name}`;
+  // Update old button (if exists)
   const btn = document.getElementById('skinBtn');
-  if (btn) btn.textContent = `🎨 ${BASKET_SKINS[currentSkinIndex].emoji} ${BASKET_SKINS[currentSkinIndex].name}`;
+  if (btn) btn.textContent = skinText;
+  // Update new home page grid button
+  const btn2 = document.getElementById('homeSkinBtn2');
+  if (btn2) btn2.textContent = skinText;
+  // Top bar skin button remains '🎨' to keep layout clean
 }
 function cycleSkin() {
   currentSkinIndex = (currentSkinIndex + 1) % BASKET_SKINS.length;
@@ -481,6 +487,9 @@ function updateTaskHud(){
 function showOv(id){
   const overlays = ['homeOv','levelOv','taskOv','celebOv','lbOv','themeOv','roadmapOv','dailyOv','bossOv','bossWinOv','goOv','settingsOv','helpOv','pauseOv'];
   overlays.forEach(s=>{ const el=document.getElementById(s); if(el) el.style.display='none'; });
+  // CRITICAL FIX: Hide the new home page when showing an overlay popup
+  const homePage = document.getElementById('homePageOv');
+  if (homePage) homePage.style.display = 'none';
   if(id) document.getElementById(id).style.display='flex';
 }
 function startGame(resume, savedData) {
@@ -1040,7 +1049,7 @@ function showRoadmap() {
   </div>`;
   document.getElementById('roadmapContent').innerHTML = html;
 }
-function closeRoadmap() { showOv('homeOv'); }
+function closeRoadmap() { showHomePage(); }
 
 // ===== DAILY REWARD (FULLY FIXED) =====
 const DAILY_KEY = 'cm_daily_v1';
@@ -1195,7 +1204,7 @@ function claimReward(seg) {
     showDailyReward();
 }
 
-function closeDailyReward() { if(cooldownTimerInterval) clearInterval(cooldownTimerInterval); showOv('homeOv'); }
+function closeDailyReward() { if(cooldownTimerInterval) clearInterval(cooldownTimerInterval); showHomePage(); }
 function loadSettings() {
   const sound = localStorage.getItem('game_sound');
   const music = localStorage.getItem('game_music');
@@ -1219,7 +1228,7 @@ function saveSettings() {
   if(musicEnabled && st && st.running) startMusic(st.currentTheme?st.currentTheme.id:0); else stopMusic();
 }
 function showSettings() { showOv('settingsOv'); }
-function closeSettings() { saveSettings(); showOv('homeOv'); }
+function closeSettings() { saveSettings(); showHomePage(); }
 function showHelp() { showOv('helpOv'); }
 function exitGame() {
   document.body.classList.remove('game-active');
@@ -1277,7 +1286,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Help back
     const helpBack = document.getElementById('helpBackBtn');
-    if (helpBack) helpBack.addEventListener('click', () => showOv('homeOv'));
+    if (helpBack) helpBack.addEventListener('click', showHomePage);
 
     // Pause resume
     const resumeBtn = document.getElementById('resumeBtn');
