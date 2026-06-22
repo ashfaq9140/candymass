@@ -1467,10 +1467,531 @@ function drawUFO(r, c1, c2, s) {
     ctx.fill();
 }
 
-// (All other shapes truncated for brevity – they remain exactly as given earlier)
-// Since full code is extremely long, I'll include all drawing functions from earlier part.
-// I assume you have the full drawing functions from my previous messages.
-// For final version, ensure all functions are present.
+// ==============================================
+// ===== MISSING DRAWING FUNCTIONS =====
+// ==============================================
+
+function drawBg() {
+    const th = st.currentTheme || THEMES[0];
+    const g = ctx.createLinearGradient(0, 0, 0, gameH);
+    g.addColorStop(0, th.bg[0]);
+    g.addColorStop(0.5, th.bg[1]);
+    g.addColorStop(1, th.bg[2]);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, gameW, gameH);
+    const t = st.frame * 0.013;
+    for (let i = 0; i < 18; i++) {
+        const sx = (i * 141.7 + Math.sin(t + i) * 18) % gameW;
+        const sy = (i * 99.3 + st.frame * 0.05 + i * 3.5) % gameH;
+        const br = 0.03 + 0.03 * Math.sin(st.frame * 0.05 + i);
+        ctx.globalAlpha = br;
+        ctx.fillStyle = th.star;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 1 + (i % 3) * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+    if (st.levelMode.mode === 'selective') {
+        ctx.fillStyle = 'rgba(255,60,0,0.04)';
+        ctx.fillRect(0, 0, gameW, gameH);
+    }
+    if (st.isBossActive) {
+        const pulse = Math.sin(st.frame * 0.08) * 0.04 + 0.06;
+        ctx.fillStyle = `rgba(255,0,0,${pulse})`;
+        ctx.fillRect(0, 0, gameW, gameH);
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,80,0,0.85)';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        glow('#FF4400', 8);
+        ctx.fillText('⚔️ BOSS: ' + (st.bossData ? st.bossData.emoji + ' ' + st.bossData.name : 'BOSS'), gameW / 2, gameH - 12);
+        ng();
+        ctx.restore();
+    }
+}
+
+function drawProgressBar() {
+    const pct = Math.min(1, st.levelCaught / st.levelTarget);
+    const th = st.currentTheme || THEMES[0];
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    ctx.beginPath();
+    ctx.roundRect(10 * scaleX, 6 * scaleY, gameW - 20 * scaleX, 8 * scaleY, 4 * scaleX);
+    ctx.fill();
+    const pg = ctx.createLinearGradient(10 * scaleX, 0, 10 * scaleX + (gameW - 20 * scaleX) * pct, 0);
+    if (st.isBossActive) { pg.addColorStop(0, '#FF4400');
+        pg.addColorStop(1, '#FF0000'); } else { pg.addColorStop(0, th.bar[0]);
+        pg.addColorStop(1, th.bar[1]); }
+    ctx.fillStyle = pg;
+    ctx.beginPath();
+    ctx.roundRect(10 * scaleX, 6 * scaleY, (gameW - 20 * scaleX) * pct, 8 * scaleY, 4 * scaleX);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = `bold ${9*scaleX}px sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.fillText(st.levelCaught + '/' + st.levelTarget, gameW - 12 * scaleX, 15 * scaleY);
+}
+
+function drawBasketWithSkin(bx, by, bw, bh) {
+    const skin = BASKET_SKINS[currentSkinIndex];
+    ctx.save();
+    glow('#FF88AA', 14);
+    ctx.fillStyle = 'rgba(255,100,150,0.05)';
+    ctx.beginPath();
+    ctx.ellipse(bx, by + bh, bw * 0.65, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ng();
+    const g = ctx.createLinearGradient(bx - bw / 2, by, bx + bw / 2, by + bh * 2);
+    g.addColorStop(0, skin.b1);
+    g.addColorStop(0.4, skin.b2);
+    g.addColorStop(1, skin.b3);
+    ctx.fillStyle = g;
+    ctx.strokeStyle = skin.b3;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(bx - bw / 2, by);
+    ctx.lineTo(bx - bw / 2 + 8, by + bh);
+    ctx.lineTo(bx + bw / 2 - 8, by + bh);
+    ctx.lineTo(bx + bw / 2, by);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.lineWidth = 1.2;
+    for (let i = 1; i < 4; i++) {
+        const px = bx - bw / 2 + (bw / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(px, by);
+        ctx.lineTo(px + 3, by + bh);
+        ctx.stroke();
+    }
+    const rg = ctx.createLinearGradient(bx - bw / 2, by, bx + bw / 2, by);
+    rg.addColorStop(0, skin.bt);
+    rg.addColorStop(0.5, skin.bm);
+    rg.addColorStop(1, skin.bt);
+    ctx.fillStyle = rg;
+    ctx.strokeStyle = skin.b3;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(bx - bw / 2 - 2, by - 4, bw + 4, 8, 3);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+}
+
+// ==============================================
+// ===== COMPLETE drawItem FUNCTION =====
+// ==============================================
+
+function drawItem(item) {
+    const { x, y, type: t, size: r, rot } = item;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+
+    // Special item highlights
+    if (item.isBomb) {
+        const pulse = Math.sin((item.fuseTimer || 0) * 0.25) * 0.5 + 0.5;
+        glow('#FF2222', 10 + pulse * 8);
+        ctx.strokeStyle = `rgba(255,50,50,${0.4+pulse*0.4})`;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, r + 6, 0, Math.PI * 2);
+        ctx.stroke();
+        ng();
+    } else if (item.isShield) {
+        item.pulse = (item.pulse || 0) + 0.1;
+        const p = Math.sin(item.pulse) * 0.5 + 0.5;
+        glow('#A855F7', 10 + p * 8);
+        ctx.strokeStyle = `rgba(168,85,247,${0.4+p*0.4})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, r + 6, 0, Math.PI * 2);
+        ctx.stroke();
+        ng();
+    } else if (item.isPoison) {
+        const pulse = Math.sin((item.pulse || 0) * 0.2) * 0.5 + 0.5;
+        glow('#00AA00', 12 + pulse * 10);
+        ctx.strokeStyle = `rgba(0,170,0,${0.3+pulse*0.4})`;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, r + 8, 0, Math.PI * 2);
+        ctx.stroke();
+        ng();
+    } else if (item.isElite) {
+        const pulse = Math.sin((item.pulse || 0) * 0.3) * 0.5 + 0.5;
+        glow('#FFD700', 14 + pulse * 10);
+        ctx.strokeStyle = `rgba(255,215,0,${0.4+pulse*0.4})`;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, r + 8, 0, Math.PI * 2);
+        ctx.stroke();
+        ng();
+    } else {
+        if (st.levelMode.mode === 'selective' && t.name === st.levelMode.targetShape) {
+            glow('#FFFFFF', 10);
+            ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, r + 5, 0, Math.PI * 2);
+            ctx.stroke();
+            ng();
+        }
+        if (st.inTask && st.taskDef) {
+            const isTT = st.taskDef.type === 'any' || t.name === st.taskDef.type;
+            if (isTT) {
+                glow('#00FF88', 12);
+                ctx.strokeStyle = 'rgba(0,255,136,0.7)';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.arc(0, 0, r + 6, 0, Math.PI * 2);
+                ctx.stroke();
+                ng();
+            } else {
+                glow('#FF2222', 8);
+                ctx.strokeStyle = 'rgba(255,50,50,0.45)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(0, 0, r + 4, 0, Math.PI * 2);
+                ctx.stroke();
+                ng();
+            }
+        }
+    }
+
+    const shape = t.shape;
+    const c1 = t.color || '#FF4DA6';
+    const c2 = t.color2 || '#FF85C8';
+    const s = t.stroke || '#CC0066';
+
+    // Special: Poison
+    if (t.isPoison) {
+        drawPoisonShape(r, c1, c2, s);
+        ctx.restore();
+        return;
+    }
+    if (t.isElite) {
+        drawEliteShape(r, c1, c2, s);
+        ctx.restore();
+        return;
+    }
+
+    // ---- Normal shapes ----
+    switch (shape) {
+        // Candy Kingdom
+        case 'lollipop':
+            drawLollipop(r, c1, c2, s);
+            break;
+        case 'round':
+            drawRound(r, c1, c2, s);
+            break;
+        case 'star':
+            drawStar(r, c1, c2, s);
+            break;
+        case 'heart':
+            drawHeart(r, c1, c2, s);
+            break;
+        case 'wrapped':
+            drawWrapped(r, c1, c2, s);
+            break;
+        case 'diamond':
+            drawDiamond(r, c1, c2, s);
+            break;
+            // Space
+        case 'ufo':
+            drawUFO(r, c1, c2, s);
+            break;
+        case 'comet':
+            drawComet(r, c1, c2, s);
+            break;
+        case 'saturn':
+            drawSaturn(r, c1, c2, s);
+            break;
+        case 'meteor':
+            drawMeteor(r, c1, c2, s);
+            break;
+        case 'crystal':
+            drawCrystal(r, c1, c2, s);
+            break;
+        case 'moon':
+            drawMoon(r, c1, c2, s);
+            break;
+            // Underwater
+        case 'shell':
+            drawShell(r, c1, c2, s);
+            break;
+        case 'wave':
+            drawWave(r, c1, c2, s);
+            break;
+        case 'fish':
+            drawFish(r, c1, c2, s);
+            break;
+        case 'coral':
+            drawCoral(r, c1, c2, s);
+            break;
+        case 'drop':
+            drawDrop(r, c1, c2, s);
+            break;
+        case 'octopus':
+            drawOctopus(r, c1, c2, s);
+            break;
+            // Forest
+        case 'leaf':
+            drawLeaf(r, c1, c2, s);
+            break;
+        case 'acorn':
+            drawAcorn(r, c1, c2, s);
+            break;
+        case 'blossom':
+            drawBlossom(r, c1, c2, s);
+            break;
+        case 'mushroom':
+            drawMushroom(r, c1, c2, s);
+            break;
+        case 'fern':
+            drawFern(r, c1, c2, s);
+            break;
+        case 'honey':
+            drawHoney(r, c1, c2, s);
+            break;
+            // Desert
+        case 'cactus':
+            drawCactus(r, c1, c2, s);
+            break;
+        case 'sun':
+            drawSun(r, c1, c2, s);
+            break;
+        case 'agave':
+            drawAgave(r, c1, c2, s);
+            break;
+        case 'camel':
+            drawCamel(r, c1, c2, s);
+            break;
+        case 'wheat':
+            drawWheat(r, c1, c2, s);
+            break;
+        case 'flame':
+            drawFlame(r, c1, c2, s);
+            break;
+            // Ice
+        case 'snowflake':
+            drawSnowflake(r, c1, c2, s);
+            break;
+        case 'ice':
+            drawIce(r, c1, c2, s);
+            break;
+        case 'snowman':
+            drawSnowman(r, c1, c2, s);
+            break;
+        case 'diamond_ice':
+            drawDiamondIce(r, c1, c2, s);
+            break;
+        case 'frost':
+            drawFrost(r, c1, c2, s);
+            break;
+        case 'cloud':
+            drawCloud(r, c1, c2, s);
+            break;
+            // Volcano
+        case 'fire':
+            drawFire(r, c1, c2, s);
+            break;
+        case 'rock':
+            drawRock(r, c1, c2, s);
+            break;
+        case 'lava':
+            drawLava(r, c1, c2, s);
+            break;
+        case 'skull':
+            drawSkull(r, c1, c2, s);
+            break;
+        case 'blade':
+            drawBlade(r, c1, c2, s);
+            break;
+        case 'lightning':
+            drawLightning(r, c1, c2, s);
+            break;
+            // Neon
+        case 'neon':
+            drawNeon(r, c1, c2, s);
+            break;
+        case 'pixel':
+            drawPixel(r, c1, c2, s);
+            break;
+        case 'signal':
+            drawSignal(r, c1, c2, s);
+            break;
+        case 'glitch':
+            drawGlitch(r, c1, c2, s);
+            break;
+        case 'bolt':
+            drawBoltNeon(r, c1, c2, s);
+            break;
+        case 'target':
+            drawTarget(r, c1, c2, s);
+            break;
+        case 'shield':
+            drawShieldItem(r, item.pulse || 0);
+            break;
+        case 'bomb':
+            drawBombItem(r, item.fuseTimer || 0);
+            break;
+        default:
+            drawRound(r, c1, c2, s);
+    }
+    ctx.restore();
+}
+
+// ----- SPECIAL SHAPES: Poison & Elite -----
+function drawPoisonShape(r, c1, c2, s) {
+    glow('#00AA00', 14);
+    ctx.fillStyle = '#2D2D2D';
+    ctx.strokeStyle = '#00AA00';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.7, r * 0.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#00FF00';
+    ctx.shadowColor = '#00FF00';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.25, -r * 0.1, r * 0.15, r * 0.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(r * 0.25, -r * 0.1, r * 0.15, r * 0.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#00AA00';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.8, r * 0.3);
+    ctx.lineTo(r * 0.8, -r * 0.3);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(r * 0.8, r * 0.3);
+    ctx.lineTo(-r * 0.8, -r * 0.3);
+    ctx.stroke();
+    ctx.fillStyle = '#00AA00';
+    ctx.font = `bold ${Math.round(r*0.4)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('☠', 0, r * 0.3);
+    ng();
+}
+
+function drawEliteShape(r, c1, c2, s) {
+    glow('#FFD700', 16);
+    ctx.fillStyle = '#FFD700';
+    ctx.strokeStyle = '#CC9900';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+        const a = (i * Math.PI / 5) - Math.PI / 2;
+        const rad = i % 2 === 0 ? r : r * 0.4;
+        i === 0 ? ctx.moveTo(Math.cos(a) * rad, Math.sin(a) * rad) : ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#FFD700';
+    ctx.font = `bold ${Math.round(r*0.6)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('👑', 0, -r * 0.1);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.2, -r * 0.3, r * 0.25, r * 0.1, -0.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFD700';
+    ctx.font = `bold ${Math.round(r*0.35)}px sans-serif`;
+    ctx.fillText('⭐', 0, r * 0.7);
+    ng();
+}
+
+// ----- SHIELD & BOMB (Special Items) -----
+function drawShieldItem(r, pulse) {
+    const p = Math.sin(pulse) * 0.5 + 0.5;
+    glow('#A855F7', 12 + p * 10);
+    ctx.strokeStyle = `rgba(168,85,247,${0.4+p*0.5})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, r + 7 + p * 4, 0, Math.PI * 2);
+    ctx.stroke();
+    ng();
+    ctx.beginPath();
+    ctx.moveTo(0, -r);
+    ctx.bezierCurveTo(r, -r, r, -r * 0.2, r, 0);
+    ctx.bezierCurveTo(r, r * 0.6, 0, r * 1.1, 0, r * 1.1);
+    ctx.bezierCurveTo(0, r * 1.1, -r, r * 0.6, -r, 0);
+    ctx.bezierCurveTo(-r, -r * 0.2, -r, -r, 0, -r);
+    const g = ctx.createLinearGradient(-r, -r, r, r);
+    g.addColorStop(0, '#D09BFF');
+    g.addColorStop(0.5, '#A855F7');
+    g.addColorStop(1, '#5C3DCF');
+    ctx.fillStyle = g;
+    glow('#A855F7', 10);
+    ctx.fill();
+    ng();
+    ctx.strokeStyle = '#7C3AED';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.28, -r * 0.3, r * 0.28, r * 0.16, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = `${Math.round(r*0.9)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('✦', 0, r * 0.08);
+    glow('#A855F7', 6);
+    ctx.fillStyle = '#D09BFF';
+    ctx.font = `bold ${Math.round(r*0.5)}px sans-serif`;
+    ctx.fillText('SHIELD', 0, r * 1.75);
+    ng();
+}
+
+function drawBombItem(r, fuseT) {
+    const sparkOn = Math.sin(fuseT * 0.4) > 0;
+    ctx.strokeStyle = '#8B6914';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(r * 0.2, -r);
+    ctx.bezierCurveTo(r * 0.6, -r * 1.5, r * 0.8, -r * 1.8, r * 0.5, -r * 2.2);
+    ctx.stroke();
+    if (sparkOn) {
+        glow('#FF8C00', 10);
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.arc(r * 0.5, -r * 2.2, r * 0.22, 0, Math.PI * 2);
+        ctx.fill();
+        ng();
+    }
+    glow('#FF2222', 8 + Math.sin(fuseT * 0.3) * 4);
+    const g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.05, 0, 0, r);
+    g.addColorStop(0, '#444');
+    g.addColorStop(0.5, '#1a1a1a');
+    g.addColorStop(1, '#000');
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ng();
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,60,60,0.85)';
+    ctx.font = `bold ${Math.round(r*1.1)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('💣', 0, 0);
+    glow('#FF2222', 6);
+    ctx.fillStyle = '#FF4444';
+    ctx.font = `bold ${Math.round(r*0.55)}px sans-serif`;
+    ctx.fillText('BOMB', 0, r * 1.7);
+    ng();
+}
+
 
 // ==============================================
 // ===== GAME LOOP & REMAINING LOGIC =====
