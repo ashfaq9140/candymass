@@ -1,12 +1,15 @@
 // ============================================================
 // ===== CANDY MASS - COMPLETE SCRIPT (FINAL FIXED) =====
-// ===== All candies have unique colors per theme =====
+// ===== Burst Spawn + Unpredictable Flow + Smooth Target =====
 // ============================================================
 
 // ===== RESPONSIVE SCALING =====
-const BASE_W = 400, BASE_H = 540;
-let gameW = BASE_W, gameH = BASE_H;
-let scaleX = 1, scaleY = 1;
+const BASE_W = 400,
+    BASE_H = 540;
+let gameW = BASE_W,
+    gameH = BASE_H;
+let scaleX = 1,
+    scaleY = 1;
 
 function resizeCanvas() {
     const container = document.getElementById('cw');
@@ -195,7 +198,7 @@ function showLeaderboard() {
 function closeLB() { showHomePage(); }
 
 // ============================================================
-// ===== CLOUD SAVE (FIXED WITH BETTER ERROR HANDLING) =====
+// ===== CLOUD SAVE (FIXED) =====
 // ============================================================
 
 async function saveProgressToCloud() {
@@ -260,7 +263,9 @@ async function loadProgressFromCloud() {
 // ===== AUDIO =====
 let soundEnabled = localStorage.getItem('cm_sound') !== 'off';
 let musicEnabled = localStorage.getItem('cm_music') !== 'off';
-let musicNodes = [], musicInterval = null, musicPlaying = false;
+let musicNodes = [],
+    musicInterval = null,
+    musicPlaying = false;
 const MUSIC_THEMES = [{ melody: [523, 659, 784, 1047, 784, 659, 523, 440, 523, 659, 784, 880], bass: [131, 131, 131, 131, 165, 165, 131, 131, 131, 165, 165, 131], tempo: 300, name: 'Candy' }];
 const BOSS_MUSIC = { melody: [220, 247, 262, 220, 196, 220, 247, 220], bass: [55, 55, 55, 55, 55, 55, 55, 55], tempo: 200 };
 
@@ -277,22 +282,28 @@ function startMusic(themeId) {
         try {
             const ac = getAC();
             const mFreq = theme.melody[noteIdx % theme.melody.length];
-            const mo = ac.createOscillator(), mg = ac.createGain();
-            mo.connect(mg); mg.connect(ac.destination);
+            const mo = ac.createOscillator(),
+                mg = ac.createGain();
+            mo.connect(mg);
+            mg.connect(ac.destination);
             mo.type = 'sine';
             mo.frequency.setValueAtTime(mFreq, ac.currentTime);
             mg.gain.setValueAtTime(0.08, ac.currentTime);
             mg.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + theme.tempo / 1200);
-            mo.start(ac.currentTime); mo.stop(ac.currentTime + theme.tempo / 1000);
+            mo.start(ac.currentTime);
+            mo.stop(ac.currentTime + theme.tempo / 1000);
             musicNodes.push(mo, mg);
             if (noteIdx % 2 === 0) {
-                const bo = ac.createOscillator(), bg = ac.createGain();
-                bo.connect(bg); bg.connect(ac.destination);
+                const bo = ac.createOscillator(),
+                    bg = ac.createGain();
+                bo.connect(bg);
+                bg.connect(ac.destination);
                 bo.type = 'triangle';
                 bo.frequency.setValueAtTime(theme.bass[noteIdx % theme.bass.length], ac.currentTime);
                 bg.gain.setValueAtTime(0.06, ac.currentTime);
                 bg.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + theme.tempo / 800);
-                bo.start(ac.currentTime); bo.stop(ac.currentTime + theme.tempo / 600);
+                bo.start(ac.currentTime);
+                bo.stop(ac.currentTime + theme.tempo / 600);
                 musicNodes.push(bo, bg);
             }
             noteIdx++;
@@ -303,34 +314,74 @@ function startMusic(themeId) {
     musicInterval = setInterval(playNote, theme.tempo);
 }
 
-function stopMusic() { musicPlaying = false; if (musicInterval) { clearInterval(musicInterval); musicInterval = null; } musicNodes.forEach(n => { try { n.stop(); n.disconnect(); } catch (e) {} }); musicNodes = []; }
+function stopMusic() { musicPlaying = false; if (musicInterval) { clearInterval(musicInterval);
+        musicInterval = null; } musicNodes.forEach(n => { try { n.stop();
+            n.disconnect(); } catch (e) {} }); musicNodes = []; }
 
-function toggleMusic() { musicEnabled = !musicEnabled; localStorage.setItem('cm_music', musicEnabled ? 'on' : 'off'); const btn = document.getElementById('musicToggleBtn'); if (btn) btn.textContent = musicEnabled ? '🎵' : '🎵'; if (btn) btn.style.opacity = musicEnabled ? '1' : '0.35'; if (musicEnabled && st && st.running) startMusic(st.currentTheme ? st.currentTheme.id : 0); else stopMusic(); }
+function toggleMusic() { musicEnabled = !musicEnabled;
+    localStorage.setItem('cm_music', musicEnabled ? 'on' : 'off'); const btn = document.getElementById('musicToggleBtn'); if (btn) btn.textContent = musicEnabled ? '🎵' : '🎵'; if (btn) btn.style.opacity = musicEnabled ? '1' : '0.35'; if (musicEnabled && st && st.running) startMusic(st.currentTheme ? st.currentTheme.id : 0); else stopMusic(); }
 
-function toggleSound() { soundEnabled = !soundEnabled; localStorage.setItem('cm_sound', soundEnabled ? 'on' : 'off'); const btn = document.getElementById('soundToggleBtn'); if (btn) btn.textContent = soundEnabled ? '🔊' : '🔇'; if (soundEnabled) beep(800, 'sine', 0.1, 0.2); }
+function toggleSound() { soundEnabled = !soundEnabled;
+    localStorage.setItem('cm_sound', soundEnabled ? 'on' : 'off'); const btn = document.getElementById('soundToggleBtn'); if (btn) btn.textContent = soundEnabled ? '🔊' : '🔇'; if (soundEnabled) beep(800, 'sine', 0.1, 0.2); }
 
-function initSoundBtn() { const btn = document.getElementById('soundToggleBtn'); if (btn) btn.textContent = soundEnabled ? '🔊' : '🔇'; initMusicBtn(); }
+function initSoundBtn() { const btn = document.getElementById('soundToggleBtn'); if (btn) btn.textContent = soundEnabled ? '🔊' : '🔇';
+    initMusicBtn(); }
 
 function initMusicBtn() { const btn = document.getElementById('musicToggleBtn'); if (btn) btn.style.opacity = musicEnabled ? '1' : '0.35'; }
 let AC;
 
 function getAC() { if (!AC) AC = new(window.AudioContext || window.webkitAudioContext)(); return AC; }
 
-function beep(f, t, d, v, dl = 0) { if (!soundEnabled) return; try { const ac = getAC(), o = ac.createOscillator(), g = ac.createGain(); o.connect(g); g.connect(ac.destination); o.type = t; o.frequency.setValueAtTime(f, ac.currentTime + dl); g.gain.setValueAtTime(v, ac.currentTime + dl); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dl + d); o.start(ac.currentTime + dl); o.stop(ac.currentTime + dl + d + 0.05); } catch (e) {} }
+function beep(f, t, d, v, dl = 0) { if (!soundEnabled) return; try { const ac = getAC(),
+            o = ac.createOscillator(),
+            g = ac.createGain();
+        o.connect(g);
+        g.connect(ac.destination);
+        o.type = t;
+        o.frequency.setValueAtTime(f, ac.currentTime + dl);
+        g.gain.setValueAtTime(v, ac.currentTime + dl);
+        g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dl + d);
+        o.start(ac.currentTime + dl);
+        o.stop(ac.currentTime + dl + d + 0.05); } catch (e) {} }
 
-function sfxCatch() { beep(660, 'sine', 0.08, 0.28); beep(880, 'sine', 0.07, 0.22, 0.06); }
-function sfxWrong() { beep(180, 'sawtooth', 0.18, 0.25); beep(140, 'sawtooth', 0.12, 0.2, 0.1); }
+function sfxCatch() { beep(660, 'sine', 0.08, 0.28);
+    beep(880, 'sine', 0.07, 0.22, 0.06); }
+
+function sfxWrong() { beep(180, 'sawtooth', 0.18, 0.25);
+    beep(140, 'sawtooth', 0.12, 0.2, 0.1); }
+
 function sfxMiss() { beep(220, 'sawtooth', 0.12, 0.18); }
+
 function sfxLevelUp() { [523, 659, 784, 1047].forEach((f, i) => beep(f, 'sine', 0.12, 0.28, i * 0.1)); }
+
 function sfxTaskDone() { [440, 550, 660, 880, 1100].forEach((f, i) => beep(f, 'triangle', 0.14, 0.3, i * 0.08)); }
-function sfxLife() { beep(880, 'sine', 0.12, 0.32); beep(1100, 'sine', 0.1, 0.28, 0.12); beep(1320, 'sine', 0.09, 0.22, 0.22); }
-function sfxBomb() { beep(80, 'sawtooth', 0.4, 0.5); beep(60, 'sawtooth', 0.3, 0.4, 0.1); beep(40, 'sine', 0.5, 0.3, 0.2); }
-function sfxCombo(n) { beep(440 + n * 80, 'sine', 0.1, 0.3); beep(550 + n * 80, 'sine', 0.08, 0.25, 0.06); }
-function sfxShield() { beep(300, 'sine', 0.08, 0.22); beep(500, 'sine', 0.1, 0.28, 0.08); beep(800, 'sine', 0.12, 0.3, 0.16); beep(1100, 'sine', 0.1, 0.25, 0.24); }
+
+function sfxLife() { beep(880, 'sine', 0.12, 0.32);
+    beep(1100, 'sine', 0.1, 0.28, 0.12);
+    beep(1320, 'sine', 0.09, 0.22, 0.22); }
+
+function sfxBomb() { beep(80, 'sawtooth', 0.4, 0.5);
+    beep(60, 'sawtooth', 0.3, 0.4, 0.1);
+    beep(40, 'sine', 0.5, 0.3, 0.2); }
+
+function sfxCombo(n) { beep(440 + n * 80, 'sine', 0.1, 0.3);
+    beep(550 + n * 80, 'sine', 0.08, 0.25, 0.06); }
+
+function sfxShield() { beep(300, 'sine', 0.08, 0.22);
+    beep(500, 'sine', 0.1, 0.28, 0.08);
+    beep(800, 'sine', 0.12, 0.3, 0.16);
+    beep(1100, 'sine', 0.1, 0.25, 0.24); }
+
 function sfxBossWarning() { [200, 170, 140, 110, 80].forEach((f, i) => beep(f, 'sawtooth', 0.22, 0.3, i * 0.1)); }
+
 function sfxBossWin() { [523, 659, 784, 1047, 1318, 1047, 784, 1047, 1318, 1568].forEach((f, i) => beep(f, 'sine', 0.14, 0.28, i * 0.09)); }
+
 function sfxSurprise() { [400, 600, 900, 1200, 1600, 2000, 2600].forEach((f, i) => beep(f, 'sine', 0.18, 0.32, i * 0.08)); }
-function sfxGameOver() { beep(300, 'sawtooth', 0.18, 0.25); beep(250, 'sawtooth', 0.15, 0.22, 0.12); beep(200, 'sawtooth', 0.12, 0.2, 0.22); beep(150, 'sine', 0.3, 0.18, 0.32); }
+
+function sfxGameOver() { beep(300, 'sawtooth', 0.18, 0.25);
+    beep(250, 'sawtooth', 0.15, 0.22, 0.12);
+    beep(200, 'sawtooth', 0.12, 0.2, 0.22);
+    beep(150, 'sine', 0.3, 0.18, 0.32); }
 
 // ===== BASKET SKINS =====
 const BASKET_SKINS = [
@@ -350,7 +401,8 @@ function loadSkin() {
     updateSkinButton();
 }
 
-function saveSkin() { localStorage.setItem('cm_basket_skin', currentSkinIndex); updateSkinButton(); }
+function saveSkin() { localStorage.setItem('cm_basket_skin', currentSkinIndex);
+    updateSkinButton(); }
 
 function updateSkinButton() {
     const skinText = `🎨 ${BASKET_SKINS[currentSkinIndex].emoji} ${BASKET_SKINS[currentSkinIndex].name}`;
@@ -453,7 +505,7 @@ function getCandyTypesForLevel(level) {
 }
 
 // ============================================================
-// ===== DIFFICULTY CONFIGURATION =====
+// ===== DIFFICULTY CONFIGURATION (FIXED TARGET CURVE) =====
 // ============================================================
 
 function getBasketScale(level) {
@@ -464,25 +516,28 @@ function getBasketScale(level) {
 }
 
 function getLevelConfig(lvl) {
-    // Speed: starts at 3.0, peaks at 7.0 by level 7000
-    let speed;
-    if (lvl <= 7000) {
-        speed = 3.0 + (lvl / 7000) * 4.0; // 3.0 to 7.0
-    } else {
-        speed = 7.0;
-    }
-    const interval = Math.max(35, 80 - lvl * 0.015);
+    // Speed: 3.0 se 7.0 tak
+    let speed = 3.0 + (Math.min(lvl, 7000) / 7000) * 4.0;
+
+    // Spawn interval: dheere dheere kam ho
+    const interval = Math.max(30, 80 - lvl * 0.015);
+
+    // ----- TARGET: Smooth Curve (Gradually increases, Max 250 at Level 10000) -----
     let target;
-    if (lvl <= 10) target = 8 + lvl;
-    else if (lvl <= 50) target = 18 + Math.floor(lvl * 0.5);
-    else if (lvl <= 100) target = 43 + Math.floor((lvl - 50) * 0.6);
-    else if (lvl <= 300) target = 73 + Math.floor((lvl - 100) * 0.4);
-    else if (lvl <= 500) target = 153 + Math.floor((lvl - 300) * 0.3);
-    else if (lvl <= 1000) target = 213 + Math.floor((lvl - 500) * 0.25);
-    else if (lvl <= 2000) target = 338 + Math.floor((lvl - 1000) * 0.2);
-    else if (lvl <= 5000) target = 538 + Math.floor((lvl - 2000) * 0.15);
-    else target = Math.min(250, 988 + Math.floor((lvl - 5000) * 0.08));
-    return { speed, interval, target: Math.min(target, 250) };
+    if (lvl <= 10) {
+        target = 8 + lvl;
+    } else {
+        const progress = Math.min(1, (lvl - 10) / 9990); // 0 to 1
+        // 10 se start, 240 tak badhega, power curve taaki slow start ho aur end me thoda fast
+        target = Math.floor(10 + (240) * Math.pow(progress, 0.65));
+        // Guarantee gradual increase with level
+        target = Math.max(10 + Math.floor(lvl * 0.015), target);
+    }
+
+    // Cap at 250 ONLY for level 10000 (formula ensures it reaches there)
+    target = Math.min(250, Math.max(10, target));
+
+    return { speed, interval, target };
 }
 
 function getBombChance(lvl) {
@@ -590,11 +645,17 @@ function createPoisonType(level) {
 
 const SHIELD_BASE_DURATION = 720;
 
-function activateShield() { st.shieldActive = true; st.shieldFrames = SHIELD_BASE_DURATION; st.shieldMaxFrames = SHIELD_BASE_DURATION; sfxShield(); updatePowerupHud(); }
+function activateShield() { st.shieldActive = true;
+    st.shieldFrames = SHIELD_BASE_DURATION;
+    st.shieldMaxFrames = SHIELD_BASE_DURATION;
+    sfxShield();
+    updatePowerupHud(); }
 
-let shakeFrames = 0, shakeIntensity = 0;
+let shakeFrames = 0,
+    shakeIntensity = 0;
 
-function triggerShake(intensity = 8, frames = 18) { shakeFrames = frames; shakeIntensity = intensity; }
+function triggerShake(intensity = 8, frames = 18) { shakeFrames = frames;
+    shakeIntensity = intensity; }
 
 const TASKS = [
     { desc: 'Catch 10 Hearts ❤️', type: 'heart', count: 10 }, { desc: 'Catch 8 Stars ⭐', type: 'star', count: 8 },
@@ -619,16 +680,31 @@ const THEMES = [
 function getTheme(lvl) { const idx = Math.min(7, Math.floor((lvl - 1) / 1000)); return THEMES[idx]; }
 
 let st = {
-    running: false, score: 0, lives: 3, level: 1,
+    running: false,
+    score: 0,
+    lives: 3,
+    level: 1,
     basket: { x: gameW / 2, w: 86, h: 26, y: gameH - 52 },
-    items: [], particles: [], floats: [], confetti: [],
-    spawnTimer: 0, spawnInterval: 70, speed: 2.0, frame: 0,
-    levelTarget: 8, levelCaught: 0,
-    inTask: false, taskDef: null, taskCaught: 0,
+    items: [],
+    particles: [],
+    floats: [],
+    confetti: [],
+    spawnTimer: 0,
+    spawnInterval: 70,
+    speed: 2.0,
+    frame: 0,
+    levelTarget: 8,
+    levelCaught: 0,
+    inTask: false,
+    taskDef: null,
+    taskCaught: 0,
     levelMode: { mode: 'normal' },
     currentTheme: THEMES[0],
-    combo: 0, comboTimer: 0,
-    shieldActive: false, shieldFrames: 0, shieldMaxFrames: 0,
+    combo: 0,
+    comboTimer: 0,
+    shieldActive: false,
+    shieldFrames: 0,
+    shieldMaxFrames: 0,
     levelCompleteTriggered: false
 };
 let isGamePaused = false;
@@ -642,10 +718,12 @@ function addParticles(x, y, c1, c2) {
         const a = Math.random() * Math.PI * 2;
         const spd = 2 + Math.random() * 5;
         st.particles.push({
-            x, y,
+            x,
+            y,
             vx: Math.cos(a) * spd,
             vy: Math.sin(a) * spd - 3,
-            life: 35, maxLife: 35,
+            life: 35,
+            maxLife: 35,
             color: Math.random() > 0.5 ? c1 : c2,
             r: 3 + Math.random() * 5
         });
@@ -657,10 +735,12 @@ function addRedParticles(x, y) {
         const a = Math.random() * Math.PI * 2;
         const spd = 2 + Math.random() * 3;
         st.particles.push({
-            x, y,
+            x,
+            y,
             vx: Math.cos(a) * spd,
             vy: Math.sin(a) * spd - 2,
-            life: 28, maxLife: 28,
+            life: 28,
+            maxLife: 28,
             color: '#FF2222',
             r: 3 + Math.random() * 4
         });
@@ -685,113 +765,153 @@ function spawnConfetti(count = 60) {
 }
 
 // ============================================================
-// ===== SPAWN ITEM =====
+// ===== SPAWN ITEM (BURST FROM LEVEL 1 - FIXED) =====
 // ============================================================
 
 function spawnItem() {
     const lvl = st.level;
 
-    // Bombs
-    if (lvl >= 20 && !st.inTask && Math.random() < getBombChance(lvl)) {
-        st.items.push({
-            x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
-            y: -34 * scaleY,
-            type: BOMB_TYPE,
-            size: 20 * scaleX + Math.random() * 5 * scaleX,
-            wobble: Math.random() * Math.PI * 2,
-            speed: st.speed * 0.85 + Math.random() * 0.5,
-            rot: Math.random() * Math.PI * 2,
-            isBomb: true, isShield: false, isPoison: false, isElite: false,
-            fuseTimer: 0, pulse: 0
-        });
-        return;
-    }
-
-    // Shields
-    if (lvl >= 10 && !st.shieldActive && !st.inTask && Math.random() < getShieldChance(lvl)) {
-        st.items.push({
-            x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
-            y: -34 * scaleY,
-            type: SHIELD_TYPE,
-            size: 22 * scaleX,
-            wobble: Math.random() * Math.PI * 2,
-            speed: Math.max(1.1, st.speed * 0.5),
-            rot: 0,
-            isShield: true, isBomb: false, isPoison: false, isElite: false,
-            pulse: 0
-        });
-        return;
-    }
-
-    // Poison
-    if (lvl >= 4000 && !st.inTask && Math.random() < getPoisonChance(lvl)) {
-        const poisonType = createPoisonType(lvl);
-        st.items.push({
-            x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
-            y: -34 * scaleY,
-            type: poisonType,
-            size: 18 * scaleX + Math.random() * 6 * scaleX,
-            wobble: Math.random() * Math.PI * 2,
-            speed: st.speed * 0.9 + Math.random() * 0.6,
-            rot: Math.random() * Math.PI * 2,
-            isPoison: true, isBomb: false, isShield: false, isElite: false,
-            pulse: 0
-        });
-        return;
-    }
-
-    // Elite
-    if (lvl >= 2000 && !st.inTask && Math.random() < getEliteChance(lvl)) {
-        const eliteType = createEliteType(lvl);
-        st.items.push({
-            x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
-            y: -34 * scaleY,
-            type: eliteType,
-            size: 20 * scaleX + Math.random() * 5 * scaleX,
-            wobble: Math.random() * Math.PI * 2,
-            speed: st.speed * 0.7 + Math.random() * 0.4,
-            rot: Math.random() * Math.PI * 2,
-            isElite: true, isBomb: false, isShield: false, isPoison: false,
-            pulse: 0
-        });
-        return;
-    }
-
-    // Normal candies - theme specific with unique colors
-    const candyTypes = getCandyTypesForLevel(lvl);
-    let type;
-
-    if (st.levelMode.mode === 'selective') {
-        if (Math.random() < 0.55) {
-            const target = st.levelMode.targetShape;
-            const matching = candyTypes.filter(t => t.name === target);
-            type = matching.length > 0 ? matching[0] : pickRandom(candyTypes);
-        } else {
-            const nonTarget = candyTypes.filter(t => t.name !== st.levelMode.targetShape);
-            type = nonTarget.length > 0 ? pickRandom(nonTarget) : pickRandom(candyTypes);
-        }
+    // ---- BURST COUNT: Starting se hi 2 se 4 tak ----
+    let burstCount;
+    if (lvl < 50) {
+        // Level 1-50: 2 ya 3 candies ek saath
+        burstCount = 2 + Math.floor(Math.random() * 2); // 2 or 3
+    } else if (lvl < 500) {
+        // Level 50-500: 2, 3, ya 4
+        burstCount = 2 + Math.floor(Math.random() * 3); // 2, 3, or 4
     } else {
-        type = pickRandom(candyTypes);
+        // Level 500+: mostly 3 ya 4
+        burstCount = 3 + Math.floor(Math.random() * 2); // 3 or 4
     }
+    burstCount = Math.min(4, burstCount); // Safety cap
 
-    st.items.push({
-        x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
-        y: -34 * scaleY,
-        type: type,
-        size: 16 * scaleX + Math.random() * 9 * scaleX,
-        wobble: Math.random() * Math.PI * 2,
-        speed: st.speed + Math.random() * 0.9,
-        rot: Math.random() * Math.PI * 2,
-        isPoison: false, isElite: false, isBomb: false, isShield: false,
-        pulse: 0
-    });
+    // Har candy ko thoda sa alag time gap dekar spawn karte hain
+    for (let b = 0; b < burstCount; b++) {
+        setTimeout(() => {
+            if (!st || !st.running) return;
+
+            // ---- Bomb (Sirf pehli candy mein, per burst) ----
+            if (lvl >= 20 && !st.inTask && Math.random() < getBombChance(lvl) && b === 0) {
+                st.items.push({
+                    x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
+                    y: -34 * scaleY - (b * 20 * scaleY),
+                    type: BOMB_TYPE,
+                    size: 20 * scaleX + Math.random() * 5 * scaleX,
+                    wobble: Math.random() * Math.PI * 2,
+                    speed: st.speed * 0.85 + Math.random() * 0.5,
+                    rot: Math.random() * Math.PI * 2,
+                    isBomb: true,
+                    isShield: false,
+                    isPoison: false,
+                    isElite: false,
+                    fuseTimer: 0,
+                    pulse: 0
+                });
+                return;
+            }
+
+            // ---- Shield (Sirf pehli candy mein) ----
+            if (lvl >= 10 && !st.shieldActive && !st.inTask && Math.random() < getShieldChance(lvl) && b === 0) {
+                st.items.push({
+                    x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
+                    y: -34 * scaleY - (b * 20 * scaleY),
+                    type: SHIELD_TYPE,
+                    size: 22 * scaleX,
+                    wobble: Math.random() * Math.PI * 2,
+                    speed: Math.max(1.1, st.speed * 0.5),
+                    rot: 0,
+                    isShield: true,
+                    isBomb: false,
+                    isPoison: false,
+                    isElite: false,
+                    pulse: 0
+                });
+                return;
+            }
+
+            // ---- Poison / Elite (Sirf pehli candy mein) ----
+            if (lvl >= 4000 && !st.inTask && Math.random() < getPoisonChance(lvl) && b === 0) {
+                const poisonType = createPoisonType(lvl);
+                st.items.push({
+                    x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
+                    y: -34 * scaleY - (b * 20 * scaleY),
+                    type: poisonType,
+                    size: 18 * scaleX + Math.random() * 6 * scaleX,
+                    wobble: Math.random() * Math.PI * 2,
+                    speed: st.speed * 0.9 + Math.random() * 0.6,
+                    rot: Math.random() * Math.PI * 2,
+                    isPoison: true,
+                    isBomb: false,
+                    isShield: false,
+                    isElite: false,
+                    pulse: 0
+                });
+                return;
+            }
+            if (lvl >= 2000 && !st.inTask && Math.random() < getEliteChance(lvl) && b === 0) {
+                const eliteType = createEliteType(lvl);
+                st.items.push({
+                    x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
+                    y: -34 * scaleY - (b * 20 * scaleY),
+                    type: eliteType,
+                    size: 20 * scaleX + Math.random() * 5 * scaleX,
+                    wobble: Math.random() * Math.PI * 2,
+                    speed: st.speed * 0.7 + Math.random() * 0.4,
+                    rot: Math.random() * Math.PI * 2,
+                    isElite: true,
+                    isBomb: false,
+                    isShield: false,
+                    isPoison: false,
+                    pulse: 0
+                });
+                return;
+            }
+
+            // ---- Normal Candies ----
+            const candyTypes = getCandyTypesForLevel(lvl);
+            let type;
+
+            if (st.levelMode.mode === 'selective') {
+                if (Math.random() < 0.55) {
+                    const target = st.levelMode.targetShape;
+                    const matching = candyTypes.filter(t => t.name === target);
+                    type = matching.length > 0 ? matching[0] : pickRandom(candyTypes);
+                } else {
+                    const nonTarget = candyTypes.filter(t => t.name !== st.levelMode.targetShape);
+                    type = nonTarget.length > 0 ? pickRandom(nonTarget) : pickRandom(candyTypes);
+                }
+            } else {
+                type = pickRandom(candyTypes);
+            }
+
+            const yOffset = -b * 25 * scaleX; // Burst effect
+
+            st.items.push({
+                x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
+                y: -34 * scaleY + yOffset,
+                type: type,
+                size: 16 * scaleX + Math.random() * 9 * scaleX,
+                wobble: Math.random() * Math.PI * 2,
+                speed: st.speed + (0.5 + Math.random() * 0.8), // Alag-alag speed
+                rot: Math.random() * Math.PI * 2,
+                isPoison: false,
+                isElite: false,
+                isBomb: false,
+                isShield: false,
+                pulse: 0
+            });
+
+        }, b * 100); // 100ms ka gap taaki cluster effect ho
+    }
 }
 
 // ============================================================
 // ===== DRAWING FUNCTIONS (SIMPLE + EMOJI-BASED) =====
 // ============================================================
 
-function glow(c, b) { ctx.shadowColor = c; ctx.shadowBlur = b; }
+function glow(c, b) { ctx.shadowColor = c;
+    ctx.shadowBlur = b; }
+
 function ng() { ctx.shadowBlur = 0; }
 
 // ----- SIMPLE EMOJI CANDY DRAWING -----
@@ -808,7 +928,7 @@ function drawEmojiCandy(r, emoji, color1, color2, stroke) {
     ng();
 
     // Background circle (so emoji pops)
-    const grad = ctx.createRadialGradient(-r*0.2, -r*0.3, 0, 0, 0, r*0.9);
+    const grad = ctx.createRadialGradient(-r * 0.2, -r * 0.3, 0, 0, 0, r * 0.9);
     grad.addColorStop(0, color2);
     grad.addColorStop(0.7, color1);
     grad.addColorStop(1, stroke);
@@ -1148,7 +1268,9 @@ function drawProgressBar() {
     ctx.roundRect(10 * scaleX, 6 * scaleY, gameW - 20 * scaleX, 8 * scaleY, 4 * scaleX);
     ctx.fill();
     const pg = ctx.createLinearGradient(10 * scaleX, 0, 10 * scaleX + (gameW - 20 * scaleX) * pct, 0);
-    if (st.isBossActive) { pg.addColorStop(0, '#FF4400'); pg.addColorStop(1, '#FF0000'); } else { pg.addColorStop(0, th.bar[0]); pg.addColorStop(1, th.bar[1]); }
+    if (st.isBossActive) { pg.addColorStop(0, '#FF4400');
+        pg.addColorStop(1, '#FF0000'); } else { pg.addColorStop(0, th.bar[0]);
+        pg.addColorStop(1, th.bar[1]); }
     ctx.fillStyle = pg;
     ctx.beginPath();
     ctx.roundRect(10 * scaleX, 6 * scaleY, (gameW - 20 * scaleX) * pct, 8 * scaleY, 4 * scaleX);
@@ -1324,7 +1446,7 @@ function updatePowerupHud() {
 }
 
 // ============================================================
-// ===== GAME LOOP =====
+// ===== GAME LOOP (FIXED: UNPREDICTABLE FLOW + SMOOTH) =====
 // ============================================================
 
 const TARGET_FPS = 60;
@@ -1339,13 +1461,18 @@ function gameLoop(timestamp) {
     if (isGamePaused) { requestAnimationFrame(gameLoop); return; }
 
     ctx.save();
+
+    // ---- SHAKE FIX ----
     if (shakeFrames > 0) {
         const sx = (Math.random() - 0.5) * shakeIntensity;
         const sy = (Math.random() - 0.5) * shakeIntensity;
         ctx.translate(sx, sy);
         shakeFrames--;
         shakeIntensity *= 0.88;
+    } else {
+        shakeIntensity = 0; // Reset to avoid vibration glitches
     }
+
     ctx.clearRect(-20, -20, gameW + 40, gameH + 40);
     drawBg();
 
@@ -1358,9 +1485,11 @@ function gameLoop(timestamp) {
         st.comboTimer--;
         if (st.comboTimer === 0) st.combo = 0;
     }
+
+    // Spawn timer - burst mode handles multiple items
     st.spawnTimer++;
     if (st.spawnTimer >= st.spawnInterval) {
-        spawnItem();
+        spawnItem(); // Burst spawn handles multiple candies
         st.spawnTimer = 0;
     }
 
@@ -1380,8 +1509,13 @@ function gameLoop(timestamp) {
             item.pulse = (item.pulse || 0) + 0.1;
             item.x += Math.sin(item.wobble) * 0.9;
         } else {
+            // ---- UNPREDICTABLE FLOW (FIXED) ----
             item.rot += 0.015;
-            item.x += Math.sin(item.wobble) * 1.8;
+            // Random drift: 2.5 se 5.0 tak, bilkul unpredictable
+            let drift = Math.sin(item.wobble) * (2.5 + Math.random() * 2.5);
+            // 10% chance of sudden sharp movement (like old flow)
+            if (Math.random() > 0.9) drift *= 1.8;
+            item.x += drift;
         }
 
         item.x = Math.max(item.size, Math.min(gameW - item.size, item.x));
@@ -1390,15 +1524,14 @@ function gameLoop(timestamp) {
             item.x > bx - bw / 2 - item.size * 0.6 &&
             item.x < bx + bw / 2 + item.size * 0.6;
 
+        // --- Catch Logic (Unchanged) ---
         if (caught) {
-            // Shield
             if (item.isShield) {
                 activateShield();
                 addParticles(item.x, by, '#A855F7', '#D09BFF');
                 st.floats.push({ x: item.x, y: by - 20, color: '#A855F7', life: 70, text: '🛡️ SHIELD! 12s', big: true });
                 return false;
             }
-            // Bomb
             if (item.isBomb) {
                 if (st.shieldActive) {
                     sfxShield();
@@ -1415,7 +1548,6 @@ function gameLoop(timestamp) {
                 endGame(true);
                 return false;
             }
-            // Poison
             if (item.isPoison) {
                 sfxWrong();
                 triggerShake(8, 15);
@@ -1431,7 +1563,6 @@ function gameLoop(timestamp) {
                 if (st.lives <= 0) { endGame(false); return false; }
                 return false;
             }
-            // Elite
             if (item.isElite) {
                 sfxLevelUp();
                 const bonus = item.type.pts || 50;
@@ -1441,7 +1572,6 @@ function gameLoop(timestamp) {
                 updateHUD();
                 return false;
             }
-            // Task
             if (st.inTask && st.taskDef) {
                 const isTT = st.taskDef.type === 'any' || item.type.name === st.taskDef.type;
                 if (!isTT) {
@@ -1477,7 +1607,6 @@ function gameLoop(timestamp) {
                 }
                 return false;
             }
-            // Normal catch
             const isTarget = st.levelMode.mode === 'normal' || (item.type.name === st.levelMode.targetShape);
             if (!isTarget) {
                 if (st.shieldActive) {
@@ -1546,7 +1675,7 @@ function gameLoop(timestamp) {
         return true;
     });
 
-    // Particles
+    // --- Particles, Floats, Confetti (Unchanged) ---
     st.particles = st.particles.filter(p => {
         p.x += p.vx;
         p.y += p.vy;
@@ -1564,7 +1693,6 @@ function gameLoop(timestamp) {
         return p.life > 0;
     });
 
-    // Floats
     st.floats = st.floats.filter(f => {
         f.y -= 1.3;
         f.life--;
@@ -1581,7 +1709,6 @@ function gameLoop(timestamp) {
         return f.life > 0;
     });
 
-    // Confetti
     st.confetti = st.confetti.filter(c => {
         c.x += c.vx;
         c.y += c.vy;
@@ -1598,7 +1725,6 @@ function gameLoop(timestamp) {
         return c.life > 0 && c.y < gameH + 20;
     });
 
-    // Combo display
     if (st.combo >= 2) {
         const multi = Math.min(st.combo, 5);
         const colors = ['', '', '#FFD700', '#FF8C00', '#FF4DA6', '#FF00FF'];
@@ -1615,7 +1741,6 @@ function gameLoop(timestamp) {
 
     drawProgressBar();
 
-    // Shield visual
     if (st.shieldActive) {
         const pulse = Math.sin(st.frame * 0.12) * 0.4 + 0.6;
         ctx.save();
@@ -1642,7 +1767,8 @@ function gameLoop(timestamp) {
                 y: by - 10 - Math.abs(Math.sin(angle)) * 25,
                 vx: (Math.random() - 0.5) * 1.5,
                 vy: -0.8 - Math.random(),
-                life: 22, maxLife: 22,
+                life: 22,
+                maxLife: 22,
                 color: '#D09BFF',
                 r: 2 + Math.random() * 2
             });
@@ -1736,7 +1862,10 @@ function startBossLevel() {
     const cfg = getLevelConfig(bossLvl);
     st.level = bossLvl;
     Object.assign(st, {
-        items: [], particles: [], floats: [], confetti: [],
+        items: [],
+        particles: [],
+        floats: [],
+        confetti: [],
         spawnTimer: 0,
         spawnInterval: Math.max(30, cfg.interval - 15),
         speed: cfg.speed + 0.8,
@@ -1796,7 +1925,8 @@ function showThemeUnlock(th) {
     showOv('themeOv');
 }
 
-function enterNewTheme() { if (st.level % 5 === 0) { showTask(); return; } showLevelComplete(); }
+function enterNewTheme() { if (st.level % 5 === 0) { showTask(); return; }
+    showLevelComplete(); }
 
 function showTask() {
     const td = TASKS[Math.floor(Math.random() * TASKS.length)];
@@ -1982,14 +2112,21 @@ const WHEEL_SEGMENTS = [
     { label: '+200', emoji: '🍬', color: '#10D4AA', reward: { type: 'pts', val: 200 } },
     { label: 'JACKPOT!', emoji: '🏆', color: '#FF8C00', reward: { type: 'jackpot', val: 5000 } }
 ];
-let wheelAngle = 0, wheelSpinning = false;
+let wheelAngle = 0,
+    wheelSpinning = false;
 
 function getDailyData() { try { return JSON.parse(localStorage.getItem(DAILY_KEY) || 'null'); } catch { return null; } }
+
 function setDailyData(d) { localStorage.setItem(DAILY_KEY, JSON.stringify(d)); }
+
 function getStreak() { try { return JSON.parse(localStorage.getItem(STREAK_KEY) || '{streak:0,lastDate:""}'); } catch { return { streak: 0, lastDate: "" }; } }
+
 function setStreak(d) { localStorage.setItem(STREAK_KEY, JSON.stringify(d)); }
+
 function getTodayStr() { return new Date().toISOString().slice(0, 10); }
+
 function canClaimToday() { const d = getDailyData(); if (!d) return true; return d.lastClaim !== getTodayStr(); }
+
 function checkDailyBadge() { const badge = document.getElementById('dailyBadge'); if (badge) badge.style.display = canClaimToday() ? 'block' : 'none'; }
 
 function showDailyReward() {
@@ -2021,7 +2158,9 @@ function updateCooldownTimer() {
             document.getElementById('spinBtnEl').textContent = 'Spin Now';
             return;
         }
-        const h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
+        const h = Math.floor(diff / 3600000),
+            m = Math.floor((diff % 3600000) / 60000),
+            s = Math.floor((diff % 60000) / 1000);
         document.getElementById('cooldownTimer').textContent = `${h}h ${m}m ${s}s`;
     }, 1000);
 }
@@ -2046,7 +2185,9 @@ function drawWheel(angle) {
     const c = document.getElementById('wheelCanvas');
     if (!c) return;
     const ctx = c.getContext('2d');
-    const cx = 110, cy = 110, r = 100;
+    const cx = 110,
+        cy = 110,
+        r = 100;
     ctx.clearRect(0, 0, 220, 220);
     const segAngle = (Math.PI * 2) / WHEEL_SEGMENTS.length;
     for (let i = 0; i < WHEEL_SEGMENTS.length; i++) {
@@ -2093,7 +2234,8 @@ function spinWheel() {
         wheelAngle = startAngle + targetAngle * (1 - Math.pow(1 - t, 3));
         drawWheel(wheelAngle);
         if (t < 1) requestAnimationFrame(animate);
-        else { wheelSpinning = false; claimReward(WHEEL_SEGMENTS[winIdx]); }
+        else { wheelSpinning = false;
+            claimReward(WHEEL_SEGMENTS[winIdx]); }
     }
     requestAnimationFrame(animate);
 }
@@ -2150,7 +2292,8 @@ function claimReward(seg) {
     showDailyReward();
 }
 
-function closeDailyReward() { if (cooldownTimerInterval) clearInterval(cooldownTimerInterval); showHomePage(); }
+function closeDailyReward() { if (cooldownTimerInterval) clearInterval(cooldownTimerInterval);
+    showHomePage(); }
 
 // ===== SETTINGS =====
 function loadSettings() {
@@ -2264,7 +2407,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('settingsLogoutBtn')?.addEventListener('click', logout);
     document.getElementById('exitGameBtn')?.addEventListener('click', exitGame);
     document.getElementById('closeSettingsBtn')?.addEventListener('click', closeSettings);
-    document.getElementById('helpBackBtn')?.addEventListener('click', () => { if (isOnHomePage) showHomePage(); else showOv(null); });
+    document.getElementById('helpBackBtn')?.addEventListener('click', () => { if (isOnHomePage) showHomePage();
+        else showOv(null); });
     document.getElementById('resumeBtn')?.addEventListener('click', togglePause);
     document.getElementById('nextLevelBtn')?.addEventListener('click', nextLevel);
     document.getElementById('startTaskBtn')?.addEventListener('click', startTaskPlay);
@@ -2301,6 +2445,5 @@ canvas.addEventListener('mousemove', e => { if (st.running) moveB(e.clientX); })
 canvas.addEventListener('touchmove', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 canvas.addEventListener('touchstart', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 
-console.log("✅ Candy Mass - Final Fix Loaded!");
-console.log("🎨 Each candy now has unique colors per theme!");
-console.log("☁️ Cloud save with improved error handling!");
+console.log("✅ Candy Mass - FINAL FIX Loaded!");
+console.log("🎯 Burst Spawn from Level 1, Unpredictable Flow, Smooth Curve!");
