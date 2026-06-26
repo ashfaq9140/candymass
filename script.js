@@ -1,6 +1,7 @@
+
 // ============================================================
-// ===== CANDY MASS - COMPLETE SCRIPT (FINAL FIXED) =====
-// ===== Burst Spawn + Unpredictable Flow + Smooth Target =====
+// ===== CANDY MASS - FINAL VERSION =====
+// ===== CSS Candy System + Original Smooth Flow =====
 // ============================================================
 
 // ===== RESPONSIVE SCALING =====
@@ -198,26 +199,17 @@ function showLeaderboard() {
 function closeLB() { showHomePage(); }
 
 // ============================================================
-// ===== CLOUD SAVE (FIXED) =====
+// ===== CLOUD SAVE =====
 // ============================================================
 
 async function saveProgressToCloud() {
-    if (!currentUserEmail || currentUserEmail.startsWith('guest_')) {
-        console.log("Guest user, skipping cloud save");
-        return;
-    }
+    if (!currentUserEmail || currentUserEmail.startsWith('guest_')) return;
     try {
         const db = window.firebaseDb;
         const doc = window.firebaseDoc;
         const setDoc = window.firebaseSetDoc;
-        if (!db || !doc || !setDoc) {
-            console.warn("Firestore not initialized, skipping cloud save");
-            return;
-        }
-        if (!st) {
-            console.warn("Game state not initialized, skipping cloud save");
-            return;
-        }
+        if (!db || !doc || !setDoc) return;
+        if (!st) return;
         const userRef = doc(db, "users", currentUserEmail);
         await setDoc(userRef, {
             name: currentUserName,
@@ -226,38 +218,24 @@ async function saveProgressToCloud() {
             lives: st.lives || 3,
             updatedAt: new Date().toISOString()
         }, { merge: true });
-        console.log("✅ Progress saved to cloud!");
-    } catch (e) {
-        console.error("❌ Cloud save error:", e);
-    }
+    } catch (e) { console.error("Cloud save error:", e); }
 }
 
 async function loadProgressFromCloud() {
-    if (!currentUserEmail || currentUserEmail.startsWith('guest_')) {
-        console.log("Guest user, skipping cloud load");
-        return null;
-    }
+    if (!currentUserEmail || currentUserEmail.startsWith('guest_')) return null;
     try {
         const db = window.firebaseDb;
         const doc = window.firebaseDoc;
         const getDoc = window.firebaseGetDoc;
-        if (!db || !doc || !getDoc) {
-            console.warn("Firestore not initialized, skipping cloud load");
-            return null;
-        }
+        if (!db || !doc || !getDoc) return null;
         const userRef = doc(db, "users", currentUserEmail);
         const docSnap = await getDoc(userRef);
         if (docSnap.exists()) {
             const data = docSnap.data();
-            console.log("✅ Cloud data loaded:", data);
             return { level: data.level || 1, score: data.score || 0, lives: data.lives || 3 };
         }
-        console.log("No cloud data found for this user");
         return null;
-    } catch (e) {
-        console.error("❌ Cloud load error:", e);
-        return null;
-    }
+    } catch (e) { return null; }
 }
 
 // ===== AUDIO =====
@@ -419,93 +397,66 @@ function cycleSkin() {
 window.cycleSkin = cycleSkin;
 
 // ============================================================
-// ===== THEME-WISE CANDY TYPES WITH UNIQUE COLORS =====
+// ===== CSS CANDY SYSTEM (30+ Types) =====
 // ============================================================
 
-// Each candy type gets its own color palette per theme
-const WORLD_CANDY_TYPES = {
-    // 👑 Candy Kingdom (Level 1-1000)
-    0: [
-        { shape: 'lollipop', pts: 15, name: 'lollipop', emoji: '🍭', color: '#FF4DA6', color2: '#FF85C8', stroke: '#CC0066' },
-        { shape: 'round', pts: 10, name: 'round', emoji: '🔴', color: '#FF5533', color2: '#FF9980', stroke: '#CC2200' },
-        { shape: 'star', pts: 20, name: 'star', emoji: '⭐', color: '#FFD700', color2: '#FFF066', stroke: '#CC9900' },
-        { shape: 'heart', pts: 25, name: 'heart', emoji: '❤️', color: '#FF3366', color2: '#FF80A0', stroke: '#CC0033' },
-        { shape: 'wrapped', pts: 30, name: 'wrapped', emoji: '🍬', color: '#FF6090', color2: '#FFAACC', stroke: '#CC2060' },
-        { shape: 'diamond', pts: 15, name: 'diamond', emoji: '💎', color: '#845EF7', color2: '#BBA0FF', stroke: '#5C3DCF' }
-    ],
-    // 🚀 Space (Level 1001-2000)
-    1: [
-        { shape: 'ufo', pts: 18, name: 'ufo', emoji: '🛸', color: '#00BFFF', color2: '#80D4FF', stroke: '#0066CC' },
-        { shape: 'comet', pts: 22, name: 'comet', emoji: '🌟', color: '#FFD700', color2: '#FFF080', stroke: '#CC9900' },
-        { shape: 'saturn', pts: 25, name: 'saturn', emoji: '🪐', color: '#FF8C00', color2: '#FFC080', stroke: '#CC5500' },
-        { shape: 'meteor', pts: 28, name: 'meteor', emoji: '☄️', color: '#FF4400', color2: '#FF8844', stroke: '#CC0000' },
-        { shape: 'crystal', pts: 20, name: 'crystal', emoji: '🔮', color: '#A855F7', color2: '#D09BFF', stroke: '#7C3AED' },
-        { shape: 'moon', pts: 15, name: 'moon', emoji: '🌙', color: '#E0E0E0', color2: '#F0F0F0', stroke: '#999999' }
-    ],
-    // 🌊 Underwater (Level 2001-3000)
-    2: [
-        { shape: 'shell', pts: 18, name: 'shell', emoji: '🐚', color: '#F0A0C0', color2: '#F5C8D8', stroke: '#C080A0' },
-        { shape: 'wave', pts: 22, name: 'wave', emoji: '🌊', color: '#00E0FF', color2: '#80F0FF', stroke: '#0088CC' },
-        { shape: 'fish', pts: 25, name: 'fish', emoji: '🐠', color: '#FF8800', color2: '#FFBB44', stroke: '#CC6600' },
-        { shape: 'coral', pts: 20, name: 'coral', emoji: '🪸', color: '#FF4080', color2: '#FF80AA', stroke: '#CC0044' },
-        { shape: 'drop', pts: 15, name: 'drop', emoji: '💧', color: '#4488FF', color2: '#88BBFF', stroke: '#0044CC' },
-        { shape: 'octopus', pts: 28, name: 'octopus', emoji: '🐙', color: '#AA44FF', color2: '#CC88FF', stroke: '#6600CC' }
-    ],
-    // 🌿 Forest (Level 3001-4000)
-    3: [
-        { shape: 'leaf', pts: 18, name: 'leaf', emoji: '🍃', color: '#22C55E', color2: '#80E8A0', stroke: '#0A7A2A' },
-        { shape: 'acorn', pts: 20, name: 'acorn', emoji: '🌰', color: '#8B6914', color2: '#C8A040', stroke: '#4A3A0A' },
-        { shape: 'blossom', pts: 25, name: 'blossom', emoji: '🌸', color: '#FF80A0', color2: '#FFB0C8', stroke: '#CC4477' },
-        { shape: 'mushroom', pts: 22, name: 'mushroom', emoji: '🍄', color: '#FF4444', color2: '#FF8888', stroke: '#CC0000' },
-        { shape: 'fern', pts: 15, name: 'fern', emoji: '🌿', color: '#10B040', color2: '#60D080', stroke: '#006622' },
-        { shape: 'honey', pts: 28, name: 'honey', emoji: '🐝', color: '#F0A030', color2: '#F5C860', stroke: '#CC7700' }
-    ],
-    // 🏜️ Desert (Level 4001-5000)
-    4: [
-        { shape: 'cactus', pts: 20, name: 'cactus', emoji: '🏜️', color: '#44BB44', color2: '#88DD88', stroke: '#227722' },
-        { shape: 'sun', pts: 15, name: 'sun', emoji: '☀️', color: '#FFD700', color2: '#FFEE66', stroke: '#CC9900' },
-        { shape: 'agave', pts: 22, name: 'agave', emoji: '🌵', color: '#66AA44', color2: '#A0CC80', stroke: '#337722' },
-        { shape: 'camel', pts: 25, name: 'camel', emoji: '🐪', color: '#C8A060', color2: '#E0C080', stroke: '#886633' },
-        { shape: 'wheat', pts: 18, name: 'wheat', emoji: '🌾', color: '#D4A040', color2: '#E8C870', stroke: '#997722' },
-        { shape: 'flame', pts: 28, name: 'flame', emoji: '🔥', color: '#FF6600', color2: '#FFAA44', stroke: '#CC4400' }
-    ],
-    // ❄️ Ice World (Level 5001-6000)
-    5: [
-        { shape: 'snowflake', pts: 20, name: 'snowflake', emoji: '❄️', color: '#A8D8FF', color2: '#D0E8FF', stroke: '#4488CC' },
-        { shape: 'ice', pts: 15, name: 'ice', emoji: '🧊', color: '#88CCEE', color2: '#C0E8FF', stroke: '#4488AA' },
-        { shape: 'snowman', pts: 25, name: 'snowman', emoji: '⛄', color: '#E8E8F0', color2: '#F0F0F8', stroke: '#AAAAAA' },
-        { shape: 'diamond_ice', pts: 22, name: 'diamond_ice', emoji: '💠', color: '#88DDFF', color2: '#C0EEFF', stroke: '#4488CC' },
-        { shape: 'frost', pts: 18, name: 'frost', emoji: '🥶', color: '#B0E0FF', color2: '#D0F0FF', stroke: '#6688AA' },
-        { shape: 'cloud', pts: 28, name: 'cloud', emoji: '🌨️', color: '#CCCCEE', color2: '#EEEEFF', stroke: '#8888AA' }
-    ],
-    // 🌋 Volcano (Level 6001-7000)
-    6: [
-        { shape: 'fire', pts: 22, name: 'fire', emoji: '🔥', color: '#FF4400', color2: '#FF8844', stroke: '#CC0000' },
-        { shape: 'rock', pts: 15, name: 'rock', emoji: '🪨', color: '#666666', color2: '#999999', stroke: '#333333' },
-        { shape: 'lava', pts: 28, name: 'lava', emoji: '🌋', color: '#FF6600', color2: '#FFAA44', stroke: '#CC4400' },
-        { shape: 'skull', pts: 30, name: 'skull', emoji: '💀', color: '#AA44CC', color2: '#CC88EE', stroke: '#660088' },
-        { shape: 'blade', pts: 25, name: 'blade', emoji: '🗡️', color: '#CCCCCC', color2: '#EEEEEE', stroke: '#888888' },
-        { shape: 'lightning', pts: 20, name: 'lightning', emoji: '⚡', color: '#FFDD00', color2: '#FFEE66', stroke: '#CCAA00' }
-    ],
-    // 🌆 Neon City (Level 7001-10000)
-    7: [
-        { shape: 'neon', pts: 25, name: 'neon', emoji: '💠', color: '#FF00FF', color2: '#FF88FF', stroke: '#AA00AA' },
-        { shape: 'pixel', pts: 20, name: 'pixel', emoji: '🎮', color: '#00FF00', color2: '#88FF88', stroke: '#00AA00' },
-        { shape: 'signal', pts: 22, name: 'signal', emoji: '📡', color: '#00CCFF', color2: '#88EEFF', stroke: '#0088AA' },
-        { shape: 'glitch', pts: 28, name: 'glitch', emoji: '🖥️', color: '#FF00AA', color2: '#FF88CC', stroke: '#AA0066' },
-        { shape: 'bolt', pts: 18, name: 'bolt', emoji: '⚡', color: '#FFFF00', color2: '#FFFF88', stroke: '#AAAA00' },
-        { shape: 'target', pts: 30, name: 'target', emoji: '🎯', color: '#FF0000', color2: '#FF6666', stroke: '#AA0000' }
-    ]
-};
+// Colors (6 types)
+const CANDY_COLORS = [
+    { name: 'red', main: '#FF4D4D', light: '#FF8080', dark: '#CC0000' },
+    { name: 'blue', main: '#4D79FF', light: '#80A0FF', dark: '#0033CC' },
+    { name: 'green', main: '#4DFF88', light: '#80FFAA', dark: '#00CC44' },
+    { name: 'yellow', main: '#FFFF4D', light: '#FFFF80', dark: '#CCCC00' },
+    { name: 'purple', main: '#994DFF', light: '#BB80FF', dark: '#6600CC' },
+    { name: 'orange', main: '#FF8C00', light: '#FFB040', dark: '#CC5500' }
+];
 
-// Helper: Get candy types for a given level
-function getCandyTypesForLevel(level) {
-    const themeIndex = Math.min(7, Math.floor((level - 1) / 1000));
-    return WORLD_CANDY_TYPES[themeIndex] || WORLD_CANDY_TYPES[0];
+// Shapes (5 types)
+const CANDY_SHAPES = [
+    { name: 'round', radius: 0.9 },
+    { name: 'square', radius: 0.15 },
+    { name: 'jelly', radius: 0.7, jelly: true },
+    { name: 'star', radius: 0.9, star: true },
+    { name: 'diamond', radius: 0.85, diamond: true }
+];
+
+// Sizes (3 types)
+const CANDY_SIZES = [
+    { name: 'small', scale: 0.8 },
+    { name: 'medium', scale: 1.0 },
+    { name: 'large', scale: 1.2 }
+];
+
+// Generate unique candy type combinations
+function generateCandyTypes() {
+    const types = [];
+    let id = 0;
+    for (let c = 0; c < CANDY_COLORS.length; c++) {
+        for (let s = 0; s < CANDY_SHAPES.length; s++) {
+            for (let z = 0; z < CANDY_SIZES.length; z++) {
+                types.push({
+                    id: id++,
+                    color: CANDY_COLORS[c],
+                    shape: CANDY_SHAPES[s],
+                    size: CANDY_SIZES[z],
+                    pts: 10 + Math.floor(Math.random() * 20),
+                    name: `${CANDY_COLORS[c].name}-${CANDY_SHAPES[s].name}-${CANDY_SIZES[z].name}`
+                });
+            }
+        }
+    }
+    return types;
+}
+
+// All candy types (6 colors × 5 shapes × 3 sizes = 90 types)
+const ALL_CANDY_TYPES = generateCandyTypes();
+
+// Pick random candy type
+function getRandomCandyType() {
+    return ALL_CANDY_TYPES[Math.floor(Math.random() * ALL_CANDY_TYPES.length)];
 }
 
 // ============================================================
-// ===== DIFFICULTY CONFIGURATION (FIXED TARGET CURVE) =====
+// ===== DIFFICULTY CONFIGURATION =====
 // ============================================================
 
 function getBasketScale(level) {
@@ -516,53 +467,34 @@ function getBasketScale(level) {
 }
 
 function getLevelConfig(lvl) {
-    // Speed: 3.0 se 7.0 tak
-    let speed = 3.0 + (Math.min(lvl, 7000) / 7000) * 4.0;
+    // Speed: 2.5 to 7.0 (gradual)
+    let speed = 2.5 + (Math.min(lvl, 7000) / 7000) * 4.5;
 
-    // Spawn interval: dheere dheere kam ho
+    // Spawn interval
     const interval = Math.max(30, 80 - lvl * 0.015);
 
-    // ----- TARGET: Smooth Curve (Gradually increases, Max 250 at Level 10000) -----
+    // Target: gradual increase, max 250 at level 10000
     let target;
     if (lvl <= 10) {
         target = 8 + lvl;
     } else {
-        const progress = Math.min(1, (lvl - 10) / 9990); // 0 to 1
-        // 10 se start, 240 tak badhega, power curve taaki slow start ho aur end me thoda fast
+        const progress = Math.min(1, (lvl - 10) / 9990);
         target = Math.floor(10 + (240) * Math.pow(progress, 0.65));
-        // Guarantee gradual increase with level
         target = Math.max(10 + Math.floor(lvl * 0.015), target);
     }
-
-    // Cap at 250 ONLY for level 10000 (formula ensures it reaches there)
     target = Math.min(250, Math.max(10, target));
 
     return { speed, interval, target };
 }
 
 function getBombChance(lvl) {
-    if (lvl < 20) return 0;
-    if (lvl < 100) return 0.03;
-    if (lvl < 500) return 0.05;
-    if (lvl < 2000) return 0.07;
-    if (lvl < 4000) return 0.10;
-    if (lvl < 6000) return 0.12;
-    return 0.15;
-}
-
-function getPoisonChance(lvl) {
-    if (lvl < 4000) return 0;
-    if (lvl < 5000) return 0.02;
-    if (lvl < 6000) return 0.04;
-    if (lvl < 7000) return 0.06;
-    return 0.08;
-}
-
-function getEliteChance(lvl) {
-    if (lvl < 2000) return 0;
-    if (lvl < 4000) return 0.02;
-    if (lvl < 6000) return 0.04;
-    return 0.06;
+    if (lvl < 20) return 0.01;
+    if (lvl < 100) return 0.02;
+    if (lvl < 500) return 0.04;
+    if (lvl < 2000) return 0.06;
+    if (lvl < 4000) return 0.08;
+    if (lvl < 6000) return 0.10;
+    return 0.12;
 }
 
 function getLevelMode(lvl) {
@@ -581,16 +513,26 @@ function getLevelMode(lvl) {
     return { mode: 'normal' };
 }
 
-function getShieldChance(lvl) {
-    if (lvl < 10) return 0;
-    if (lvl < 100) return 0.004;
-    if (lvl < 500) return 0.007;
-    return 0.01;
-}
-
 function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
 function getModeLabel(s) { return { star: '⭐ Star', heart: '❤️ Heart', diamond: '💎 Diamond', lollipop: '🍭 Lollipop', wrapped: '🍬 Wrapped', round: '🔴 Round' } [s] || s; }
+
+// ============================================================
+// ===== BOMB TYPES =====
+// ============================================================
+
+const BOMB_TYPES = {
+    GAME_OVER: { type: 'game-over', label: '💀', effect: 'gameOver', color: '#FF0000' },
+    LIFE_REDUCE: { type: 'life-reduce', label: '💔', effect: 'lifeReduce', color: '#FF4444' },
+    TARGET_REDUCE: { type: 'target-reduce', label: '📉', effect: 'targetReduce', color: '#FF8800' },
+    SCORE_REDUCE: { type: 'score-reduce', label: '💰', effect: 'scoreReduce', color: '#FFAA00' },
+    BASKET_RESET: { type: 'basket-reset', label: '🔄', effect: 'basketReset', color: '#FF00FF' }
+};
+
+function getRandomBombType() {
+    const types = Object.values(BOMB_TYPES);
+    return types[Math.floor(Math.random() * types.length)];
+}
 
 // ============================================================
 // ===== GAME STATE =====
@@ -616,41 +558,7 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
     };
 }
 
-const BOMB_TYPE = { shape: 'bomb', color: '#1a1a1a', color2: '#444', stroke: '#000', pts: 0, name: 'bomb' };
-const SHIELD_TYPE = { shape: 'shield', color: '#A855F7', color2: '#D09BFF', stroke: '#7C3AED', pts: 0, name: 'shield' };
-
-function createEliteType(level) {
-    return {
-        shape: 'elite',
-        color: '#FFD700',
-        color2: '#FFF080',
-        stroke: '#CC9900',
-        pts: 50 + Math.floor(level / 100) * 5,
-        name: 'elite',
-        isElite: true
-    };
-}
-
-function createPoisonType(level) {
-    return {
-        shape: 'poison',
-        color: '#2D2D2D',
-        color2: '#4D4D4D',
-        stroke: '#00AA00',
-        pts: -50,
-        name: 'poison',
-        isPoison: true
-    };
-}
-
 const SHIELD_BASE_DURATION = 720;
-
-function activateShield() { st.shieldActive = true;
-    st.shieldFrames = SHIELD_BASE_DURATION;
-    st.shieldMaxFrames = SHIELD_BASE_DURATION;
-    sfxShield();
-    updatePowerupHud(); }
-
 let shakeFrames = 0,
     shakeIntensity = 0;
 
@@ -660,24 +568,14 @@ function triggerShake(intensity = 8, frames = 18) { shakeFrames = frames;
 const TASKS = [
     { desc: 'Catch 10 Hearts ❤️', type: 'heart', count: 10 }, { desc: 'Catch 8 Stars ⭐', type: 'star', count: 8 },
     { desc: 'Catch 15 Round 🔴', type: 'round', count: 15 }, { desc: 'Catch 6 Diamonds 💎', type: 'diamond', count: 6 },
-    { desc: 'Catch 12 Wrapped 🍬', type: 'wrapped', count: 12 }, { desc: 'Catch any 20 candies', type: 'any', count: 20 },
-    { desc: 'Catch 10 Lollipops 🍭', type: 'lollipop', count: 10 }, { desc: 'Catch any 25 candies', type: 'any', count: 25 },
-    { desc: 'Catch 15 Stars ⭐', type: 'star', count: 15 }, { desc: 'Catch 12 Hearts ❤️', type: 'heart', count: 12 },
-    { desc: 'Catch 8 Diamonds 💎', type: 'diamond', count: 8 }, { desc: 'Catch 18 Round 🔴', type: 'round', count: 18 }
+    { desc: 'Catch 12 Wrapped 🍬', type: 'wrapped', count: 12 }, { desc: 'Catch any 20 candies', type: 'any', count: 20 }
 ];
 
 const THEMES = [
-    { id: 0, name: 'Candy Kingdom', emoji: '👑', bg: ['#060012', '#120030', '#200840'], star: '#FFB8FF', bar: ['#FF4DA6', '#FF8C00'], topBar: 'linear-gradient(90deg,#0A001E,#1A0040)', desc: 'Sweet candy royal world!' },
-    { id: 1, name: 'Space', emoji: '🚀', bg: ['#000008', '#000520', '#001040'], star: '#B4D2FF', bar: ['#00BFFF', '#845EF7'], topBar: 'linear-gradient(90deg,#000010,#000838)', desc: 'Candy rain among stars!' },
-    { id: 2, name: 'Underwater', emoji: '🌊', bg: ['#001828', '#003050', '#005878'], star: '#64E6FF', bar: ['#00E0FF', '#0088CC'], topBar: 'linear-gradient(90deg,#001020,#002840)', desc: 'Deep ocean candies!' },
-    { id: 3, name: 'Forest', emoji: '🌿', bg: ['#021008', '#052018', '#083828'], star: '#96FF96', bar: ['#22C55E', '#10D4AA'], topBar: 'linear-gradient(90deg,#021008,#073020)', desc: 'Cool forest shade!' },
-    { id: 4, name: 'Desert', emoji: '🏜️', bg: ['#1a0a00', '#3d1a00', '#5c2800'], star: '#FFC864', bar: ['#FF8C00', '#FFD700'], topBar: 'linear-gradient(90deg,#1a0a00,#3d1a00)', desc: 'Sandstorm candy shower!' },
-    { id: 5, name: 'Ice World', emoji: '❄️', bg: ['#001828', '#002848', '#004068'], star: '#B4E6FF', bar: ['#A8D8FF', '#00BFFF'], topBar: 'linear-gradient(90deg,#001828,#003050)', desc: 'Frozen crystal candies!' },
-    { id: 6, name: 'Volcano', emoji: '🌋', bg: ['#1a0000', '#3d0500', '#600800'], star: '#FF7832', bar: ['#FF4444', '#FF8C00'], topBar: 'linear-gradient(90deg,#1a0000,#3d0500)', desc: 'Hot lava candy rain!' },
-    { id: 7, name: 'Neon City', emoji: '🌆', bg: ['#000010', '#050018', '#080030'], star: '#FF00FF', bar: ['#FF00FF', '#00FFFF'], topBar: 'linear-gradient(90deg,#000010,#050030)', desc: 'Grand finale of 10,000 levels!' }
+    { id: 0, name: 'Candy Kingdom', emoji: '👑', bg: ['#060012', '#120030', '#200840'], star: '#FFB8FF', bar: ['#FF4DA6', '#FF8C00'], topBar: 'linear-gradient(90deg,#0A001E,#1A0040)', desc: 'Sweet candy royal world!' }
 ];
 
-function getTheme(lvl) { const idx = Math.min(7, Math.floor((lvl - 1) / 1000)); return THEMES[idx]; }
+function getTheme(lvl) { return THEMES[0]; }
 
 let st = {
     running: false,
@@ -691,9 +589,9 @@ let st = {
     confetti: [],
     spawnTimer: 0,
     spawnInterval: 70,
-    speed: 2.0,
+    speed: 2.5,
     frame: 0,
-    levelTarget: 8,
+    levelTarget: 10,
     levelCaught: 0,
     inTask: false,
     taskDef: null,
@@ -705,7 +603,8 @@ let st = {
     shieldActive: false,
     shieldFrames: 0,
     shieldMaxFrames: 0,
-    levelCompleteTriggered: false
+    levelCompleteTriggered: false,
+    basketSkin: 'default'
 };
 let isGamePaused = false;
 
@@ -765,148 +664,76 @@ function spawnConfetti(count = 60) {
 }
 
 // ============================================================
-// ===== SPAWN ITEM (BURST FROM LEVEL 1 - FIXED) =====
+// ===== SPAWN FUNCTIONS =====
 // ============================================================
 
 function spawnItem() {
     const lvl = st.level;
 
-    // ---- BURST COUNT: Starting se hi 2 se 4 tak ----
+    // Burst count
     let burstCount;
-    if (lvl < 50) {
-        // Level 1-50: 2 ya 3 candies ek saath
-        burstCount = 2 + Math.floor(Math.random() * 2); // 2 or 3
-    } else if (lvl < 500) {
-        // Level 50-500: 2, 3, ya 4
-        burstCount = 2 + Math.floor(Math.random() * 3); // 2, 3, or 4
-    } else {
-        // Level 500+: mostly 3 ya 4
-        burstCount = 3 + Math.floor(Math.random() * 2); // 3 or 4
-    }
-    burstCount = Math.min(4, burstCount); // Safety cap
+    if (lvl < 50) burstCount = 2 + Math.floor(Math.random() * 2);
+    else if (lvl < 500) burstCount = 2 + Math.floor(Math.random() * 3);
+    else burstCount = 3 + Math.floor(Math.random() * 2);
+    burstCount = Math.min(4, burstCount);
 
-    // Har candy ko thoda sa alag time gap dekar spawn karte hain
     for (let b = 0; b < burstCount; b++) {
         setTimeout(() => {
             if (!st || !st.running) return;
 
-            // ---- Bomb (Sirf pehli candy mein, per burst) ----
-            if (lvl >= 20 && !st.inTask && Math.random() < getBombChance(lvl) && b === 0) {
-                st.items.push({
-                    x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
-                    y: -34 * scaleY - (b * 20 * scaleY),
-                    type: BOMB_TYPE,
-                    size: 20 * scaleX + Math.random() * 5 * scaleX,
-                    wobble: Math.random() * Math.PI * 2,
-                    speed: st.speed * 0.85 + Math.random() * 0.5,
-                    rot: Math.random() * Math.PI * 2,
-                    isBomb: true,
-                    isShield: false,
-                    isPoison: false,
-                    isElite: false,
-                    fuseTimer: 0,
-                    pulse: 0
-                });
+            // Check for bomb spawn
+            if (Math.random() < getBombChance(lvl) && b === 0) {
+                spawnBomb();
                 return;
             }
 
-            // ---- Shield (Sirf pehli candy mein) ----
-            if (lvl >= 10 && !st.shieldActive && !st.inTask && Math.random() < getShieldChance(lvl) && b === 0) {
-                st.items.push({
-                    x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
-                    y: -34 * scaleY - (b * 20 * scaleY),
-                    type: SHIELD_TYPE,
-                    size: 22 * scaleX,
-                    wobble: Math.random() * Math.PI * 2,
-                    speed: Math.max(1.1, st.speed * 0.5),
-                    rot: 0,
-                    isShield: true,
-                    isBomb: false,
-                    isPoison: false,
-                    isElite: false,
-                    pulse: 0
-                });
-                return;
-            }
-
-            // ---- Poison / Elite (Sirf pehli candy mein) ----
-            if (lvl >= 4000 && !st.inTask && Math.random() < getPoisonChance(lvl) && b === 0) {
-                const poisonType = createPoisonType(lvl);
-                st.items.push({
-                    x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
-                    y: -34 * scaleY - (b * 20 * scaleY),
-                    type: poisonType,
-                    size: 18 * scaleX + Math.random() * 6 * scaleX,
-                    wobble: Math.random() * Math.PI * 2,
-                    speed: st.speed * 0.9 + Math.random() * 0.6,
-                    rot: Math.random() * Math.PI * 2,
-                    isPoison: true,
-                    isBomb: false,
-                    isShield: false,
-                    isElite: false,
-                    pulse: 0
-                });
-                return;
-            }
-            if (lvl >= 2000 && !st.inTask && Math.random() < getEliteChance(lvl) && b === 0) {
-                const eliteType = createEliteType(lvl);
-                st.items.push({
-                    x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
-                    y: -34 * scaleY - (b * 20 * scaleY),
-                    type: eliteType,
-                    size: 20 * scaleX + Math.random() * 5 * scaleX,
-                    wobble: Math.random() * Math.PI * 2,
-                    speed: st.speed * 0.7 + Math.random() * 0.4,
-                    rot: Math.random() * Math.PI * 2,
-                    isElite: true,
-                    isBomb: false,
-                    isShield: false,
-                    isPoison: false,
-                    pulse: 0
-                });
-                return;
-            }
-
-            // ---- Normal Candies ----
-            const candyTypes = getCandyTypesForLevel(lvl);
-            let type;
-
-            if (st.levelMode.mode === 'selective') {
-                if (Math.random() < 0.55) {
-                    const target = st.levelMode.targetShape;
-                    const matching = candyTypes.filter(t => t.name === target);
-                    type = matching.length > 0 ? matching[0] : pickRandom(candyTypes);
-                } else {
-                    const nonTarget = candyTypes.filter(t => t.name !== st.levelMode.targetShape);
-                    type = nonTarget.length > 0 ? pickRandom(nonTarget) : pickRandom(candyTypes);
-                }
-            } else {
-                type = pickRandom(candyTypes);
-            }
-
-            const yOffset = -b * 25 * scaleX; // Burst effect
+            // Spawn normal candy
+            const candyType = getRandomCandyType();
+            const size = 16 * scaleX + Math.random() * 9 * scaleX;
+            const yOffset = -b * 25 * scaleY;
 
             st.items.push({
                 x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
                 y: -34 * scaleY + yOffset,
-                type: type,
-                size: 16 * scaleX + Math.random() * 9 * scaleX,
+                type: candyType,
+                size: size,
                 wobble: Math.random() * Math.PI * 2,
-                speed: st.speed + (0.5 + Math.random() * 0.8), // Alag-alag speed
+                speed: st.speed + (0.5 + Math.random() * 0.8),
                 rot: Math.random() * Math.PI * 2,
-                isPoison: false,
-                isElite: false,
                 isBomb: false,
                 isShield: false,
                 pulse: 0
             });
 
-        }, b * 100); // 100ms ka gap taaki cluster effect ho
+        }, b * 100);
     }
 }
 
+function spawnBomb() {
+    const bombType = getRandomBombType();
+    st.items.push({
+        x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
+        y: -34 * scaleY,
+        size: 22 * scaleX,
+        wobble: Math.random() * Math.PI * 2,
+        speed: st.speed * 0.85 + Math.random() * 0.5,
+        rot: Math.random() * Math.PI * 2,
+        isBomb: true,
+        isShield: false,
+        bombType: bombType,
+        pulse: 0,
+        fuseTimer: 0
+    });
+}
+
+function activateShield() { st.shieldActive = true;
+    st.shieldFrames = SHIELD_BASE_DURATION;
+    st.shieldMaxFrames = SHIELD_BASE_DURATION;
+    sfxShield();
+    updatePowerupHud(); }
+
 // ============================================================
-// ===== DRAWING FUNCTIONS (SIMPLE + EMOJI-BASED) =====
+// ===== DRAWING FUNCTIONS =====
 // ============================================================
 
 function glow(c, b) { ctx.shadowColor = c;
@@ -914,11 +741,14 @@ function glow(c, b) { ctx.shadowColor = c;
 
 function ng() { ctx.shadowBlur = 0; }
 
-// ----- SIMPLE EMOJI CANDY DRAWING -----
-function drawEmojiCandy(r, emoji, color1, color2, stroke) {
-    // Glow ring
-    glow(color1, 12);
-    ctx.strokeStyle = color1;
+function drawCandy(r, candyType) {
+    const color = candyType.color;
+    const shape = candyType.shape;
+    const size = candyType.size;
+
+    // Glow
+    glow(color.main, 12);
+    ctx.strokeStyle = color.main;
     ctx.lineWidth = 2.5;
     ctx.globalAlpha = 0.3;
     ctx.beginPath();
@@ -927,36 +757,144 @@ function drawEmojiCandy(r, emoji, color1, color2, stroke) {
     ctx.globalAlpha = 1;
     ng();
 
-    // Background circle (so emoji pops)
-    const grad = ctx.createRadialGradient(-r * 0.2, -r * 0.3, 0, 0, 0, r * 0.9);
-    grad.addColorStop(0, color2);
-    grad.addColorStop(0.7, color1);
-    grad.addColorStop(1, stroke);
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 0.85, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+    // Main body
+    const grad = ctx.createRadialGradient(-r * 0.2, -r * 0.3, 0, 0, 0, r);
+    grad.addColorStop(0, color.light);
+    grad.addColorStop(0.6, color.main);
+    grad.addColorStop(1, color.dark);
 
-    // Emoji
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = `${Math.round(r * 1.3)}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    glow('#FFFFFF', 6);
-    ctx.fillText(emoji, 0, 2);
-    ng();
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = color.dark;
+    ctx.lineWidth = 1.5;
+
+    // Shape rendering
+    let scale = size.scale || 1;
+
+    if (shape.name === 'round') {
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.85 * scale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+    } else if (shape.name === 'square') {
+        ctx.beginPath();
+        ctx.roundRect(-r * 0.7 * scale, -r * 0.7 * scale, r * 1.4 * scale, r * 1.4 * scale, r * 0.15);
+        ctx.fill();
+        ctx.stroke();
+    } else if (shape.name === 'jelly') {
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * 0.8 * scale, r * 0.9 * scale, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // Jelly wobble mark
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.beginPath();
+        ctx.ellipse(-r * 0.2, -r * 0.25, r * 0.3 * scale, r * 0.15 * scale, -0.4, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (shape.name === 'star') {
+        ctx.beginPath();
+        for (let i = 0; i < 10; i++) {
+            const a = (i * Math.PI / 5) - Math.PI / 2;
+            const rad = i % 2 === 0 ? r * 0.85 * scale : r * 0.4 * scale;
+            i === 0 ? ctx.moveTo(Math.cos(a) * rad, Math.sin(a) * rad) : ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    } else if (shape.name === 'diamond') {
+        ctx.beginPath();
+        ctx.moveTo(0, -r * 1.1 * scale);
+        ctx.lineTo(r * 0.8 * scale, 0);
+        ctx.lineTo(0, r * 1.1 * scale);
+        ctx.lineTo(-r * 0.8 * scale, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
 
     // Shine
     ctx.fillStyle = 'rgba(255,255,255,0.25)';
     ctx.beginPath();
-    ctx.ellipse(-r * 0.25, -r * 0.3, r * 0.2, r * 0.1, -0.4, 0, Math.PI * 2);
+    ctx.ellipse(-r * 0.25, -r * 0.3, r * 0.2 * scale, r * 0.1 * scale, -0.4, 0, Math.PI * 2);
     ctx.fill();
 }
 
-// ----- SPECIAL: Shield, Bomb, Poison, Elite -----
+function drawBombItem(r, bombType, fuseT) {
+    const sparkOn = Math.sin(fuseT * 0.4) > 0;
+
+    // Fuse
+    ctx.strokeStyle = '#8B6914';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(r * 0.2, -r);
+    ctx.bezierCurveTo(r * 0.6, -r * 1.5, r * 0.8, -r * 1.8, r * 0.5, -r * 2.2);
+    ctx.stroke();
+
+    if (sparkOn) {
+        glow('#FF8C00', 10);
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.arc(r * 0.5, -r * 2.2, r * 0.22, 0, Math.PI * 2);
+        ctx.fill();
+        ng();
+    }
+
+    // Bomb body with color
+    const bombColor = bombType.color || '#FF0000';
+    glow(bombColor, 8 + Math.sin(fuseT * 0.3) * 4);
+    const g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.05, 0, 0, r);
+    g.addColorStop(0, '#666');
+    g.addColorStop(0.5, '#1a1a1a');
+    g.addColorStop(1, '#000');
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ng();
+
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Bomb label
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = `bold ${Math.round(r*1.4)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(bombType.label || '💣', 0, 2);
+
+    // Effect text below
+    ctx.fillStyle = bombColor;
+    ctx.font = `bold ${Math.round(r*0.45)}px sans-serif`;
+    ctx.fillText(bombType.type.replace('-', ' '), 0, r * 1.8);
+    ng();
+}
+
+function drawItem(item) {
+    const { x, y, size: r, rot } = item;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+
+    if (item.isBomb) {
+        const fuseT = item.fuseTimer || 0;
+        const bombType = item.bombType || BOMB_TYPES.GAME_OVER;
+        drawBombItem(r, bombType, fuseT);
+        ctx.restore();
+        return;
+    }
+
+    if (item.isShield) {
+        drawShieldItem(r, item.pulse || 0);
+        ctx.restore();
+        return;
+    }
+
+    // Normal candy
+    drawCandy(r, item.type);
+
+    ctx.restore();
+}
+
 function drawShieldItem(r, pulse) {
     const p = Math.sin(pulse) * 0.5 + 0.5;
     glow('#A855F7', 12 + p * 10);
@@ -999,224 +937,6 @@ function drawShieldItem(r, pulse) {
     ng();
 }
 
-function drawBombItem(r, fuseT) {
-    const sparkOn = Math.sin(fuseT * 0.4) > 0;
-    ctx.strokeStyle = '#8B6914';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(r * 0.2, -r);
-    ctx.bezierCurveTo(r * 0.6, -r * 1.5, r * 0.8, -r * 1.8, r * 0.5, -r * 2.2);
-    ctx.stroke();
-    if (sparkOn) {
-        glow('#FF8C00', 10);
-        ctx.fillStyle = '#FFD700';
-        ctx.beginPath();
-        ctx.arc(r * 0.5, -r * 2.2, r * 0.22, 0, Math.PI * 2);
-        ctx.fill();
-        ng();
-    }
-    glow('#FF2222', 8 + Math.sin(fuseT * 0.3) * 4);
-    const g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.05, 0, 0, r);
-    g.addColorStop(0, '#444');
-    g.addColorStop(0.5, '#1a1a1a');
-    g.addColorStop(1, '#000');
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fillStyle = g;
-    ctx.fill();
-    ng();
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(255,60,60,0.85)';
-    ctx.font = `bold ${Math.round(r*1.1)}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('💣', 0, 0);
-    glow('#FF2222', 6);
-    ctx.fillStyle = '#FF4444';
-    ctx.font = `bold ${Math.round(r*0.55)}px sans-serif`;
-    ctx.fillText('BOMB', 0, r * 1.7);
-    ng();
-}
-
-function drawPoisonShape(r, c1, c2, s) {
-    glow('#00AA00', 14);
-    ctx.fillStyle = '#2D2D2D';
-    ctx.strokeStyle = '#00AA00';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, r * 0.7, r * 0.8, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = '#00FF00';
-    ctx.shadowColor = '#00FF00';
-    ctx.shadowBlur = 10;
-    ctx.beginPath();
-    ctx.ellipse(-r * 0.25, -r * 0.1, r * 0.15, r * 0.2, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(r * 0.25, -r * 0.1, r * 0.15, r * 0.2, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = '#00AA00';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(-r * 0.8, r * 0.3);
-    ctx.lineTo(r * 0.8, -r * 0.3);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(r * 0.8, r * 0.3);
-    ctx.lineTo(-r * 0.8, -r * 0.3);
-    ctx.stroke();
-    ctx.fillStyle = '#00AA00';
-    ctx.font = `bold ${Math.round(r*0.4)}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('☠', 0, r * 0.3);
-    ng();
-}
-
-function drawEliteShape(r, c1, c2, s) {
-    glow('#FFD700', 16);
-    ctx.fillStyle = '#FFD700';
-    ctx.strokeStyle = '#CC9900';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for (let i = 0; i < 10; i++) {
-        const a = (i * Math.PI / 5) - Math.PI / 2;
-        const rad = i % 2 === 0 ? r : r * 0.4;
-        i === 0 ? ctx.moveTo(Math.cos(a) * rad, Math.sin(a) * rad) : ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad);
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = '#FFD700';
-    ctx.font = `bold ${Math.round(r*0.6)}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('👑', 0, -r * 0.1);
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.beginPath();
-    ctx.ellipse(-r * 0.2, -r * 0.3, r * 0.25, r * 0.1, -0.4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#FFD700';
-    ctx.font = `bold ${Math.round(r*0.35)}px sans-serif`;
-    ctx.fillText('⭐', 0, r * 0.7);
-    ng();
-}
-
-// ----- MAIN drawItem -----
-function drawItem(item) {
-    const { x, y, type: t, size: r, rot } = item;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(rot);
-
-    // Special highlights
-    if (item.isBomb) {
-        const pulse = Math.sin((item.fuseTimer || 0) * 0.25) * 0.5 + 0.5;
-        glow('#FF2222', 10 + pulse * 8);
-        ctx.strokeStyle = `rgba(255,50,50,${0.4+pulse*0.4})`;
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.arc(0, 0, r + 6, 0, Math.PI * 2);
-        ctx.stroke();
-        ng();
-    } else if (item.isShield) {
-        item.pulse = (item.pulse || 0) + 0.1;
-        const p = Math.sin(item.pulse) * 0.5 + 0.5;
-        glow('#A855F7', 10 + p * 8);
-        ctx.strokeStyle = `rgba(168,85,247,${0.4+p*0.4})`;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(0, 0, r + 6, 0, Math.PI * 2);
-        ctx.stroke();
-        ng();
-    } else if (item.isPoison) {
-        const pulse = Math.sin((item.pulse || 0) * 0.2) * 0.5 + 0.5;
-        glow('#00AA00', 12 + pulse * 10);
-        ctx.strokeStyle = `rgba(0,170,0,${0.3+pulse*0.4})`;
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.arc(0, 0, r + 8, 0, Math.PI * 2);
-        ctx.stroke();
-        ng();
-    } else if (item.isElite) {
-        const pulse = Math.sin((item.pulse || 0) * 0.3) * 0.5 + 0.5;
-        glow('#FFD700', 14 + pulse * 10);
-        ctx.strokeStyle = `rgba(255,215,0,${0.4+pulse*0.4})`;
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.arc(0, 0, r + 8, 0, Math.PI * 2);
-        ctx.stroke();
-        ng();
-    } else {
-        // Selective mode highlight
-        if (st.levelMode.mode === 'selective' && t.name === st.levelMode.targetShape) {
-            glow('#FFFFFF', 10);
-            ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-            ctx.lineWidth = 2.5;
-            ctx.beginPath();
-            ctx.arc(0, 0, r + 5, 0, Math.PI * 2);
-            ctx.stroke();
-            ng();
-        }
-        // Task highlight
-        if (st.inTask && st.taskDef) {
-            const isTT = st.taskDef.type === 'any' || t.name === st.taskDef.type;
-            if (isTT) {
-                glow('#00FF88', 12);
-                ctx.strokeStyle = 'rgba(0,255,136,0.7)';
-                ctx.lineWidth = 2.5;
-                ctx.beginPath();
-                ctx.arc(0, 0, r + 6, 0, Math.PI * 2);
-                ctx.stroke();
-                ng();
-            } else {
-                glow('#FF2222', 8);
-                ctx.strokeStyle = 'rgba(255,50,50,0.45)';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.arc(0, 0, r + 4, 0, Math.PI * 2);
-                ctx.stroke();
-                ng();
-            }
-        }
-    }
-
-    // Draw based on type
-    if (t.isPoison) {
-        drawPoisonShape(r, t.color, t.color2, t.stroke);
-        ctx.restore();
-        return;
-    }
-    if (t.isElite) {
-        drawEliteShape(r, t.color, t.color2, t.stroke);
-        ctx.restore();
-        return;
-    }
-    if (t.shape === 'shield') {
-        drawShieldItem(r, item.pulse || 0);
-        ctx.restore();
-        return;
-    }
-    if (t.shape === 'bomb') {
-        drawBombItem(r, item.fuseTimer || 0);
-        ctx.restore();
-        return;
-    }
-
-    // Normal candy - use emoji + colors from type
-    const emoji = t.emoji || '🍬';
-    const c1 = t.color || '#FF4DA6';
-    const c2 = t.color2 || '#FF85C8';
-    const s = t.stroke || '#CC0066';
-    drawEmojiCandy(r, emoji, c1, c2, s);
-
-    ctx.restore();
-}
-
 // ============================================================
 // ===== BG, PROGRESS BAR, BASKET =====
 // ============================================================
@@ -1245,19 +965,6 @@ function drawBg() {
         ctx.fillStyle = 'rgba(255,60,0,0.04)';
         ctx.fillRect(0, 0, gameW, gameH);
     }
-    if (st.isBossActive) {
-        const pulse = Math.sin(st.frame * 0.08) * 0.04 + 0.06;
-        ctx.fillStyle = `rgba(255,0,0,${pulse})`;
-        ctx.fillRect(0, 0, gameW, gameH);
-        ctx.save();
-        ctx.fillStyle = 'rgba(255,80,0,0.85)';
-        ctx.font = 'bold 11px sans-serif';
-        ctx.textAlign = 'center';
-        glow('#FF4400', 8);
-        ctx.fillText('⚔️ BOSS: ' + (st.bossData ? st.bossData.emoji + ' ' + st.bossData.name : 'BOSS'), gameW / 2, gameH - 12);
-        ng();
-        ctx.restore();
-    }
 }
 
 function drawProgressBar() {
@@ -1268,9 +975,8 @@ function drawProgressBar() {
     ctx.roundRect(10 * scaleX, 6 * scaleY, gameW - 20 * scaleX, 8 * scaleY, 4 * scaleX);
     ctx.fill();
     const pg = ctx.createLinearGradient(10 * scaleX, 0, 10 * scaleX + (gameW - 20 * scaleX) * pct, 0);
-    if (st.isBossActive) { pg.addColorStop(0, '#FF4400');
-        pg.addColorStop(1, '#FF0000'); } else { pg.addColorStop(0, th.bar[0]);
-        pg.addColorStop(1, th.bar[1]); }
+    pg.addColorStop(0, th.bar[0]);
+    pg.addColorStop(1, th.bar[1]);
     ctx.fillStyle = pg;
     ctx.beginPath();
     ctx.roundRect(10 * scaleX, 6 * scaleY, (gameW - 20 * scaleX) * pct, 8 * scaleY, 4 * scaleX);
@@ -1329,7 +1035,7 @@ function drawBasketWithSkin(bx, by, bw, bh) {
 }
 
 // ============================================================
-// ===== INIT LEVEL, UPDATE HUD, OVERLAYS =====
+// ===== INIT LEVEL, UPDATE HUD =====
 // ============================================================
 
 function initLevel(lvl, score, lives) {
@@ -1446,7 +1152,47 @@ function updatePowerupHud() {
 }
 
 // ============================================================
-// ===== GAME LOOP (FIXED: UNPREDICTABLE FLOW + SMOOTH) =====
+// ===== BOMB HANDLERS =====
+// ============================================================
+
+function handleBombEffect(bombType) {
+    switch (bombType.type) {
+        case 'game-over':
+            st.lives = 0;
+            updateHUD();
+            endGame(true);
+            break;
+        case 'life-reduce':
+            st.lives--;
+            updateHUD();
+            sfxWrong();
+            triggerShake(5, 10);
+            st.floats.push({ x: gameW / 2, y: gameH / 2, color: '#FF4444', life: 60, text: '💔 -1 Life!', big: true });
+            if (st.lives <= 0) { endGame(false); }
+            break;
+        case 'target-reduce':
+            st.levelTarget = Math.max(st.levelCaught + 5, st.levelTarget - 15);
+            sfxWrong();
+            st.floats.push({ x: gameW / 2, y: gameH / 2, color: '#FF8800', life: 60, text: '📉 +15 more needed!', big: true });
+            break;
+        case 'score-reduce':
+            st.score = Math.max(0, st.score - 500);
+            updateHUD();
+            sfxWrong();
+            st.floats.push({ x: gameW / 2, y: gameH / 2, color: '#FFAA00', life: 60, text: '💰 -500 Score!', big: true });
+            break;
+        case 'basket-reset':
+            currentSkinIndex = 0;
+            saveSkin();
+            updateSkinButton();
+            sfxWrong();
+            st.floats.push({ x: gameW / 2, y: gameH / 2, color: '#FF00FF', life: 60, text: '🔄 Basket Reset!', big: true });
+            break;
+    }
+}
+
+// ============================================================
+// ===== GAME LOOP =====
 // ============================================================
 
 const TARGET_FPS = 60;
@@ -1462,7 +1208,7 @@ function gameLoop(timestamp) {
 
     ctx.save();
 
-    // ---- SHAKE FIX ----
+    // Shake
     if (shakeFrames > 0) {
         const sx = (Math.random() - 0.5) * shakeIntensity;
         const sy = (Math.random() - 0.5) * shakeIntensity;
@@ -1470,7 +1216,7 @@ function gameLoop(timestamp) {
         shakeFrames--;
         shakeIntensity *= 0.88;
     } else {
-        shakeIntensity = 0; // Reset to avoid vibration glitches
+        shakeIntensity = 0;
     }
 
     ctx.clearRect(-20, -20, gameW + 40, gameH + 40);
@@ -1486,10 +1232,9 @@ function gameLoop(timestamp) {
         if (st.comboTimer === 0) st.combo = 0;
     }
 
-    // Spawn timer - burst mode handles multiple items
     st.spawnTimer++;
     if (st.spawnTimer >= st.spawnInterval) {
-        spawnItem(); // Burst spawn handles multiple candies
+        spawnItem();
         st.spawnTimer = 0;
     }
 
@@ -1502,20 +1247,12 @@ function gameLoop(timestamp) {
         if (item.isBomb) {
             item.fuseTimer = (item.fuseTimer || 0) + 1;
             item.rot += 0.03;
-        } else if (item.isShield) {
-            item.pulse = (item.pulse || 0) + 0.1;
-            item.x += Math.sin(item.wobble) * 0.8;
-        } else if (item.isPoison || item.isElite) {
-            item.pulse = (item.pulse || 0) + 0.1;
-            item.x += Math.sin(item.wobble) * 0.9;
         } else {
-            // ---- UNPREDICTABLE FLOW (FIXED) ----
+            // Original smooth flow
             item.rot += 0.015;
-            // Random drift: 2.5 se 5.0 tak, bilkul unpredictable
-            let drift = Math.sin(item.wobble) * (2.5 + Math.random() * 2.5);
-            // 10% chance of sudden sharp movement (like old flow)
-            if (Math.random() > 0.9) drift *= 1.8;
-            item.x += drift;
+            // Smooth sine wave drift with level-based amplitude
+            let amplitude = 1.8 + (st.level / 10000) * 3.2; // 1.8 to 5.0
+            item.x += Math.sin(item.wobble) * amplitude;
         }
 
         item.x = Math.max(item.size, Math.min(gameW - item.size, item.x));
@@ -1524,14 +1261,7 @@ function gameLoop(timestamp) {
             item.x > bx - bw / 2 - item.size * 0.6 &&
             item.x < bx + bw / 2 + item.size * 0.6;
 
-        // --- Catch Logic (Unchanged) ---
         if (caught) {
-            if (item.isShield) {
-                activateShield();
-                addParticles(item.x, by, '#A855F7', '#D09BFF');
-                st.floats.push({ x: item.x, y: by - 20, color: '#A855F7', life: 70, text: '🛡️ SHIELD! 12s', big: true });
-                return false;
-            }
             if (item.isBomb) {
                 if (st.shieldActive) {
                     sfxShield();
@@ -1543,101 +1273,36 @@ function gameLoop(timestamp) {
                     st.floats.push({ x: item.x, y: by - 20, color: '#A855F7', life: 60, text: '🛡️ SHIELD SAVED!', big: true });
                     return false;
                 }
-                st.lives = 0;
-                updateHUD();
-                endGame(true);
-                return false;
-            }
-            if (item.isPoison) {
-                sfxWrong();
-                triggerShake(8, 15);
+                handleBombEffect(item.bombType);
                 addRedParticles(item.x, by);
-                if (st.shieldActive) {
-                    st.floats.push({ x: item.x, y: by - 20, color: '#A855F7', life: 45, text: '🛡️ Poison Blocked!' });
-                    return false;
-                }
-                st.lives--;
-                st.score = Math.max(0, st.score - 50);
-                updateHUD();
-                st.floats.push({ x: item.x, y: by - 20, color: '#00AA00', life: 50, text: '☠️ -50pts -1❤️', big: true });
-                if (st.lives <= 0) { endGame(false); return false; }
                 return false;
             }
-            if (item.isElite) {
-                sfxLevelUp();
-                const bonus = item.type.pts || 50;
-                st.score += bonus;
-                spawnConfetti(30);
-                st.floats.push({ x: item.x, y: by - 20, color: '#FFD700', life: 60, text: '👑 +' + bonus + ' Bonus!', big: true });
-                updateHUD();
+
+            if (item.isShield) {
+                activateShield();
+                addParticles(item.x, by, '#A855F7', '#D09BFF');
+                st.floats.push({ x: item.x, y: by - 20, color: '#A855F7', life: 70, text: '🛡️ SHIELD! 12s', big: true });
                 return false;
             }
-            if (st.inTask && st.taskDef) {
-                const isTT = st.taskDef.type === 'any' || item.type.name === st.taskDef.type;
-                if (!isTT) {
-                    sfxWrong();
-                    addRedParticles(item.x, by);
-                    triggerShake(5, 12);
-                    st.floats.push({ x: item.x, y: by - 16, color: '#FF2222', life: 45, text: '❌ Wrong!' });
-                    st.combo = 0;
-                    st.comboTimer = 0;
-                    st.lives--;
-                    updateHUD();
-                    if (st.lives <= 0) { endGame(false); return false; }
-                    return false;
-                }
-                sfxCatch();
-                addParticles(item.x, by, item.type.color, item.type.color2);
-                st.combo++;
-                st.comboTimer = 90;
-                const multi = Math.min(st.combo, 5);
-                const pts = item.type.pts * multi;
-                if (multi > 1) sfxCombo(multi);
-                st.floats.push({ x: item.x, y: by - 16, color: multi > 1 ? '#FFD700' : item.type.color2, life: 40, text: (multi > 1 ? 'x' + multi + ' ' : '') + '+' + pts });
-                st.score += pts;
-                st.taskCaught++;
-                updateHUD();
-                updateTaskHud();
-                document.getElementById('taskFill').style.width = Math.min(100, Math.round(st.taskCaught / st.taskDef.count * 100)) + '%';
-                document.getElementById('taskProg').textContent = st.taskCaught + ' / ' + st.taskDef.count;
-                if (st.taskCaught >= st.taskDef.count) {
-                    st.running = false;
-                    setTimeout(onTaskComplete, 100);
-                    return false;
-                }
-                return false;
-            }
-            const isTarget = st.levelMode.mode === 'normal' || (item.type.name === st.levelMode.targetShape);
-            if (!isTarget) {
-                if (st.shieldActive) {
-                    sfxShield();
-                    triggerShake(3, 8);
-                    addRedParticles(item.x, by);
-                    st.floats.push({ x: item.x, y: by - 16, color: '#A855F7', life: 45, text: '🛡️ Blocked!' });
-                    st.combo = 0;
-                    st.comboTimer = 0;
-                    return false;
-                }
-                sfxWrong();
-                addRedParticles(item.x, by);
-                triggerShake(5, 12);
-                st.floats.push({ x: item.x, y: by - 16, color: '#FF2222', life: 45, text: '❌ Wrong!' });
-                st.combo = 0;
-                st.comboTimer = 0;
-                st.lives--;
-                updateHUD();
-                if (st.lives <= 0) { endGame(false); return false; }
-                return false;
-            }
+
+            // Normal candy catch
+            const pts = item.type.pts || 10;
             st.combo++;
             st.comboTimer = 90;
             const multi = Math.min(st.combo, 5);
-            const pts = item.type.pts * multi;
+            const totalPts = pts * multi;
             if (multi > 1) sfxCombo(multi);
             sfxCatch();
-            addParticles(item.x, by, item.type.color, item.type.color2);
-            st.floats.push({ x: item.x, y: by - 16, color: multi > 1 ? '#FFD700' : item.type.color2, life: 40, text: (multi > 1 ? 'x' + multi + ' ' : '') + '+' + pts, big: multi >= 3 });
-            st.score += pts;
+            addParticles(item.x, by, item.type.color.main, item.type.color.light);
+            st.floats.push({
+                x: item.x,
+                y: by - 16,
+                color: multi > 1 ? '#FFD700' : item.type.color.light,
+                life: 40,
+                text: (multi > 1 ? 'x' + multi + ' ' : '') + '+' + totalPts,
+                big: multi >= 3
+            });
+            st.score += totalPts;
             st.levelCaught++;
             updateHUD();
 
@@ -1645,29 +1310,22 @@ function gameLoop(timestamp) {
                 if (st.levelCompleteTriggered) return false;
                 st.levelCompleteTriggered = true;
                 st.running = false;
-                if (st.isBossActive) setTimeout(() => onBossComplete(), 100);
-                else setTimeout(() => onLevelComplete(), 100);
+                setTimeout(() => onLevelComplete(), 100);
                 return false;
             }
             return false;
         }
 
         if (item.y > gameH + 40) {
-            if (item.isBomb || item.isPoison || item.isElite || item.isShield) return false;
+            if (item.isBomb || item.isShield) return false;
             if (st.inTask && st.taskDef) return false;
-            if (st.levelMode.mode === 'normal' || (item.type.name === st.levelMode.targetShape)) {
-                if (st.shieldActive) {
-                    st.floats.push({ x: Math.random() * gameW, y: gameH - 80, color: '#A855F7', life: 35, text: '🛡️' });
-                    return false;
-                }
-                sfxMiss();
-                triggerShake(4, 10);
-                st.combo = 0;
-                st.comboTimer = 0;
-                st.lives--;
-                updateHUD();
-                if (st.lives <= 0) { endGame(false); return false; }
-            }
+            sfxMiss();
+            triggerShake(4, 10);
+            st.combo = 0;
+            st.comboTimer = 0;
+            st.lives--;
+            updateHUD();
+            if (st.lives <= 0) { endGame(false); return false; }
             return false;
         }
 
@@ -1675,7 +1333,7 @@ function gameLoop(timestamp) {
         return true;
     });
 
-    // --- Particles, Floats, Confetti (Unchanged) ---
+    // Particles
     st.particles = st.particles.filter(p => {
         p.x += p.vx;
         p.y += p.vy;
@@ -1693,6 +1351,7 @@ function gameLoop(timestamp) {
         return p.life > 0;
     });
 
+    // Floats
     st.floats = st.floats.filter(f => {
         f.y -= 1.3;
         f.life--;
@@ -1709,6 +1368,7 @@ function gameLoop(timestamp) {
         return f.life > 0;
     });
 
+    // Confetti
     st.confetti = st.confetti.filter(c => {
         c.x += c.vx;
         c.y += c.vy;
@@ -1725,6 +1385,7 @@ function gameLoop(timestamp) {
         return c.life > 0 && c.y < gameH + 20;
     });
 
+    // Combo display
     if (st.combo >= 2) {
         const multi = Math.min(st.combo, 5);
         const colors = ['', '', '#FFD700', '#FF8C00', '#FF4DA6', '#FF00FF'];
@@ -1760,19 +1421,6 @@ function gameLoop(timestamp) {
         ctx.moveTo(bx + st.basket.w * 0.72 + 8, by - 10);
         ctx.lineTo(bx + st.basket.w * 0.72 + 8, by + st.basket.h);
         ctx.stroke();
-        if (st.frame % 4 === 0) {
-            const angle = Math.random() * Math.PI;
-            st.particles.push({
-                x: bx + Math.cos(angle) * (st.basket.w * 0.72 + 8),
-                y: by - 10 - Math.abs(Math.sin(angle)) * 25,
-                vx: (Math.random() - 0.5) * 1.5,
-                vy: -0.8 - Math.random(),
-                life: 22,
-                maxLife: 22,
-                color: '#D09BFF',
-                r: 2 + Math.random() * 2
-            });
-        }
         ng();
         ctx.restore();
     }
@@ -1783,7 +1431,7 @@ function gameLoop(timestamp) {
 }
 
 // ============================================================
-// ===== START, NEXT LEVEL, BOSS, TASKS, GAME OVER =====
+// ===== GAME FLOW FUNCTIONS =====
 // ============================================================
 
 function startGame(resume, savedData) {
@@ -1798,20 +1446,18 @@ function startGame(resume, savedData) {
     showOv(null);
     st.running = true;
     lastFrameTime = 0;
-    startMusic(st.currentTheme ? st.currentTheme.id : 0);
+    startMusic(0);
     requestAnimationFrame(gameLoop);
 }
 
 function nextLevel() {
     st.level++;
     initLevel(st.level, st.score, st.lives);
-    startMusic(st.currentTheme ? st.currentTheme.id : 0);
+    startMusic(0);
     showOv(null);
     st.running = true;
     requestAnimationFrame(gameLoop);
 }
-
-function isBossLevel(lvl) { return lvl % 100 === 0 && lvl > 0; }
 
 function onLevelComplete() {
     st.running = false;
@@ -1819,114 +1465,10 @@ function onLevelComplete() {
     saveProgressToCloud();
     saveLB();
     sfxLevelUp();
-    const prevTh = getTheme(st.level);
-    const nextTh = getTheme(st.level + 1);
-    if (prevTh.id !== nextTh.id) { showThemeUnlock(nextTh); return; }
-    if (isBossLevel(st.level + 1)) { showBossIntro(st.level + 1); return; }
-    if (st.level % 5 === 0 && !isBossLevel(st.level)) { showTask(); return; }
+    if (st.level % 5 === 0) { showTask(); return; }
     if (st.level % 50 === 0) { showCelebration(); return; }
     showLevelComplete();
 }
-
-function getBossData(lvl) {
-    const n = Math.floor(lvl / 100);
-    const bosses = [
-        { name: 'Sugar Demon', emoji: '👹', desc: 'Looks sweet but dangerous!' },
-        { name: 'Candy Witch', emoji: '🧙‍♀️', desc: 'Beware of magic candies!' },
-        { name: 'Choco Monster', emoji: '🍫', desc: 'Devours everything!' },
-        { name: 'Lollipop King', emoji: '👑', desc: 'His world is all lollipops!' },
-        { name: 'Bomb Master', emoji: '💣', desc: 'King of bombs — be careful!' },
-        { name: 'Rainbow Beast', emoji: '🌈', desc: 'Danger in every color!' },
-        { name: 'Ice Titan', emoji: '❄️', desc: 'Cold heart, hot challenge!' },
-        { name: 'Fire Dragon', emoji: '🔥', desc: 'Fast as fire!' },
-        { name: 'Thunder God', emoji: '⚡', desc: 'Lightning speed!' },
-        { name: 'GRAND MASTER', emoji: '👾', desc: 'Ultimate final boss!' }
-    ];
-    const b = bosses[(n - 1) % bosses.length];
-    return { ...b, target: Math.min(50 + n * 5, 200), bonusLives: Math.min(1 + Math.floor(n / 3), 4), bonusScore: n * 500 };
-}
-
-function showBossIntro(bossLvl) {
-    sfxBossWarning();
-    const bd = getBossData(bossLvl);
-    document.getElementById('bossEmoji').textContent = bd.emoji;
-    document.getElementById('bossTitle').textContent = '⚠️ BOSS LEVEL ' + bossLvl + '!';
-    document.getElementById('bossName').textContent = bd.name;
-    document.getElementById('bossSub').innerHTML = bd.desc + '\n\n💣 More bombs!\n⚡ Speed boost!\n🎯 Target: ' + bd.target + ' candies\n\n🏆 Win: +' + bd.bonusLives + '❤️ +' + bd.bonusScore + ' Score!';
-    showOv('bossOv');
-}
-
-function startBossLevel() {
-    const bossLvl = st.level + 1;
-    const bd = getBossData(bossLvl);
-    const cfg = getLevelConfig(bossLvl);
-    st.level = bossLvl;
-    Object.assign(st, {
-        items: [],
-        particles: [],
-        floats: [],
-        confetti: [],
-        spawnTimer: 0,
-        spawnInterval: Math.max(30, cfg.interval - 15),
-        speed: cfg.speed + 0.8,
-        frame: 0,
-        levelTarget: bd.target,
-        levelCaught: 0,
-        inTask: false,
-        taskDef: null,
-        taskCaught: 0,
-        levelMode: { mode: 'boss' },
-        currentTheme: getTheme(bossLvl),
-        isBossActive: true,
-        bossData: bd,
-        levelCompleteTriggered: false
-    });
-    const scale = getBasketScale(bossLvl);
-    st.basket.w = 86 * scaleX * scale;
-    st.basket.h = 26 * scaleY * scale;
-    st.basket.y = gameH - 52 * scaleY;
-    st.basket.x = gameW / 2;
-    applyTheme(getTheme(bossLvl));
-    updateModeTag();
-    updateHUD();
-    updateTaskHud();
-    startMusic(-1);
-    showOv(null);
-    st.running = true;
-    requestAnimationFrame(gameLoop);
-}
-
-function onBossComplete() {
-    st.running = false;
-    sfxBossWin();
-    spawnConfetti();
-    const bd = st.bossData || getBossData(st.level);
-    st.lives = Math.min(st.lives + bd.bonusLives, 5);
-    st.score += bd.bonusScore;
-    st.isBossActive = false;
-    updateHUD();
-    saveProgress();
-    saveProgressToCloud();
-    saveLB();
-    document.getElementById('bossWinEmoji').textContent = '🏆';
-    document.getElementById('bossWinTitle').textContent = 'BOSS DEFEATED! 🎉';
-    document.getElementById('bossWinSub').innerHTML = bd.emoji + ' ' + bd.name + ' defeated!\n\n+' + bd.bonusLives + '❤️ Lives!\n+' + bd.bonusScore.toLocaleString() + ' Bonus!\n\nTotal: ' + st.score.toLocaleString();
-    showOv('bossWinOv');
-}
-
-function afterBossWin() { showLevelComplete(); }
-
-function showThemeUnlock(th) {
-    sfxSurprise();
-    spawnConfetti();
-    document.getElementById('themeEmoji').textContent = th.emoji;
-    document.getElementById('themeTitle').textContent = th.emoji + ' ' + th.name + ' Unlocked!';
-    document.getElementById('themeSub').innerHTML = th.desc + '\n\nLevel ' + (st.level + 1) + ' to ' + (st.level > 0 ? Math.min(st.level + 1000, 10000) : '1000') + '\n\nScore: ' + st.score.toLocaleString() + '\n🎊 New World Unlocked!';
-    showOv('themeOv');
-}
-
-function enterNewTheme() { if (st.level % 5 === 0) { showTask(); return; }
-    showLevelComplete(); }
 
 function showTask() {
     const td = TASKS[Math.floor(Math.random() * TASKS.length)];
@@ -1940,16 +1482,12 @@ function showTask() {
 }
 
 function showLevelComplete() {
-    const emoji = st.level >= 9000 ? '👑' : st.level >= 7000 ? '🌟' : st.level >= 5000 ? '🏆' : st.level >= 3000 ? '💎' : st.level >= 1000 ? '🚀' : st.level >= 500 ? '⭐' : st.level >= 100 ? '🎊' : '🎉';
+    const emoji = '🎉';
     document.getElementById('lvEmoji').textContent = emoji;
     document.getElementById('lvTitle').textContent = 'Level ' + st.level + ' Complete!';
     document.getElementById('lvScore').textContent = 'Score: ' + st.score.toLocaleString();
     const cfg = getLevelConfig(st.level + 1);
-    const lm = getLevelMode(st.level + 1);
-    let subText = 'Next target: <b style="color:#FFD700;">' + cfg.target + '</b> candies';
-    if (lm.mode === 'selective') subText += '<br>⚠️ Only <b style="color:#FF8C00;">' + getModeLabel(lm.targetShape) + '</b> allowed!<br>Wrong catch = -1 ❤️';
-    else subText += '<br>💪 Just catch and win!';
-    document.getElementById('lvSub').innerHTML = subText;
+    document.getElementById('lvSub').innerHTML = 'Next target: <b style="color:#FFD700;">' + cfg.target + '</b> candies<br>💪 Keep going!';
     showOv('levelOv');
 }
 
@@ -1957,28 +1495,9 @@ function showCelebration() {
     sfxSurprise();
     spawnConfetti(60);
     saveLB();
-    const milestones = [
-        [10000, '🌍 10,000 LEVELS! CANDY RAIN LEGEND! 👑'],
-        [9000, '9,000! Only 1000 more!'],
-        [8000, '8,000! Incredible!'],
-        [7000, '7,000 Levels! Astonishing! 🌟'],
-        [6000, '6,000! Unstoppable! 💫'],
-        [5000, '5,000 Levels! Halfway to Legend! 🏆'],
-        [4000, '4,000! Phenomenal!'],
-        [3000, '3,000 Levels! Simply amazing! 💎'],
-        [2000, '2,000! You cannot be stopped! 🚀'],
-        [1000, '1,000 Levels! True Gamer! 🎮'],
-        [500, '500! You are different! ⭐'],
-        [200, '200! Well done! 🔥'],
-        [100, '100 Levels! Real Player! 🎉'],
-        [50, 'First milestone! Congratulations! 🥳']
-    ];
-    let msg = 'Awesome!';
-    for (const [l, m] of milestones) { if (st.level >= l) { msg = m; break; } }
-    const emoji = st.level >= 9000 ? '👑' : st.level >= 5000 ? '🏆' : st.level >= 1000 ? '🚀' : '🌟';
-    document.getElementById('celebEmoji').textContent = emoji;
+    document.getElementById('celebEmoji').textContent = '🏆';
     document.getElementById('celebTitle').textContent = 'Level ' + st.level.toLocaleString() + '!';
-    document.getElementById('celebSub').innerHTML = msg + '\n\nScore: ' + st.score.toLocaleString() + '\n💾 Progress Saved!';
+    document.getElementById('celebSub').innerHTML = 'Amazing progress!\nScore: ' + st.score.toLocaleString() + '\n💾 Progress Saved!';
     showOv('celebOv');
 }
 
@@ -2005,7 +1524,7 @@ function onTaskComplete() {
     updateTaskHud();
     document.getElementById('celebEmoji').textContent = '🎯';
     document.getElementById('celebTitle').textContent = 'Task Complete!';
-    document.getElementById('celebSub').innerHTML = 'Excellent! +1 ❤️ Life gained!\nClick Continue to finish the level.';
+    document.getElementById('celebSub').innerHTML = 'Excellent! +1 ❤️ Life gained!';
     showOv('celebOv');
 }
 
@@ -2015,16 +1534,11 @@ function endGame(isBomb) {
     if (isBomb) {
         sfxBomb();
         triggerShake(18, 35);
-        for (let i = 0; i < 40; i++) {
-            const a = Math.random() * Math.PI * 2,
-                spd = 4 + Math.random() * 8;
-            st.particles.push({ x: gameW / 2, y: gameH / 2, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd - 3, life: 55, maxLife: 55, color: i % 3 === 0 ? '#FF4444' : i % 3 === 1 ? '#FF8C00' : '#FFD700', r: 4 + Math.random() * 7 });
-        }
         document.getElementById('goEmoji').textContent = '💥';
         document.getElementById('goTitle').textContent = 'BOOM!';
         document.getElementById('goTitle').style.color = '#FF4400';
         document.getElementById('goScore').textContent = 'Score: ' + st.score.toLocaleString();
-        document.getElementById('goSub').innerHTML = 'Bomb caught! You reached level ' + st.level + '.\nSaved progress — you can continue!';
+        document.getElementById('goSub').innerHTML = 'You reached level ' + st.level + '.\nSaved progress — you can continue!';
     } else {
         sfxGameOver();
         document.getElementById('goEmoji').textContent = '💔';
@@ -2053,7 +1567,7 @@ function togglePause() {
     } else {
         isGamePaused = false;
         if (pauseOv) pauseOv.style.display = 'none';
-        if (musicEnabled) startMusic(st.currentTheme ? st.currentTheme.id : 0);
+        if (musicEnabled) startMusic(0);
     }
 }
 
@@ -2061,40 +1575,25 @@ function showRoadmap() {
     showOv('roadmapOv');
     const saved = loadProgress();
     const curLevel = saved ? saved.level : 1;
-    const curThemeId = getTheme(curLevel).id;
     const worlds = [
-        { id: 0, emoji: '👑', name: 'Candy Kingdom', min: 1, max: 1000, color: '#FF4DA6' },
-        { id: 1, emoji: '🚀', name: 'Space', min: 1001, max: 2000, color: '#00BFFF' },
-        { id: 2, emoji: '🌊', name: 'Underwater', min: 2001, max: 3000, color: '#00E0FF' },
-        { id: 3, emoji: '🌿', name: 'Forest', min: 3001, max: 4000, color: '#22C55E' },
-        { id: 4, emoji: '🏜️', name: 'Desert', min: 4001, max: 5000, color: '#FF8C00' },
-        { id: 5, emoji: '❄️', name: 'Ice World', min: 5001, max: 6000, color: '#A8D8FF' },
-        { id: 6, emoji: '🌋', name: 'Volcano', min: 6001, max: 7000, color: '#FF4444' },
-        { id: 7, emoji: '🌆', name: 'Neon City', min: 7001, max: 10000, color: '#FF00FF' }
+        { id: 0, emoji: '👑', name: 'Candy Kingdom', min: 1, max: 10000, color: '#FF4DA6' }
     ];
     let html = '';
     worlds.forEach(w => {
-        const isCurrent = curThemeId === w.id;
-        const unlocked = curLevel >= w.min;
-        const pct = unlocked ? Math.min(100, Math.round(((curLevel - w.min) / (w.max - w.min)) * 100)) : 0;
+        const pct = Math.round((curLevel / 10000) * 100);
         html += `<div class="roadmap-world" style="border-left-color: ${w.color};">
-      <div class="roadmap-header">
-        <span class="roadmap-emoji">${w.emoji}</span>
-        <div class="roadmap-name">${w.name}${isCurrent ? ' ▶ Current' : ''}</div>
-        <div class="roadmap-range">${w.min}-${w.max}</div>
-        <div style="font-size:12px; color:${unlocked ? w.color : '#aaa'};">${unlocked ? pct+'%' : '🔒'}</div>
-      </div>
-      ${unlocked ? `<div class="roadmap-progress-bar" style="height:4px; background:rgba(255,255,255,0.1); border-radius:2px; margin:6px 0;"><div style="width:${pct}%; height:100%; background:${w.color}; border-radius:2px;"></div></div>` : ''}
-      ${isCurrent ? `<div class="roadmap-current">📍 You are here: Level ${curLevel}</div>` : ''}
-    </div>`;
+            <div class="roadmap-header">
+                <span class="roadmap-emoji">${w.emoji}</span>
+                <div class="roadmap-name">${w.name} ▶ Current</div>
+                <div class="roadmap-range">${w.min}-${w.max}</div>
+            </div>
+            <div class="roadmap-current">📍 You are here: Level ${curLevel}</div>
+            <div style="height:6px; background:rgba(255,255,255,0.1); border-radius:3px; margin:6px 0;">
+                <div style="width:${pct}%; height:100%; background:${w.color}; border-radius:3px;"></div>
+            </div>
+            <div style="font-size:12px; color:#FFD700;">${curLevel.toLocaleString()} / 10,000 (${pct}%)</div>
+        </div>`;
     });
-    const totalPct = Math.round((curLevel / 10000) * 100);
-    html += `<div style="background:rgba(255,215,0,0.08); border-radius:16px; padding:12px; margin-top:10px; text-align:center;">
-    <div style="font-size:13px;">🌍 Overall Progress</div>
-    <div style="height:6px; background:rgba(255,255,255,0.1); border-radius:3px; margin:8px 0;"><div style="width:${totalPct}%; height:100%; background:linear-gradient(90deg,#FFD700,#FF8C00); border-radius:3px;"></div></div>
-    <div style="font-size:14px; font-weight:bold; color:#FFD700;">${curLevel.toLocaleString()} / 10,000 (${totalPct}%)</div>
-    ${saved ? `<div style="font-size:11px;">Score: ${saved.score.toLocaleString()}</div>` : ''}
-  </div>`;
     document.getElementById('roadmapContent').innerHTML = html;
 }
 
@@ -2307,7 +1806,7 @@ function loadSettings() {
     if (document.getElementById('setPocket')) document.getElementById('setPocket').checked = pocket !== 'off';
     soundEnabled = document.getElementById('setSound')?.checked ?? true;
     musicEnabled = document.getElementById('setMusic')?.checked ?? true;
-    if (musicEnabled && st && st.running) startMusic(st.currentTheme ? st.currentTheme.id : 0);
+    if (musicEnabled && st && st.running) startMusic(0);
     else stopMusic();
 }
 
@@ -2318,7 +1817,7 @@ function saveSettings() {
     localStorage.setItem('game_pocket', document.getElementById('setPocket').checked ? 'on' : 'off');
     soundEnabled = document.getElementById('setSound').checked;
     musicEnabled = document.getElementById('setMusic').checked;
-    if (musicEnabled && st && st.running) startMusic(st.currentTheme ? st.currentTheme.id : 0);
+    if (musicEnabled && st && st.running) startMusic(0);
     else stopMusic();
 }
 
@@ -2338,7 +1837,7 @@ function closeSettings() {
     if (wasGamePausedBeforeSettings && st && st.running) {
         isGamePaused = false;
         wasGamePausedBeforeSettings = false;
-        if (musicEnabled) startMusic(st.currentTheme ? st.currentTheme.id : 0);
+        if (musicEnabled) startMusic(0);
     }
     if (isOnHomePage) {
         showHomePage();
@@ -2363,7 +1862,6 @@ window.startGame = startGame;
 window.nextLevel = nextLevel;
 window.startTaskPlay = startTaskPlay;
 window.afterCeleb = afterCeleb;
-window.enterNewTheme = enterNewTheme;
 window.logout = logout;
 window.guestLogin = guestLogin;
 window.showLeaderboard = showLeaderboard;
@@ -2417,23 +1915,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('roadmapBackBtn')?.addEventListener('click', closeRoadmap);
     document.getElementById('spinBtnEl')?.addEventListener('click', spinWheel);
     document.getElementById('dailyBackBtn')?.addEventListener('click', closeDailyReward);
-    document.getElementById('bossFightBtn')?.addEventListener('click', startBossLevel);
-    document.getElementById('bossWinContinueBtn')?.addEventListener('click', afterBossWin);
     document.getElementById('goContinueBtn')?.addEventListener('click', () => startGame(true));
     document.getElementById('goRestartBtn')?.addEventListener('click', () => startGame(false));
-    document.getElementById('enterThemeBtn')?.addEventListener('click', enterNewTheme);
 
-    // Old home buttons
-    document.getElementById('oldNewGameBtn')?.addEventListener('click', () => startGame(false));
-    document.getElementById('oldContinueBtn')?.addEventListener('click', () => startGame(true));
-    document.getElementById('oldLbBtn')?.addEventListener('click', showLeaderboard);
-    document.getElementById('oldMapBtn')?.addEventListener('click', showRoadmap);
-    document.getElementById('oldDailyBtn')?.addEventListener('click', showDailyReward);
-    document.getElementById('oldSkinBtn')?.addEventListener('click', cycleSkin);
-    document.getElementById('oldSettingsBtn')?.addEventListener('click', showSettings);
-    document.getElementById('oldHelpBtn')?.addEventListener('click', showHelp);
-
-    // Top bar game buttons
     document.getElementById('settingsBtn')?.addEventListener('click', showSettings);
     document.getElementById('musicToggleBtn')?.addEventListener('click', toggleMusic);
     document.getElementById('soundToggleBtn')?.addEventListener('click', toggleSound);
@@ -2445,5 +1929,7 @@ canvas.addEventListener('mousemove', e => { if (st.running) moveB(e.clientX); })
 canvas.addEventListener('touchmove', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 canvas.addEventListener('touchstart', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 
-console.log("✅ Candy Mass - FINAL FIX Loaded!");
-console.log("🎯 Burst Spawn from Level 1, Unpredictable Flow, Smooth Curve!");
+console.log("✅ Candy Mass - FINAL VERSION Loaded!");
+console.log(`🎨 90+ Candy Types Available (${CANDY_COLORS.length} colors × ${CANDY_SHAPES.length} shapes × ${CANDY_SIZES.length} sizes)`);
+console.log("💣 5 Bomb Types: Game Over, -Life, -Target, -Score, Basket Reset");
+console.log("🎯 Target: 250 candies at Level 10000");
