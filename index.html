@@ -10,7 +10,7 @@
 <body>
 <div id="app">
 
-<!-- LOGIN SCREEN -->
+<!-- ===== LOGIN SCREEN ===== -->
 <div class="auth-screen" id="loginScreen" style="display:flex;">
   <div class="auth-logo">🍬</div>
   <div class="auth-title">Candy Mass</div>
@@ -28,7 +28,7 @@
   </div>
 </div>
 
-<!-- GAME WRAP -->
+<!-- ===== GAME WRAP ===== -->
 <div id="gameWrap" style="display:none;">
   <div id="topBar">
     <div id="userRow">
@@ -59,7 +59,7 @@
   </div>
   <div id="cw"><canvas id="canvas"></canvas></div>
 
-  <!-- OLD HOME SCREEN (hidden) -->
+  <!-- ===== OLD HOME SCREEN (hidden) ===== -->
   <div class="overlay" id="homeOv" style="display:none;">
     <div class="ov-card">
       <div class="candy-icon">🍬</div>
@@ -107,7 +107,7 @@
     </div>
   </div>
 
-  <!-- SETTINGS OVERLAY -->
+  <!-- ===== SETTINGS OVERLAY ===== -->
   <div class="overlay" id="settingsOv">
     <div class="ov-card" style="text-align:left;">
       <div class="ov-title">⚙️ Settings</div>
@@ -121,7 +121,7 @@
     </div>
   </div>
 
-  <!-- HELP OVERLAY -->
+  <!-- ===== HELP OVERLAY ===== -->
   <div class="overlay" id="helpOv">
     <div class="ov-card">
       <div class="ov-title">❓ Help & FAQ</div>
@@ -132,7 +132,7 @@
     </div>
   </div>
 
-  <!-- PAUSE OVERLAY -->
+  <!-- ===== PAUSE OVERLAY ===== -->
   <div class="overlay" id="pauseOv" style="display:none;">
     <div class="ov-card">
       <div class="ov-title">⏸️ Game Paused</div>
@@ -140,21 +140,87 @@
     </div>
   </div>
 
-  <!-- OTHER OVERLAYS -->
-  <div class="overlay" id="levelOv"><div class="ov-card"><div class="ov-emoji" id="lvEmoji">🎉</div><div class="ov-title" id="lvTitle">Level Complete!</div><div class="ov-stat" id="lvScore"></div><div class="ov-sub" id="lvSub"></div><button class="gbtn gbtn-gold" id="nextLevelBtn">Next Level →</button></div></div>
-  <div class="overlay" id="taskOv"><div class="ov-card"><div class="ov-emoji">🎯</div><div class="ov-title">Bonus Task!</div><div class="ov-sub" id="taskDesc">-</div><div id="taskBar"><div id="taskFill"></div></div><div id="taskProg">0/0</div><button class="gbtn gbtn-blue" id="startTaskBtn">Start Task</button></div></div>
-  <div class="overlay" id="celebOv"><div class="ov-card"><div class="ov-emoji" id="celebEmoji">🏆</div><div class="ov-title" id="celebTitle">Awesome!</div><div class="ov-sub" id="celebSub">-</div><button class="gbtn gbtn-gold" id="celebContinueBtn">Continue</button></div></div>
-  <div class="overlay" id="lbOv"><div class="ov-card"><div class="ov-title">🏆 Leaderboard</div><div id="lbContent"></div><button class="gbtn" id="lbBackBtn">Back</button></div></div>
-  <div class="overlay" id="roadmapOv"><div class="ov-card"><div class="ov-title">🗺️ Level Roadmap</div><div id="roadmapContent"></div><button class="gbtn" id="roadmapBackBtn">Back</button></div></div>
-  <div class="overlay" id="dailyOv"><div class="ov-card"><div class="ov-title">🎁 Daily Reward</div><div id="streakRow"></div><div id="streakMsg"></div><canvas id="wheelCanvas" width="220" height="220"></canvas><button class="gbtn gbtn-gold" id="spinBtnEl">Spin Now</button><div id="spinCooldown"></div><div id="rewardResult"></div><button class="gbtn" id="dailyBackBtn">Back</button></div></div>
-  <div class="overlay" id="bossOv"><div class="ov-card"><div id="bossEmoji">👹</div><div class="ov-title" id="bossTitle">⚠️ BOSS LEVEL!</div><div id="bossName">Sugar Demon</div><div class="ov-sub" id="bossSub">-</div><button class="gbtn" style="background:linear-gradient(135deg,#FF4400,#CC0000);" id="bossFightBtn">Fight Boss</button></div></div>
-  <div class="overlay" id="bossWinOv"><div class="ov-card"><div id="bossWinEmoji">🏆</div><div class="ov-title" id="bossWinTitle">BOSS DEFEATED!</div><div class="ov-sub" id="bossWinSub">-</div><button class="gbtn gbtn-gold" id="bossWinContinueBtn">Continue</button></div></div>
-  <div class="overlay" id="goOv"><div class="ov-card"><div class="ov-emoji" id="goEmoji">💔</div><div class="ov-title" id="goTitle">Game Over!</div><div class="ov-stat" id="goScore"></div><div class="ov-sub" id="goSub">-</div><button class="gbtn gbtn-gold" id="goContinueBtn">Continue from Saved</button><button class="gbtn gbtn-red" id="goRestartBtn">Restart</button></div></div>
-  <div class="overlay" id="themeOv"><div class="ov-card"><div class="ov-emoji" id="themeEmoji">🚀</div><div class="ov-title" id="themeTitle">New World!</div><div class="ov-sub" id="themeSub">-</div><button class="gbtn gbtn-gold" id="enterThemeBtn">Enter World</button></div></div>
+  <!-- ===== LEVEL COMPLETE ===== -->
+  <div class="overlay" id="levelOv">
+    <div class="ov-card">
+      <div class="ov-emoji" id="lvEmoji">🎉</div>
+      <div class="ov-title" id="lvTitle">Level Complete!</div>
+      <div class="ov-stat" id="lvScore"></div>
+      <div class="ov-sub" id="lvSub"></div>
+      <button class="gbtn gbtn-gold" id="nextLevelBtn">Next Level →</button>
+    </div>
+  </div>
+
+  <!-- ===== TASK OVERLAY ===== -->
+  <div class="overlay" id="taskOv">
+    <div class="ov-card">
+      <div class="ov-emoji">🎯</div>
+      <div class="ov-title">Bonus Task!</div>
+      <div class="ov-sub" id="taskDesc">-</div>
+      <div id="taskBar"><div id="taskFill"></div></div>
+      <div id="taskProg">0/0</div>
+      <button class="gbtn gbtn-blue" id="startTaskBtn">Start Task</button>
+    </div>
+  </div>
+
+  <!-- ===== CELEBRATION ===== -->
+  <div class="overlay" id="celebOv">
+    <div class="ov-card">
+      <div class="ov-emoji" id="celebEmoji">🏆</div>
+      <div class="ov-title" id="celebTitle">Awesome!</div>
+      <div class="ov-sub" id="celebSub">-</div>
+      <button class="gbtn gbtn-gold" id="celebContinueBtn">Continue</button>
+    </div>
+  </div>
+
+  <!-- ===== LEADERBOARD ===== -->
+  <div class="overlay" id="lbOv">
+    <div class="ov-card">
+      <div class="ov-title">🏆 Leaderboard</div>
+      <div id="lbContent"></div>
+      <button class="gbtn" id="lbBackBtn">Back</button>
+    </div>
+  </div>
+
+  <!-- ===== ROADMAP ===== -->
+  <div class="overlay" id="roadmapOv">
+    <div class="ov-card">
+      <div class="ov-title">🗺️ Level Roadmap</div>
+      <div id="roadmapContent"></div>
+      <button class="gbtn" id="roadmapBackBtn">Back</button>
+    </div>
+  </div>
+
+  <!-- ===== DAILY REWARD ===== -->
+  <div class="overlay" id="dailyOv">
+    <div class="ov-card">
+      <div class="ov-title">🎁 Daily Reward</div>
+      <div id="streakRow"></div>
+      <div id="streakMsg"></div>
+      <canvas id="wheelCanvas" width="220" height="220"></canvas>
+      <button class="gbtn gbtn-gold" id="spinBtnEl">Spin Now</button>
+      <div id="spinCooldown"></div>
+      <div id="rewardResult"></div>
+      <button class="gbtn" id="dailyBackBtn">Back</button>
+    </div>
+  </div>
+
+  <!-- ===== GAME OVER ===== -->
+  <div class="overlay" id="goOv">
+    <div class="ov-card">
+      <div class="ov-emoji" id="goEmoji">💔</div>
+      <div class="ov-title" id="goTitle">Game Over!</div>
+      <div class="ov-stat" id="goScore"></div>
+      <div class="ov-sub" id="goSub">-</div>
+      <button class="gbtn gbtn-gold" id="goContinueBtn">Continue from Saved</button>
+      <button class="gbtn gbtn-red" id="goRestartBtn">Restart</button>
+    </div>
+  </div>
+
 </div>
 </div>
 
-<!-- FIREBASE MODULAR SDK -->
+<!-- ===== FIREBASE MODULAR SDK ===== -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
   import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
