@@ -1,10 +1,73 @@
+// ============================================================
+// ===== CANDY MASS - SPRITE SHEET VERSION =====
+// ===== 30 Unique Candies from assets/candies/ =====
+// ============================================================
+
+// ===== SPRITE LOADER =====
+const TOTAL_CANDIES = 30;
+let candyImages = [];
+let allCandiesLoaded = false;
+let imagesLoadedCount = 0;
+
+function loadCandyImages() {
+    return new Promise((resolve) => {
+        for (let i = 1; i <= TOTAL_CANDIES; i++) {
+            const img = new Image();
+            img.onload = () => {
+                imagesLoadedCount++;
+                if (imagesLoadedCount === TOTAL_CANDIES) {
+                    allCandiesLoaded = true;
+                    console.log(`✅ All ${TOTAL_CANDIES} candy images loaded!`);
+                    resolve();
+                }
+            };
+            img.onerror = () => {
+                console.warn(`⚠️ Failed to load candy-${i}.png, using fallback`);
+                // Fallback: create a colored canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = 60;
+                canvas.height = 60;
+                const ctx = canvas.getContext('2d');
+                const colors = ['#FF4D4D','#4D79FF','#4DFF88','#FFFF4D','#994DFF','#FF8C00','#FF6B6B','#845EF7','#FCC419','#FF3366'];
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.beginPath();
+                ctx.arc(30, 30, 25, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                img.src = canvas.toDataURL();
+                imagesLoadedCount++;
+                if (imagesLoadedCount === TOTAL_CANDIES) {
+                    allCandiesLoaded = true;
+                    console.log(`✅ All ${TOTAL_CANDIES} candy images loaded (with fallbacks)!`);
+                    resolve();
+                }
+            };
+            img.src = `assets/candies/candy-${i}.png`;
+            candyImages.push(img);
+        }
+    });
+}
+
+// Candy data
+const candyData = [];
+for (let i = 1; i <= TOTAL_CANDIES; i++) {
+    candyData.push({
+        id: i,
+        name: `candy-${i}`,
+        pts: 10 + Math.floor(Math.random() * 20),
+        imgIndex: i - 1
+    });
+}
+
+function getRandomCandyType() {
+    return candyData[Math.floor(Math.random() * candyData.length)];
+}
 
 // ============================================================
-// ===== CANDY MASS - FINAL VERSION =====
-// ===== CSS Candy System + Original Smooth Flow =====
-// ============================================================
-
 // ===== RESPONSIVE SCALING =====
+// ============================================================
 const BASE_W = 400,
     BASE_H = 540;
 let gameW = BASE_W,
@@ -139,8 +202,9 @@ function enterGame(name, email) {
     showHomePage(name, email);
 }
 
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
     loadSkin();
+    await loadCandyImages();
     const sess = getSession();
     if (sess && sess.email && !sess.email.startsWith('guest_')) {
         document.getElementById('loginScreen').style.display = 'none';
@@ -363,10 +427,10 @@ function sfxGameOver() { beep(300, 'sawtooth', 0.18, 0.25);
 
 // ===== BASKET SKINS =====
 const BASKET_SKINS = [
-    { name: 'Candy', emoji: '🍬', b1: '#F0A060', b2: '#C8752A', b3: '#7A3A08', bt: '#FFD090', bm: '#E08830' },
-    { name: 'Space', emoji: '🚀', b1: '#2a2a7a', b2: '#1a1a5a', b3: '#0a0a3a', bt: '#4a4aff', bm: '#2a2aff' },
-    { name: 'Neon', emoji: '🌆', b1: '#FF1493', b2: '#FF00FF', b3: '#8A2BE2', bt: '#00FFFF', bm: '#FF00FF' },
-    { name: 'Golden', emoji: '👑', b1: '#FFD700', b2: '#FFA500', b3: '#FF8C00', bt: '#FFF0A0', bm: '#FFB347' }
+    { name: 'Default', emoji: '🪣', b1: '#F0A060', b2: '#C8752A', b3: '#7A3A08', bt: '#FFD090', bm: '#E08830' },
+    { name: 'Copper', emoji: '🪙', b1: '#B87333', b2: '#D4956A', b3: '#8B5A2B', bt: '#E8B88A', bm: '#C08040' },
+    { name: 'Retro', emoji: '📼', b1: '#6C8C9C', b2: '#8CACBC', b3: '#4C6C7C', bt: '#BCD8E8', bm: '#7C9CAC' },
+    { name: 'Golden', emoji: '👑', b1: '#D4AF37', b2: '#F0D060', b3: '#B8960F', bt: '#FFE880', bm: '#E0B820' }
 ];
 let currentSkinIndex = 0;
 
@@ -397,66 +461,7 @@ function cycleSkin() {
 window.cycleSkin = cycleSkin;
 
 // ============================================================
-// ===== CSS CANDY SYSTEM (30+ Types) =====
-// ============================================================
-
-// Colors (6 types)
-const CANDY_COLORS = [
-    { name: 'red', main: '#FF4D4D', light: '#FF8080', dark: '#CC0000' },
-    { name: 'blue', main: '#4D79FF', light: '#80A0FF', dark: '#0033CC' },
-    { name: 'green', main: '#4DFF88', light: '#80FFAA', dark: '#00CC44' },
-    { name: 'yellow', main: '#FFFF4D', light: '#FFFF80', dark: '#CCCC00' },
-    { name: 'purple', main: '#994DFF', light: '#BB80FF', dark: '#6600CC' },
-    { name: 'orange', main: '#FF8C00', light: '#FFB040', dark: '#CC5500' }
-];
-
-// Shapes (5 types)
-const CANDY_SHAPES = [
-    { name: 'round', radius: 0.9 },
-    { name: 'square', radius: 0.15 },
-    { name: 'jelly', radius: 0.7, jelly: true },
-    { name: 'star', radius: 0.9, star: true },
-    { name: 'diamond', radius: 0.85, diamond: true }
-];
-
-// Sizes (3 types)
-const CANDY_SIZES = [
-    { name: 'small', scale: 0.8 },
-    { name: 'medium', scale: 1.0 },
-    { name: 'large', scale: 1.2 }
-];
-
-// Generate unique candy type combinations
-function generateCandyTypes() {
-    const types = [];
-    let id = 0;
-    for (let c = 0; c < CANDY_COLORS.length; c++) {
-        for (let s = 0; s < CANDY_SHAPES.length; s++) {
-            for (let z = 0; z < CANDY_SIZES.length; z++) {
-                types.push({
-                    id: id++,
-                    color: CANDY_COLORS[c],
-                    shape: CANDY_SHAPES[s],
-                    size: CANDY_SIZES[z],
-                    pts: 10 + Math.floor(Math.random() * 20),
-                    name: `${CANDY_COLORS[c].name}-${CANDY_SHAPES[s].name}-${CANDY_SIZES[z].name}`
-                });
-            }
-        }
-    }
-    return types;
-}
-
-// All candy types (6 colors × 5 shapes × 3 sizes = 90 types)
-const ALL_CANDY_TYPES = generateCandyTypes();
-
-// Pick random candy type
-function getRandomCandyType() {
-    return ALL_CANDY_TYPES[Math.floor(Math.random() * ALL_CANDY_TYPES.length)];
-}
-
-// ============================================================
-// ===== DIFFICULTY CONFIGURATION =====
+// ===== GAME CONFIGURATION =====
 // ============================================================
 
 function getBasketScale(level) {
@@ -467,13 +472,8 @@ function getBasketScale(level) {
 }
 
 function getLevelConfig(lvl) {
-    // Speed: 2.5 to 7.0 (gradual)
     let speed = 2.5 + (Math.min(lvl, 7000) / 7000) * 4.5;
-
-    // Spawn interval
     const interval = Math.max(30, 80 - lvl * 0.015);
-
-    // Target: gradual increase, max 250 at level 10000
     let target;
     if (lvl <= 10) {
         target = 8 + lvl;
@@ -483,7 +483,6 @@ function getLevelConfig(lvl) {
         target = Math.max(10 + Math.floor(lvl * 0.015), target);
     }
     target = Math.min(250, Math.max(10, target));
-
     return { speed, interval, target };
 }
 
@@ -603,8 +602,7 @@ let st = {
     shieldActive: false,
     shieldFrames: 0,
     shieldMaxFrames: 0,
-    levelCompleteTriggered: false,
-    basketSkin: 'default'
+    levelCompleteTriggered: false
 };
 let isGamePaused = false;
 
@@ -670,7 +668,6 @@ function spawnConfetti(count = 60) {
 function spawnItem() {
     const lvl = st.level;
 
-    // Burst count
     let burstCount;
     if (lvl < 50) burstCount = 2 + Math.floor(Math.random() * 2);
     else if (lvl < 500) burstCount = 2 + Math.floor(Math.random() * 3);
@@ -681,21 +678,22 @@ function spawnItem() {
         setTimeout(() => {
             if (!st || !st.running) return;
 
-            // Check for bomb spawn
             if (Math.random() < getBombChance(lvl) && b === 0) {
                 spawnBomb();
                 return;
             }
 
-            // Spawn normal candy
+            // ---- Spawn from sprite sheet ----
             const candyType = getRandomCandyType();
-            const size = 16 * scaleX + Math.random() * 9 * scaleX;
+            const size = 30 * scaleX + Math.random() * 10 * scaleX;
             const yOffset = -b * 25 * scaleY;
 
             st.items.push({
                 x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
                 y: -34 * scaleY + yOffset,
-                type: candyType,
+                candyId: candyType.id,
+                imgIndex: candyType.imgIndex,
+                pts: candyType.pts,
                 size: size,
                 wobble: Math.random() * Math.PI * 2,
                 speed: st.speed + (0.5 + Math.random() * 0.8),
@@ -733,7 +731,7 @@ function activateShield() { st.shieldActive = true;
     updatePowerupHud(); }
 
 // ============================================================
-// ===== DRAWING FUNCTIONS =====
+// ===== DRAWING FUNCTIONS (SPRITE BASED) =====
 // ============================================================
 
 function glow(c, b) { ctx.shadowColor = c;
@@ -741,87 +739,44 @@ function glow(c, b) { ctx.shadowColor = c;
 
 function ng() { ctx.shadowBlur = 0; }
 
-function drawCandy(r, candyType) {
-    const color = candyType.color;
-    const shape = candyType.shape;
-    const size = candyType.size;
+function drawCandySprite(item) {
+    const { x, y, size: r, rot, imgIndex } = item;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
 
-    // Glow
-    glow(color.main, 12);
-    ctx.strokeStyle = color.main;
-    ctx.lineWidth = 2.5;
-    ctx.globalAlpha = 0.3;
+    // Glow effect
+    glow('#FFD700', 8);
+    ctx.strokeStyle = 'rgba(255,215,0,0.2)';
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(0, 0, r * 1.1, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.globalAlpha = 1;
     ng();
 
-    // Main body
-    const grad = ctx.createRadialGradient(-r * 0.2, -r * 0.3, 0, 0, 0, r);
-    grad.addColorStop(0, color.light);
-    grad.addColorStop(0.6, color.main);
-    grad.addColorStop(1, color.dark);
-
-    ctx.fillStyle = grad;
-    ctx.strokeStyle = color.dark;
-    ctx.lineWidth = 1.5;
-
-    // Shape rendering
-    let scale = size.scale || 1;
-
-    if (shape.name === 'round') {
+    // Draw sprite
+    if (allCandiesLoaded && candyImages[imgIndex] && candyImages[imgIndex].complete) {
+        const img = candyImages[imgIndex];
+        const size = r * 1.6;
+        ctx.drawImage(img, -size / 2, -size / 2, size, size);
+    } else {
+        // Fallback: colored circle
+        const colors = ['#FF4D4D','#4D79FF','#4DFF88','#FFFF4D','#994DFF','#FF8C00','#FF6B6B','#845EF7','#FCC419','#FF3366'];
+        ctx.fillStyle = colors[imgIndex % colors.length];
         ctx.beginPath();
-        ctx.arc(0, 0, r * 0.85 * scale, 0, Math.PI * 2);
+        ctx.arc(0, 0, r * 0.8, 0, Math.PI * 2);
         ctx.fill();
-        ctx.stroke();
-    } else if (shape.name === 'square') {
-        ctx.beginPath();
-        ctx.roundRect(-r * 0.7 * scale, -r * 0.7 * scale, r * 1.4 * scale, r * 1.4 * scale, r * 0.15);
-        ctx.fill();
-        ctx.stroke();
-    } else if (shape.name === 'jelly') {
-        ctx.beginPath();
-        ctx.ellipse(0, 0, r * 0.8 * scale, r * 0.9 * scale, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        // Jelly wobble mark
-        ctx.fillStyle = 'rgba(255,255,255,0.15)';
-        ctx.beginPath();
-        ctx.ellipse(-r * 0.2, -r * 0.25, r * 0.3 * scale, r * 0.15 * scale, -0.4, 0, Math.PI * 2);
-        ctx.fill();
-    } else if (shape.name === 'star') {
-        ctx.beginPath();
-        for (let i = 0; i < 10; i++) {
-            const a = (i * Math.PI / 5) - Math.PI / 2;
-            const rad = i % 2 === 0 ? r * 0.85 * scale : r * 0.4 * scale;
-            i === 0 ? ctx.moveTo(Math.cos(a) * rad, Math.sin(a) * rad) : ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad);
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-    } else if (shape.name === 'diamond') {
-        ctx.beginPath();
-        ctx.moveTo(0, -r * 1.1 * scale);
-        ctx.lineTo(r * 0.8 * scale, 0);
-        ctx.lineTo(0, r * 1.1 * scale);
-        ctx.lineTo(-r * 0.8 * scale, 0);
-        ctx.closePath();
-        ctx.fill();
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 2;
         ctx.stroke();
     }
 
-    // Shine
-    ctx.fillStyle = 'rgba(255,255,255,0.25)';
-    ctx.beginPath();
-    ctx.ellipse(-r * 0.25, -r * 0.3, r * 0.2 * scale, r * 0.1 * scale, -0.4, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.restore();
 }
 
 function drawBombItem(r, bombType, fuseT) {
     const sparkOn = Math.sin(fuseT * 0.4) > 0;
 
-    // Fuse
     ctx.strokeStyle = '#8B6914';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -838,7 +793,6 @@ function drawBombItem(r, bombType, fuseT) {
         ng();
     }
 
-    // Bomb body with color
     const bombColor = bombType.color || '#FF0000';
     glow(bombColor, 8 + Math.sin(fuseT * 0.3) * 4);
     const g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.05, 0, 0, r);
@@ -855,44 +809,16 @@ function drawBombItem(r, bombType, fuseT) {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Bomb label
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
     ctx.font = `bold ${Math.round(r*1.4)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(bombType.label || '💣', 0, 2);
 
-    // Effect text below
     ctx.fillStyle = bombColor;
     ctx.font = `bold ${Math.round(r*0.45)}px sans-serif`;
     ctx.fillText(bombType.type.replace('-', ' '), 0, r * 1.8);
     ng();
-}
-
-function drawItem(item) {
-    const { x, y, size: r, rot } = item;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(rot);
-
-    if (item.isBomb) {
-        const fuseT = item.fuseTimer || 0;
-        const bombType = item.bombType || BOMB_TYPES.GAME_OVER;
-        drawBombItem(r, bombType, fuseT);
-        ctx.restore();
-        return;
-    }
-
-    if (item.isShield) {
-        drawShieldItem(r, item.pulse || 0);
-        ctx.restore();
-        return;
-    }
-
-    // Normal candy
-    drawCandy(r, item.type);
-
-    ctx.restore();
 }
 
 function drawShieldItem(r, pulse) {
@@ -935,6 +861,31 @@ function drawShieldItem(r, pulse) {
     ctx.font = `bold ${Math.round(r*0.5)}px sans-serif`;
     ctx.fillText('SHIELD', 0, r * 1.75);
     ng();
+}
+
+function drawItem(item) {
+    const { x, y, size: r, rot } = item;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+
+    if (item.isBomb) {
+        const fuseT = item.fuseTimer || 0;
+        const bombType = item.bombType || BOMB_TYPES.GAME_OVER;
+        drawBombItem(r, bombType, fuseT);
+        ctx.restore();
+        return;
+    }
+
+    if (item.isShield) {
+        drawShieldItem(r, item.pulse || 0);
+        ctx.restore();
+        return;
+    }
+
+    // Normal candy - sprite
+    drawCandySprite(item);
+    ctx.restore();
 }
 
 // ============================================================
@@ -1208,7 +1159,6 @@ function gameLoop(timestamp) {
 
     ctx.save();
 
-    // Shake
     if (shakeFrames > 0) {
         const sx = (Math.random() - 0.5) * shakeIntensity;
         const sy = (Math.random() - 0.5) * shakeIntensity;
@@ -1248,10 +1198,9 @@ function gameLoop(timestamp) {
             item.fuseTimer = (item.fuseTimer || 0) + 1;
             item.rot += 0.03;
         } else {
-            // Original smooth flow
+            // ---- ORIGINAL SMOOTH FLOW ----
             item.rot += 0.015;
-            // Smooth sine wave drift with level-based amplitude
-            let amplitude = 1.8 + (st.level / 10000) * 3.2; // 1.8 to 5.0
+            let amplitude = 1.8 + (st.level / 10000) * 3.2;
             item.x += Math.sin(item.wobble) * amplitude;
         }
 
@@ -1285,19 +1234,22 @@ function gameLoop(timestamp) {
                 return false;
             }
 
-            // Normal candy catch
-            const pts = item.type.pts || 10;
+            // ---- NORMAL CANDY CATCH ----
+            const pts = item.pts || 10;
             st.combo++;
             st.comboTimer = 90;
             const multi = Math.min(st.combo, 5);
             const totalPts = pts * multi;
             if (multi > 1) sfxCombo(multi);
             sfxCatch();
-            addParticles(item.x, by, item.type.color.main, item.type.color.light);
+
+            const colors = ['#FF4D4D','#4D79FF','#4DFF88','#FFFF4D','#994DFF','#FF8C00'];
+            const col = colors[item.imgIndex % colors.length];
+            addParticles(item.x, by, col, '#FFFFFF');
             st.floats.push({
                 x: item.x,
                 y: by - 16,
-                color: multi > 1 ? '#FFD700' : item.type.color.light,
+                color: multi > 1 ? '#FFD700' : col,
                 life: 40,
                 text: (multi > 1 ? 'x' + multi + ' ' : '') + '+' + totalPts,
                 big: multi >= 3
@@ -1929,7 +1881,7 @@ canvas.addEventListener('mousemove', e => { if (st.running) moveB(e.clientX); })
 canvas.addEventListener('touchmove', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 canvas.addEventListener('touchstart', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 
-console.log("✅ Candy Mass - FINAL VERSION Loaded!");
-console.log(`🎨 90+ Candy Types Available (${CANDY_COLORS.length} colors × ${CANDY_SHAPES.length} shapes × ${CANDY_SIZES.length} sizes)`);
+console.log("✅ Candy Mass - Sprite Sheet Version Loaded!");
+console.log("🎨 30 unique candies from assets/candies/");
 console.log("💣 5 Bomb Types: Game Over, -Life, -Target, -Score, Basket Reset");
 console.log("🎯 Target: 250 candies at Level 10000");
