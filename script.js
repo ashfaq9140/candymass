@@ -1,5 +1,5 @@
 // ============================================================
-// ===== CANDY MASS - MANUAL SPRITE CROP (56x59) =====
+// ===== CANDY MASS - FIXED SIZE (CANDY VISIBLE) =====
 // ============================================================
 
 // ============================================================
@@ -19,8 +19,8 @@ function updateCandyData() {
     let id = 1;
     
     // ----- FIXED MANUAL SIZE (Aapki image ke hisaab se) -----
-    const MANUAL_W = 56; // Width
-    const MANUAL_H = 59; // Height
+    const MANUAL_W = 56;
+    const MANUAL_H = 59;
     
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
@@ -46,6 +46,7 @@ function loadSpriteSheet() {
             spriteSheetImage = img;
             updateCandyData();
             spritesLoaded = true;
+            console.log("✅ Sprite sheet loaded!");
             resolve();
         };
         img.onerror = () => {
@@ -589,7 +590,7 @@ function spawnConfetti(count = 60) {
 }
 
 // ============================================================
-// ===== SPAWN FUNCTIONS =====
+// ===== SPAWN FUNCTIONS (FIXED SIZE) =====
 // ============================================================
 
 function spawnItem() {
@@ -611,8 +612,8 @@ function spawnItem() {
             }
 
             const candyType = getRandomCandyType();
-            // ----- CANDY SIZE BADHAYA (55 se 70 pixels) -----
-            const size = 55 * scaleX + Math.random() * 15 * scaleX;
+            // ----- FIXED SIZE (no scaleX, always visible) -----
+            const size = 38 + Math.random() * 20; // 38 to 58 pixels
             const yOffset = -b * 25 * scaleY;
 
             st.items.push({
@@ -669,7 +670,6 @@ function drawCandySprite(item) {
         const data = candyData.find(d => d.id === candyId);
         if (data) {
             const scale = r * 1.6;
-            // Aspect ratio maintain karte hue draw (56:59)
             const aspect = data.height / data.width;
             const drawWidth = scale;
             const drawHeight = scale * aspect;
@@ -686,7 +686,6 @@ function drawCandySprite(item) {
             ctx.fill();
         }
     } else {
-        // Fallback
         const colors = ['#FF4D4D','#4D79FF','#4DFF88','#FFFF4D','#994DFF','#FF8C00'];
         ctx.fillStyle = colors[(candyId || 0) % colors.length];
         ctx.beginPath();
@@ -1117,7 +1116,6 @@ function gameLoop(timestamp) {
             item.fuseTimer = (item.fuseTimer || 0) + 1;
             item.rot += 0.03;
         } else {
-            // ---- ORIGINAL SMOOTH FLOW ----
             item.rot += 0.015;
             let amplitude = 1.8 + (st.level / 10000) * 3.2;
             item.x += Math.sin(item.wobble) * amplitude;
@@ -1203,7 +1201,6 @@ function gameLoop(timestamp) {
         return true;
     });
 
-    // Particles
     st.particles = st.particles.filter(p => {
         p.x += p.vx;
         p.y += p.vy;
@@ -1221,7 +1218,6 @@ function gameLoop(timestamp) {
         return p.life > 0;
     });
 
-    // Floats
     st.floats = st.floats.filter(f => {
         f.y -= 1.3;
         f.life--;
@@ -1238,7 +1234,6 @@ function gameLoop(timestamp) {
         return f.life > 0;
     });
 
-    // Confetti
     st.confetti = st.confetti.filter(c => {
         c.x += c.vx;
         c.y += c.vy;
@@ -1255,7 +1250,6 @@ function gameLoop(timestamp) {
         return c.life > 0 && c.y < gameH + 20;
     });
 
-    // Combo display
     if (st.combo >= 2) {
         const multi = Math.min(st.combo, 5);
         const colors = ['', '', '#FFD700', '#FF8C00', '#FF4DA6', '#FF00FF'];
@@ -1785,6 +1779,7 @@ canvas.addEventListener('mousemove', e => { if (st.running) moveB(e.clientX); })
 canvas.addEventListener('touchmove', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 canvas.addEventListener('touchstart', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 
-console.log("✅ Candy Mass - Manual Crop (56x59) + Size Optimized Loaded!");
-console.log("🎨 30 unique candies (Round, Star, Teddy, Wrapped, etc.)");
+console.log("✅ Candy Mass - FIXED SIZE VERSION Loaded!");
+console.log("🎨 30 unique candies (56x59 crop)");
+console.log("📏 Candy size: 38-58px (always visible)");
 console.log("💣 5 Bomb Types");
