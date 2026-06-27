@@ -1,63 +1,50 @@
 // ============================================================
-// ===== CANDY MASS - SPRITE SHEET VERSION =====
-// ===== 30 Unique Candies from assets/candies/ =====
+// ===== CANDY MASS - SINGLE SPRITE SHEET VERSION =====
 // ============================================================
 
-// ===== SPRITE LOADER =====
-const TOTAL_CANDIES = 30;
-let candyImages = [];
-let allCandiesLoaded = false;
-let imagesLoadedCount = 0;
+// ============================================================
+// ===== SPRITE SHEET LOADER (assets/candies/candy-sheet.png) =====
+// ============================================================
+const SPRITE_SHEET_URL = 'assets/candies/candy-sheet.png';
+const SPRITE_SIZE = 60; // Har candy 60x60 pixels hai
+const COLS = 6;          // Sheet mein 6 columns hain
+const ROWS = 5;          // Sheet mein 5 rows hain (6*5 = 30 candies)
+let spriteSheetImage = null;
+let spritesLoaded = false;
 
-function loadCandyImages() {
-    return new Promise((resolve) => {
-        for (let i = 1; i <= TOTAL_CANDIES; i++) {
-            const img = new Image();
-            img.onload = () => {
-                imagesLoadedCount++;
-                if (imagesLoadedCount === TOTAL_CANDIES) {
-                    allCandiesLoaded = true;
-                    console.log(`✅ All ${TOTAL_CANDIES} candy images loaded!`);
-                    resolve();
-                }
-            };
-            img.onerror = () => {
-                console.warn(`⚠️ Failed to load candy-${i}.png, using fallback`);
-                // Fallback: create a colored canvas
-                const canvas = document.createElement('canvas');
-                canvas.width = 60;
-                canvas.height = 60;
-                const ctx = canvas.getContext('2d');
-                const colors = ['#FF4D4D','#4D79FF','#4DFF88','#FFFF4D','#994DFF','#FF8C00','#FF6B6B','#845EF7','#FCC419','#FF3366'];
-                ctx.fillStyle = colors[i % colors.length];
-                ctx.beginPath();
-                ctx.arc(30, 30, 25, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.strokeStyle = '#333';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                img.src = canvas.toDataURL();
-                imagesLoadedCount++;
-                if (imagesLoadedCount === TOTAL_CANDIES) {
-                    allCandiesLoaded = true;
-                    console.log(`✅ All ${TOTAL_CANDIES} candy images loaded (with fallbacks)!`);
-                    resolve();
-                }
-            };
-            img.src = `assets/candies/candy-${i}.png`;
-            candyImages.push(img);
-        }
-    });
+// Candy data with sprite coordinates
+const candyData = [];
+let id = 1;
+for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+        candyData.push({
+            id: id,
+            name: `candy-${id}`,
+            srcX: c * SPRITE_SIZE,
+            srcY: r * SPRITE_SIZE,
+            width: SPRITE_SIZE,
+            height: SPRITE_SIZE,
+            pts: 10 + Math.floor(Math.random() * 20)
+        });
+        id++;
+    }
 }
 
-// Candy data
-const candyData = [];
-for (let i = 1; i <= TOTAL_CANDIES; i++) {
-    candyData.push({
-        id: i,
-        name: `candy-${i}`,
-        pts: 10 + Math.floor(Math.random() * 20),
-        imgIndex: i - 1
+function loadSpriteSheet() {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            spriteSheetImage = img;
+            spritesLoaded = true;
+            console.log(`✅ Sprite sheet loaded! (${COLS*ROWS} candies)`);
+            resolve();
+        };
+        img.onerror = () => {
+            console.warn("⚠️ Sprite sheet not found, using fallback colors. Please upload candy-sheet.png to assets/candies/");
+            spritesLoaded = false;
+            resolve();
+        };
+        img.src = SPRITE_SHEET_URL;
     });
 }
 
@@ -68,12 +55,9 @@ function getRandomCandyType() {
 // ============================================================
 // ===== RESPONSIVE SCALING =====
 // ============================================================
-const BASE_W = 400,
-    BASE_H = 540;
-let gameW = BASE_W,
-    gameH = BASE_H;
-let scaleX = 1,
-    scaleY = 1;
+const BASE_W = 400, BASE_H = 540;
+let gameW = BASE_W, gameH = BASE_H;
+let scaleX = 1, scaleY = 1;
 
 function resizeCanvas() {
     const container = document.getElementById('cw');
@@ -204,7 +188,7 @@ function enterGame(name, email) {
 
 window.addEventListener('load', async () => {
     loadSkin();
-    await loadCandyImages();
+    await loadSpriteSheet(); // Wait for sprite sheet
     const sess = getSession();
     if (sess && sess.email && !sess.email.startsWith('guest_')) {
         document.getElementById('loginScreen').style.display = 'none';
@@ -305,9 +289,7 @@ async function loadProgressFromCloud() {
 // ===== AUDIO =====
 let soundEnabled = localStorage.getItem('cm_sound') !== 'off';
 let musicEnabled = localStorage.getItem('cm_music') !== 'off';
-let musicNodes = [],
-    musicInterval = null,
-    musicPlaying = false;
+let musicNodes = [], musicInterval = null, musicPlaying = false;
 const MUSIC_THEMES = [{ melody: [523, 659, 784, 1047, 784, 659, 523, 440, 523, 659, 784, 880], bass: [131, 131, 131, 131, 165, 165, 131, 131, 131, 165, 165, 131], tempo: 300, name: 'Candy' }];
 const BOSS_MUSIC = { melody: [220, 247, 262, 220, 196, 220, 247, 220], bass: [55, 55, 55, 55, 55, 55, 55, 55], tempo: 200 };
 
@@ -324,8 +306,7 @@ function startMusic(themeId) {
         try {
             const ac = getAC();
             const mFreq = theme.melody[noteIdx % theme.melody.length];
-            const mo = ac.createOscillator(),
-                mg = ac.createGain();
+            const mo = ac.createOscillator(), mg = ac.createGain();
             mo.connect(mg);
             mg.connect(ac.destination);
             mo.type = 'sine';
@@ -336,8 +317,7 @@ function startMusic(themeId) {
             mo.stop(ac.currentTime + theme.tempo / 1000);
             musicNodes.push(mo, mg);
             if (noteIdx % 2 === 0) {
-                const bo = ac.createOscillator(),
-                    bg = ac.createGain();
+                const bo = ac.createOscillator(), bg = ac.createGain();
                 bo.connect(bg);
                 bg.connect(ac.destination);
                 bo.type = 'triangle';
@@ -356,74 +336,34 @@ function startMusic(themeId) {
     musicInterval = setInterval(playNote, theme.tempo);
 }
 
-function stopMusic() { musicPlaying = false; if (musicInterval) { clearInterval(musicInterval);
-        musicInterval = null; } musicNodes.forEach(n => { try { n.stop();
-            n.disconnect(); } catch (e) {} }); musicNodes = []; }
+function stopMusic() { musicPlaying = false; if (musicInterval) { clearInterval(musicInterval); musicInterval = null; } musicNodes.forEach(n => { try { n.stop(); n.disconnect(); } catch (e) {} }); musicNodes = []; }
 
-function toggleMusic() { musicEnabled = !musicEnabled;
-    localStorage.setItem('cm_music', musicEnabled ? 'on' : 'off'); const btn = document.getElementById('musicToggleBtn'); if (btn) btn.textContent = musicEnabled ? '🎵' : '🎵'; if (btn) btn.style.opacity = musicEnabled ? '1' : '0.35'; if (musicEnabled && st && st.running) startMusic(st.currentTheme ? st.currentTheme.id : 0); else stopMusic(); }
+function toggleMusic() { musicEnabled = !musicEnabled; localStorage.setItem('cm_music', musicEnabled ? 'on' : 'off'); const btn = document.getElementById('musicToggleBtn'); if (btn) btn.textContent = musicEnabled ? '🎵' : '🎵'; if (btn) btn.style.opacity = musicEnabled ? '1' : '0.35'; if (musicEnabled && st && st.running) startMusic(st.currentTheme ? st.currentTheme.id : 0); else stopMusic(); }
 
-function toggleSound() { soundEnabled = !soundEnabled;
-    localStorage.setItem('cm_sound', soundEnabled ? 'on' : 'off'); const btn = document.getElementById('soundToggleBtn'); if (btn) btn.textContent = soundEnabled ? '🔊' : '🔇'; if (soundEnabled) beep(800, 'sine', 0.1, 0.2); }
+function toggleSound() { soundEnabled = !soundEnabled; localStorage.setItem('cm_sound', soundEnabled ? 'on' : 'off'); const btn = document.getElementById('soundToggleBtn'); if (btn) btn.textContent = soundEnabled ? '🔊' : '🔇'; if (soundEnabled) beep(800, 'sine', 0.1, 0.2); }
 
-function initSoundBtn() { const btn = document.getElementById('soundToggleBtn'); if (btn) btn.textContent = soundEnabled ? '🔊' : '🔇';
-    initMusicBtn(); }
+function initSoundBtn() { const btn = document.getElementById('soundToggleBtn'); if (btn) btn.textContent = soundEnabled ? '🔊' : '🔇'; initMusicBtn(); }
 
 function initMusicBtn() { const btn = document.getElementById('musicToggleBtn'); if (btn) btn.style.opacity = musicEnabled ? '1' : '0.35'; }
 let AC;
 
 function getAC() { if (!AC) AC = new(window.AudioContext || window.webkitAudioContext)(); return AC; }
 
-function beep(f, t, d, v, dl = 0) { if (!soundEnabled) return; try { const ac = getAC(),
-            o = ac.createOscillator(),
-            g = ac.createGain();
-        o.connect(g);
-        g.connect(ac.destination);
-        o.type = t;
-        o.frequency.setValueAtTime(f, ac.currentTime + dl);
-        g.gain.setValueAtTime(v, ac.currentTime + dl);
-        g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dl + d);
-        o.start(ac.currentTime + dl);
-        o.stop(ac.currentTime + dl + d + 0.05); } catch (e) {} }
+function beep(f, t, d, v, dl = 0) { if (!soundEnabled) return; try { const ac = getAC(), o = ac.createOscillator(), g = ac.createGain(); o.connect(g); g.connect(ac.destination); o.type = t; o.frequency.setValueAtTime(f, ac.currentTime + dl); g.gain.setValueAtTime(v, ac.currentTime + dl); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dl + d); o.start(ac.currentTime + dl); o.stop(ac.currentTime + dl + d + 0.05); } catch (e) {} }
 
-function sfxCatch() { beep(660, 'sine', 0.08, 0.28);
-    beep(880, 'sine', 0.07, 0.22, 0.06); }
-
-function sfxWrong() { beep(180, 'sawtooth', 0.18, 0.25);
-    beep(140, 'sawtooth', 0.12, 0.2, 0.1); }
-
+function sfxCatch() { beep(660, 'sine', 0.08, 0.28); beep(880, 'sine', 0.07, 0.22, 0.06); }
+function sfxWrong() { beep(180, 'sawtooth', 0.18, 0.25); beep(140, 'sawtooth', 0.12, 0.2, 0.1); }
 function sfxMiss() { beep(220, 'sawtooth', 0.12, 0.18); }
-
 function sfxLevelUp() { [523, 659, 784, 1047].forEach((f, i) => beep(f, 'sine', 0.12, 0.28, i * 0.1)); }
-
 function sfxTaskDone() { [440, 550, 660, 880, 1100].forEach((f, i) => beep(f, 'triangle', 0.14, 0.3, i * 0.08)); }
-
-function sfxLife() { beep(880, 'sine', 0.12, 0.32);
-    beep(1100, 'sine', 0.1, 0.28, 0.12);
-    beep(1320, 'sine', 0.09, 0.22, 0.22); }
-
-function sfxBomb() { beep(80, 'sawtooth', 0.4, 0.5);
-    beep(60, 'sawtooth', 0.3, 0.4, 0.1);
-    beep(40, 'sine', 0.5, 0.3, 0.2); }
-
-function sfxCombo(n) { beep(440 + n * 80, 'sine', 0.1, 0.3);
-    beep(550 + n * 80, 'sine', 0.08, 0.25, 0.06); }
-
-function sfxShield() { beep(300, 'sine', 0.08, 0.22);
-    beep(500, 'sine', 0.1, 0.28, 0.08);
-    beep(800, 'sine', 0.12, 0.3, 0.16);
-    beep(1100, 'sine', 0.1, 0.25, 0.24); }
-
+function sfxLife() { beep(880, 'sine', 0.12, 0.32); beep(1100, 'sine', 0.1, 0.28, 0.12); beep(1320, 'sine', 0.09, 0.22, 0.22); }
+function sfxBomb() { beep(80, 'sawtooth', 0.4, 0.5); beep(60, 'sawtooth', 0.3, 0.4, 0.1); beep(40, 'sine', 0.5, 0.3, 0.2); }
+function sfxCombo(n) { beep(440 + n * 80, 'sine', 0.1, 0.3); beep(550 + n * 80, 'sine', 0.08, 0.25, 0.06); }
+function sfxShield() { beep(300, 'sine', 0.08, 0.22); beep(500, 'sine', 0.1, 0.28, 0.08); beep(800, 'sine', 0.12, 0.3, 0.16); beep(1100, 'sine', 0.1, 0.25, 0.24); }
 function sfxBossWarning() { [200, 170, 140, 110, 80].forEach((f, i) => beep(f, 'sawtooth', 0.22, 0.3, i * 0.1)); }
-
 function sfxBossWin() { [523, 659, 784, 1047, 1318, 1047, 784, 1047, 1318, 1568].forEach((f, i) => beep(f, 'sine', 0.14, 0.28, i * 0.09)); }
-
 function sfxSurprise() { [400, 600, 900, 1200, 1600, 2000, 2600].forEach((f, i) => beep(f, 'sine', 0.18, 0.32, i * 0.08)); }
-
-function sfxGameOver() { beep(300, 'sawtooth', 0.18, 0.25);
-    beep(250, 'sawtooth', 0.15, 0.22, 0.12);
-    beep(200, 'sawtooth', 0.12, 0.2, 0.22);
-    beep(150, 'sine', 0.3, 0.18, 0.32); }
+function sfxGameOver() { beep(300, 'sawtooth', 0.18, 0.25); beep(250, 'sawtooth', 0.15, 0.22, 0.12); beep(200, 'sawtooth', 0.12, 0.2, 0.22); beep(150, 'sine', 0.3, 0.18, 0.32); }
 
 // ===== BASKET SKINS =====
 const BASKET_SKINS = [
@@ -443,8 +383,7 @@ function loadSkin() {
     updateSkinButton();
 }
 
-function saveSkin() { localStorage.setItem('cm_basket_skin', currentSkinIndex);
-    updateSkinButton(); }
+function saveSkin() { localStorage.setItem('cm_basket_skin', currentSkinIndex); updateSkinButton(); }
 
 function updateSkinButton() {
     const skinText = `🎨 ${BASKET_SKINS[currentSkinIndex].emoji} ${BASKET_SKINS[currentSkinIndex].name}`;
@@ -558,11 +497,9 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 }
 
 const SHIELD_BASE_DURATION = 720;
-let shakeFrames = 0,
-    shakeIntensity = 0;
+let shakeFrames = 0, shakeIntensity = 0;
 
-function triggerShake(intensity = 8, frames = 18) { shakeFrames = frames;
-    shakeIntensity = intensity; }
+function triggerShake(intensity = 8, frames = 18) { shakeFrames = frames; shakeIntensity = intensity; }
 
 const TASKS = [
     { desc: 'Catch 10 Hearts ❤️', type: 'heart', count: 10 }, { desc: 'Catch 8 Stars ⭐', type: 'star', count: 8 },
@@ -577,31 +514,16 @@ const THEMES = [
 function getTheme(lvl) { return THEMES[0]; }
 
 let st = {
-    running: false,
-    score: 0,
-    lives: 3,
-    level: 1,
+    running: false, score: 0, lives: 3, level: 1,
     basket: { x: gameW / 2, w: 86, h: 26, y: gameH - 52 },
-    items: [],
-    particles: [],
-    floats: [],
-    confetti: [],
-    spawnTimer: 0,
-    spawnInterval: 70,
-    speed: 2.5,
-    frame: 0,
-    levelTarget: 10,
-    levelCaught: 0,
-    inTask: false,
-    taskDef: null,
-    taskCaught: 0,
+    items: [], particles: [], floats: [], confetti: [],
+    spawnTimer: 0, spawnInterval: 70, speed: 2.5, frame: 0,
+    levelTarget: 10, levelCaught: 0,
+    inTask: false, taskDef: null, taskCaught: 0,
     levelMode: { mode: 'normal' },
     currentTheme: THEMES[0],
-    combo: 0,
-    comboTimer: 0,
-    shieldActive: false,
-    shieldFrames: 0,
-    shieldMaxFrames: 0,
+    combo: 0, comboTimer: 0,
+    shieldActive: false, shieldFrames: 0, shieldMaxFrames: 0,
     levelCompleteTriggered: false
 };
 let isGamePaused = false;
@@ -615,12 +537,10 @@ function addParticles(x, y, c1, c2) {
         const a = Math.random() * Math.PI * 2;
         const spd = 2 + Math.random() * 5;
         st.particles.push({
-            x,
-            y,
+            x, y,
             vx: Math.cos(a) * spd,
             vy: Math.sin(a) * spd - 3,
-            life: 35,
-            maxLife: 35,
+            life: 35, maxLife: 35,
             color: Math.random() > 0.5 ? c1 : c2,
             r: 3 + Math.random() * 5
         });
@@ -632,12 +552,10 @@ function addRedParticles(x, y) {
         const a = Math.random() * Math.PI * 2;
         const spd = 2 + Math.random() * 3;
         st.particles.push({
-            x,
-            y,
+            x, y,
             vx: Math.cos(a) * spd,
             vy: Math.sin(a) * spd - 2,
-            life: 28,
-            maxLife: 28,
+            life: 28, maxLife: 28,
             color: '#FF2222',
             r: 3 + Math.random() * 4
         });
@@ -683,7 +601,6 @@ function spawnItem() {
                 return;
             }
 
-            // ---- Spawn from sprite sheet ----
             const candyType = getRandomCandyType();
             const size = 30 * scaleX + Math.random() * 10 * scaleX;
             const yOffset = -b * 25 * scaleY;
@@ -692,7 +609,6 @@ function spawnItem() {
                 x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
                 y: -34 * scaleY + yOffset,
                 candyId: candyType.id,
-                imgIndex: candyType.imgIndex,
                 pts: candyType.pts,
                 size: size,
                 wobble: Math.random() * Math.PI * 2,
@@ -724,45 +640,41 @@ function spawnBomb() {
     });
 }
 
-function activateShield() { st.shieldActive = true;
-    st.shieldFrames = SHIELD_BASE_DURATION;
-    st.shieldMaxFrames = SHIELD_BASE_DURATION;
-    sfxShield();
-    updatePowerupHud(); }
+function activateShield() { st.shieldActive = true; st.shieldFrames = SHIELD_BASE_DURATION; st.shieldMaxFrames = SHIELD_BASE_DURATION; sfxShield(); updatePowerupHud(); }
 
 // ============================================================
-// ===== DRAWING FUNCTIONS (SPRITE BASED) =====
+// ===== DRAWING FUNCTIONS =====
 // ============================================================
 
-function glow(c, b) { ctx.shadowColor = c;
-    ctx.shadowBlur = b; }
-
+function glow(c, b) { ctx.shadowColor = c; ctx.shadowBlur = b; }
 function ng() { ctx.shadowBlur = 0; }
 
 function drawCandySprite(item) {
-    const { x, y, size: r, rot, imgIndex } = item;
+    const { x, y, size: r, rot, candyId } = item;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(rot);
 
-    // Glow effect
-    glow('#FFD700', 8);
-    ctx.strokeStyle = 'rgba(255,215,0,0.2)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 1.1, 0, Math.PI * 2);
-    ctx.stroke();
-    ng();
-
-    // Draw sprite
-    if (allCandiesLoaded && candyImages[imgIndex] && candyImages[imgIndex].complete) {
-        const img = candyImages[imgIndex];
-        const size = r * 1.6;
-        ctx.drawImage(img, -size / 2, -size / 2, size, size);
+    if (spritesLoaded && spriteSheetImage) {
+        const data = candyData.find(d => d.id === candyId);
+        if (data) {
+            const s = r * 1.6;
+            ctx.drawImage(
+                spriteSheetImage,
+                data.srcX, data.srcY, data.width, data.height,
+                -s/2, -s/2, s, s
+            );
+        } else {
+            // Fallback
+            ctx.fillStyle = '#FF4D4D';
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+        }
     } else {
-        // Fallback: colored circle
-        const colors = ['#FF4D4D','#4D79FF','#4DFF88','#FFFF4D','#994DFF','#FF8C00','#FF6B6B','#845EF7','#FCC419','#FF3366'];
-        ctx.fillStyle = colors[imgIndex % colors.length];
+        // Fallback colored circle (if image not found)
+        const colors = ['#FF4D4D','#4D79FF','#4DFF88','#FFFF4D','#994DFF','#FF8C00'];
+        ctx.fillStyle = colors[(candyId || 0) % colors.length];
         ctx.beginPath();
         ctx.arc(0, 0, r * 0.8, 0, Math.PI * 2);
         ctx.fill();
@@ -776,14 +688,12 @@ function drawCandySprite(item) {
 
 function drawBombItem(r, bombType, fuseT) {
     const sparkOn = Math.sin(fuseT * 0.4) > 0;
-
     ctx.strokeStyle = '#8B6914';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(r * 0.2, -r);
     ctx.bezierCurveTo(r * 0.6, -r * 1.5, r * 0.8, -r * 1.8, r * 0.5, -r * 2.2);
     ctx.stroke();
-
     if (sparkOn) {
         glow('#FF8C00', 10);
         ctx.fillStyle = '#FFD700';
@@ -792,7 +702,6 @@ function drawBombItem(r, bombType, fuseT) {
         ctx.fill();
         ng();
     }
-
     const bombColor = bombType.color || '#FF0000';
     glow(bombColor, 8 + Math.sin(fuseT * 0.3) * 4);
     const g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.05, 0, 0, r);
@@ -804,17 +713,14 @@ function drawBombItem(r, bombType, fuseT) {
     ctx.fillStyle = g;
     ctx.fill();
     ng();
-
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 2;
     ctx.stroke();
-
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
     ctx.font = `bold ${Math.round(r*1.4)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(bombType.label || '💣', 0, 2);
-
     ctx.fillStyle = bombColor;
     ctx.font = `bold ${Math.round(r*0.45)}px sans-serif`;
     ctx.fillText(bombType.type.replace('-', ' '), 0, r * 1.8);
@@ -883,7 +789,6 @@ function drawItem(item) {
         return;
     }
 
-    // Normal candy - sprite
     drawCandySprite(item);
     ctx.restore();
 }
@@ -1234,7 +1139,6 @@ function gameLoop(timestamp) {
                 return false;
             }
 
-            // ---- NORMAL CANDY CATCH ----
             const pts = item.pts || 10;
             st.combo++;
             st.comboTimer = 90;
@@ -1244,7 +1148,7 @@ function gameLoop(timestamp) {
             sfxCatch();
 
             const colors = ['#FF4D4D','#4D79FF','#4DFF88','#FFFF4D','#994DFF','#FF8C00'];
-            const col = colors[item.imgIndex % colors.length];
+            const col = colors[(item.candyId || 0) % colors.length];
             addParticles(item.x, by, col, '#FFFFFF');
             st.floats.push({
                 x: item.x,
@@ -1563,21 +1467,14 @@ const WHEEL_SEGMENTS = [
     { label: '+200', emoji: '🍬', color: '#10D4AA', reward: { type: 'pts', val: 200 } },
     { label: 'JACKPOT!', emoji: '🏆', color: '#FF8C00', reward: { type: 'jackpot', val: 5000 } }
 ];
-let wheelAngle = 0,
-    wheelSpinning = false;
+let wheelAngle = 0, wheelSpinning = false;
 
 function getDailyData() { try { return JSON.parse(localStorage.getItem(DAILY_KEY) || 'null'); } catch { return null; } }
-
 function setDailyData(d) { localStorage.setItem(DAILY_KEY, JSON.stringify(d)); }
-
 function getStreak() { try { return JSON.parse(localStorage.getItem(STREAK_KEY) || '{streak:0,lastDate:""}'); } catch { return { streak: 0, lastDate: "" }; } }
-
 function setStreak(d) { localStorage.setItem(STREAK_KEY, JSON.stringify(d)); }
-
 function getTodayStr() { return new Date().toISOString().slice(0, 10); }
-
 function canClaimToday() { const d = getDailyData(); if (!d) return true; return d.lastClaim !== getTodayStr(); }
-
 function checkDailyBadge() { const badge = document.getElementById('dailyBadge'); if (badge) badge.style.display = canClaimToday() ? 'block' : 'none'; }
 
 function showDailyReward() {
@@ -1609,9 +1506,7 @@ function updateCooldownTimer() {
             document.getElementById('spinBtnEl').textContent = 'Spin Now';
             return;
         }
-        const h = Math.floor(diff / 3600000),
-            m = Math.floor((diff % 3600000) / 60000),
-            s = Math.floor((diff % 60000) / 1000);
+        const h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
         document.getElementById('cooldownTimer').textContent = `${h}h ${m}m ${s}s`;
     }, 1000);
 }
@@ -1636,9 +1531,7 @@ function drawWheel(angle) {
     const c = document.getElementById('wheelCanvas');
     if (!c) return;
     const ctx = c.getContext('2d');
-    const cx = 110,
-        cy = 110,
-        r = 100;
+    const cx = 110, cy = 110, r = 100;
     ctx.clearRect(0, 0, 220, 220);
     const segAngle = (Math.PI * 2) / WHEEL_SEGMENTS.length;
     for (let i = 0; i < WHEEL_SEGMENTS.length; i++) {
@@ -1685,8 +1578,7 @@ function spinWheel() {
         wheelAngle = startAngle + targetAngle * (1 - Math.pow(1 - t, 3));
         drawWheel(wheelAngle);
         if (t < 1) requestAnimationFrame(animate);
-        else { wheelSpinning = false;
-            claimReward(WHEEL_SEGMENTS[winIdx]); }
+        else { wheelSpinning = false; claimReward(WHEEL_SEGMENTS[winIdx]); }
     }
     requestAnimationFrame(animate);
 }
@@ -1743,8 +1635,7 @@ function claimReward(seg) {
     showDailyReward();
 }
 
-function closeDailyReward() { if (cooldownTimerInterval) clearInterval(cooldownTimerInterval);
-    showHomePage(); }
+function closeDailyReward() { if (cooldownTimerInterval) clearInterval(cooldownTimerInterval); showHomePage(); }
 
 // ===== SETTINGS =====
 function loadSettings() {
@@ -1857,8 +1748,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('settingsLogoutBtn')?.addEventListener('click', logout);
     document.getElementById('exitGameBtn')?.addEventListener('click', exitGame);
     document.getElementById('closeSettingsBtn')?.addEventListener('click', closeSettings);
-    document.getElementById('helpBackBtn')?.addEventListener('click', () => { if (isOnHomePage) showHomePage();
-        else showOv(null); });
+    document.getElementById('helpBackBtn')?.addEventListener('click', () => { if (isOnHomePage) showHomePage(); else showOv(null); });
     document.getElementById('resumeBtn')?.addEventListener('click', togglePause);
     document.getElementById('nextLevelBtn')?.addEventListener('click', nextLevel);
     document.getElementById('startTaskBtn')?.addEventListener('click', startTaskPlay);
@@ -1881,7 +1771,7 @@ canvas.addEventListener('mousemove', e => { if (st.running) moveB(e.clientX); })
 canvas.addEventListener('touchmove', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 canvas.addEventListener('touchstart', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 
-console.log("✅ Candy Mass - Sprite Sheet Version Loaded!");
-console.log("🎨 30 unique candies from assets/candies/");
+console.log("✅ Candy Mass - Single Sprite Sheet Version Loaded!");
+console.log("🎨 30 unique candies from assets/candies/candy-sheet.png");
 console.log("💣 5 Bomb Types: Game Over, -Life, -Target, -Score, Basket Reset");
 console.log("🎯 Target: 250 candies at Level 10000");
