@@ -1,6 +1,9 @@
 // ============================================================
-// ===== CANDY MASS - SINGLE SPRITE SHEET VERSION =====
-// ===== Auto-Detect Size + Aspect Ratio Fix =====
+// ===== CANDY MASS - MANUAL SPRITE CROP (56x59) =====
+// ============================================================
+
+// ============================================================
+// ===== SPRITE SHEET LOADER =====
 // ============================================================
 const SPRITE_SHEET_URL = 'assets/candies/candy-sheet.png';
 const COLS = 6;
@@ -8,27 +11,32 @@ const ROWS = 5;
 let spriteSheetImage = null;
 let spritesLoaded = false;
 
-// Candy data with sprite coordinates (will be auto-calculated)
+// Candy data with sprite coordinates
 const candyData = [];
 
-function updateCandyData(spriteW, spriteH) {
+function updateCandyData() {
     candyData.length = 0;
     let id = 1;
+    
+    // ----- FIXED MANUAL SIZE (Aapki image ke hisaab se) -----
+    const MANUAL_W = 56; // Width
+    const MANUAL_H = 59; // Height
+    
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             candyData.push({
                 id: id,
                 name: `candy-${id}`,
-                srcX: c * spriteW,
-                srcY: r * spriteH,
-                width: spriteW,
-                height: spriteH,
+                srcX: c * MANUAL_W,
+                srcY: r * MANUAL_H,
+                width: MANUAL_W,
+                height: MANUAL_H,
                 pts: 10 + Math.floor(Math.random() * 20)
             });
             id++;
         }
     }
-    console.log(`✅ ${candyData.length} candies mapped with ${spriteW.toFixed(1)}x${spriteH.toFixed(1)} size.`);
+    console.log(`✅ ${candyData.length} candies mapped with MANUAL size: ${MANUAL_W}x${MANUAL_H}`);
 }
 
 function loadSpriteSheet() {
@@ -36,15 +44,12 @@ function loadSpriteSheet() {
         const img = new Image();
         img.onload = () => {
             spriteSheetImage = img;
-            const spriteW = img.width / COLS;
-            const spriteH = img.height / ROWS;
-            console.log(`📐 Sprite Sheet: ${img.width}x${img.height}, Candy size: ${spriteW.toFixed(1)}x${spriteH.toFixed(1)}`);
-            updateCandyData(spriteW, spriteH);
+            updateCandyData();
             spritesLoaded = true;
             resolve();
         };
         img.onerror = () => {
-            console.warn("⚠️ Sprite sheet not found (assets/candies/candy-sheet.png). Using fallback colored circles.");
+            console.warn("⚠️ Sprite sheet not found. Using fallback.");
             spritesLoaded = false;
             resolve();
         };
@@ -192,7 +197,7 @@ function enterGame(name, email) {
 
 window.addEventListener('load', async () => {
     loadSkin();
-    await loadSpriteSheet(); // Wait for sprite sheet
+    await loadSpriteSheet();
     const sess = getSession();
     if (sess && sess.email && !sess.email.startsWith('guest_')) {
         document.getElementById('loginScreen').style.display = 'none';
@@ -606,7 +611,8 @@ function spawnItem() {
             }
 
             const candyType = getRandomCandyType();
-            const size = 30 * scaleX + Math.random() * 10 * scaleX;
+            // ----- CANDY SIZE BADHAYA (55 se 70 pixels) -----
+            const size = 55 * scaleX + Math.random() * 15 * scaleX;
             const yOffset = -b * 25 * scaleY;
 
             st.items.push({
@@ -647,7 +653,7 @@ function spawnBomb() {
 function activateShield() { st.shieldActive = true; st.shieldFrames = SHIELD_BASE_DURATION; st.shieldMaxFrames = SHIELD_BASE_DURATION; sfxShield(); updatePowerupHud(); }
 
 // ============================================================
-// ===== DRAWING FUNCTIONS (ASPECT RATIO FIX APPLIED) =====
+// ===== DRAWING FUNCTIONS =====
 // ============================================================
 
 function glow(c, b) { ctx.shadowColor = c; ctx.shadowBlur = b; }
@@ -663,7 +669,7 @@ function drawCandySprite(item) {
         const data = candyData.find(d => d.id === candyId);
         if (data) {
             const scale = r * 1.6;
-            // Aspect ratio maintain karte hue draw karein
+            // Aspect ratio maintain karte hue draw (56:59)
             const aspect = data.height / data.width;
             const drawWidth = scale;
             const drawHeight = scale * aspect;
@@ -674,14 +680,13 @@ function drawCandySprite(item) {
                 -drawWidth/2, -drawHeight/2, drawWidth, drawHeight
             );
         } else {
-            // Fallback
             ctx.fillStyle = '#FF4D4D';
             ctx.beginPath();
             ctx.arc(0, 0, r * 0.8, 0, Math.PI * 2);
             ctx.fill();
         }
     } else {
-        // Fallback colored circle
+        // Fallback
         const colors = ['#FF4D4D','#4D79FF','#4DFF88','#FFFF4D','#994DFF','#FF8C00'];
         ctx.fillStyle = colors[(candyId || 0) % colors.length];
         ctx.beginPath();
@@ -1780,8 +1785,6 @@ canvas.addEventListener('mousemove', e => { if (st.running) moveB(e.clientX); })
 canvas.addEventListener('touchmove', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 canvas.addEventListener('touchstart', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 
-console.log("✅ Candy Mass - Auto-Detect Sprite Version Loaded!");
-console.log(`📐 Sprite Sheet: assets/candies/candy-sheet.png`);
-console.log("🎨 30 unique candies (Auto-cropped with aspect ratio)");
-console.log("💣 5 Bomb Types: Game Over, -Life, -Target, -Score, Basket Reset");
-console.log("🎯 Target: 250 candies at Level 10000");
+console.log("✅ Candy Mass - Manual Crop (56x59) + Size Optimized Loaded!");
+console.log("🎨 30 unique candies (Round, Star, Teddy, Wrapped, etc.)");
+console.log("💣 5 Bomb Types");
