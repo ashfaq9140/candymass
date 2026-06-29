@@ -1,11 +1,5 @@
-// ============================================================
-// ===== CANDY MASS - FIXED SIZE (CANDY VISIBLE) =====
-// ============================================================
 
-// ============================================================
-// ===== SPRITE SHEET LOADER =====
-// ============================================================
-const SPRITE_SHEET_URL = 'assets/candies/candy-sheet.png';
+const SPRITE_SHEET_URL = 'candy-sheet.png';
 const COLS = 6;
 const ROWS = 5;
 let spriteSheetImage = null;
