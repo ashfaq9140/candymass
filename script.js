@@ -1,5 +1,11 @@
+// ============================================================
+// ===== CANDY MASS - FINAL VERSION (FULL CROP) =====
+// ============================================================
 
-const SPRITE_SHEET_URL = 'candy-sheet.png';
+// ============================================================
+// ===== SPRITE SHEET LOADER =====
+// ============================================================
+const SPRITE_SHEET_URL = 'candy-sheet.png'; // Root folder mein hai
 const COLS = 6;
 const ROWS = 5;
 let spriteSheetImage = null;
@@ -12,9 +18,9 @@ function updateCandyData() {
     candyData.length = 0;
     let id = 1;
     
-    // ----- FIXED MANUAL SIZE (Aapki image ke hisaab se) -----
-    const MANUAL_W = 56;
-    const MANUAL_H = 59;
+    // ----- FULL CELL SIZE (1408/6 = 234.66 ≈ 235, 768/5 = 153.6 ≈ 154) -----
+    const MANUAL_W = 235;
+    const MANUAL_H = 154;
     
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
@@ -30,7 +36,7 @@ function updateCandyData() {
             id++;
         }
     }
-    console.log(`✅ ${candyData.length} candies mapped with MANUAL size: ${MANUAL_W}x${MANUAL_H}`);
+    console.log(`✅ ${candyData.length} candies mapped with FULL CELL size: ${MANUAL_W}x${MANUAL_H}`);
 }
 
 function loadSpriteSheet() {
@@ -584,7 +590,7 @@ function spawnConfetti(count = 60) {
 }
 
 // ============================================================
-// ===== SPAWN FUNCTIONS (FIXED SIZE) =====
+// ===== SPAWN FUNCTIONS =====
 // ============================================================
 
 function spawnItem() {
@@ -606,8 +612,7 @@ function spawnItem() {
             }
 
             const candyType = getRandomCandyType();
-            // ----- FIXED SIZE (no scaleX, always visible) -----
-            const size = 38 + Math.random() * 20; // 38 to 58 pixels
+            const size = 38 + Math.random() * 20;
             const yOffset = -b * 25 * scaleY;
 
             st.items.push({
@@ -1111,7 +1116,8 @@ function gameLoop(timestamp) {
             item.rot += 0.03;
         } else {
             item.rot += 0.015;
-            let amplitude = 1.8 + (st.level / 10000) * 3.2;
+            // ----- LOW AMPLITUDE (0.5) for straight fall -----
+            let amplitude = 0.5;
             item.x += Math.sin(item.wobble) * amplitude;
         }
 
@@ -1773,7 +1779,8 @@ canvas.addEventListener('mousemove', e => { if (st.running) moveB(e.clientX); })
 canvas.addEventListener('touchmove', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 canvas.addEventListener('touchstart', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 
-console.log("✅ Candy Mass - FIXED SIZE VERSION Loaded!");
-console.log("🎨 30 unique candies (56x59 crop)");
+console.log("✅ Candy Mass - FINAL FULL CROP VERSION Loaded!");
+console.log("📐 Crop: 235x154 (Full Cell)");
 console.log("📏 Candy size: 38-58px (always visible)");
+console.log("🎯 Amplitude: 0.5 (Straight fall)");
 console.log("💣 5 Bomb Types");
