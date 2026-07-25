@@ -5,7 +5,7 @@
 // ============================================================
 // ===== SPRITE SHEET LOADER =====
 // ============================================================
-const SPRITE_SHEET_URL = 'candy-sheet.png';
+const SPRITE_SHEET_URL = 'candy-sheet.png'; // Root folder mein hai
 const COLS = 6;
 const ROWS = 5;
 let spriteSheetImage = null;
@@ -18,13 +18,15 @@ function updateCandyData() {
     candyData.length = 0;
     let id = 1;
     
-    // ----- EXACT CANDY CROP (114x107 with offset) -----
+    // ----- EXACT CANDY CROP (Sirf candy visible area) -----
     const CELL_W = 235;
     const CELL_H = 154;
-    const CANDY_W = 114;
-    const CANDY_H = 107;
+    const CANDY_W = 114;  // Paint mein measured
+    const CANDY_H = 107;  // Paint mein measured
     const OFFSET_X = Math.round((CELL_W - CANDY_W) / 2); // 60
     const OFFSET_Y = Math.round((CELL_H - CANDY_H) / 2); // 23
+    
+    console.log(`📐 Cropping ${COLS}x${ROWS} candies. Offset: ${OFFSET_X}, ${OFFSET_Y}, Size: ${CANDY_W}x${CANDY_H}`);
     
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
@@ -40,7 +42,7 @@ function updateCandyData() {
             id++;
         }
     }
-    console.log(`✅ ${candyData.length} candies mapped with EXACT crop: ${CANDY_W}x${CANDY_H}`);
+    console.log(`✅ ${candyData.length} candies mapped with EXACT SIZE: ${CANDY_W}x${CANDY_H}`);
 }
 
 function loadSpriteSheet() {
@@ -657,7 +659,7 @@ function spawnBomb() {
 function activateShield() { st.shieldActive = true; st.shieldFrames = SHIELD_BASE_DURATION; st.shieldMaxFrames = SHIELD_BASE_DURATION; sfxShield(); updatePowerupHud(); }
 
 // ============================================================
-// ===== DRAWING FUNCTIONS =====
+// ===== DRAWING FUNCTIONS (FIXED CROP) =====
 // ============================================================
 
 function glow(c, b) { ctx.shadowColor = c; ctx.shadowBlur = b; }
@@ -672,6 +674,7 @@ function drawCandySprite(item) {
     if (spritesLoaded && spriteSheetImage) {
         const data = candyData.find(d => d.id === candyId);
         if (data) {
+            // Candy ko 114x107 crop se draw karein
             const scale = r * 1.6;
             const aspect = data.height / data.width;
             const drawWidth = scale;
@@ -683,12 +686,14 @@ function drawCandySprite(item) {
                 -drawWidth/2, -drawHeight/2, drawWidth, drawHeight
             );
         } else {
+            // Fallback
             ctx.fillStyle = '#FF4D4D';
             ctx.beginPath();
             ctx.arc(0, 0, r * 0.8, 0, Math.PI * 2);
             ctx.fill();
         }
     } else {
+        // Fallback colored circle
         const colors = ['#FF4D4D','#4D79FF','#4DFF88','#FFFF4D','#994DFF','#FF8C00'];
         ctx.fillStyle = colors[(candyId || 0) % colors.length];
         ctx.beginPath();
@@ -1120,7 +1125,8 @@ function gameLoop(timestamp) {
             item.rot += 0.03;
         } else {
             item.rot += 0.015;
-            let amplitude = 1.8 + (st.level / 10000) * 3.2;
+            // ----- LOW AMPLITUDE (0.5) for straight fall -----
+            let amplitude = 0.5;
             item.x += Math.sin(item.wobble) * amplitude;
         }
 
@@ -1782,7 +1788,7 @@ canvas.addEventListener('mousemove', e => { if (st.running) moveB(e.clientX); })
 canvas.addEventListener('touchmove', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 canvas.addEventListener('touchstart', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 
-console.log("✅ Candy Mass - EXACT CANDY CROP VERSION Loaded!");
-console.log("📐 Crop: 114x107 (Sirf candy, offset 60x23)");
-console.log("🎨 30 unique candies");
+console.log("✅ Candy Mass - EXACT CROP VERSION (114x107) Loaded!");
+console.log("📐 Crop Offset: X=60, Y=23");
+console.log("🎯 Amplitude: 0.5 (Straight fall)");
 console.log("💣 5 Bomb Types");
