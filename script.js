@@ -1,11 +1,9 @@
 // ============================================================
 // ===== CANDY MASS - COMPLETE SCRIPT (SPRITE + FALLBACK) =====
 // ============================================================
+const SPRITE_SHEET_URL = // Ensure path handles the exact folder name from GitHub
+img.src = `assets/candies/candy-${i}.png`; 
 
-// ============================================================
-// ===== SPRITE SHEET LOADER (Auto-detect) =====
-// ============================================================
-const SPRITE_SHEET_URL = 'candy-sheet.png';
 const COLS = 6;
 const ROWS = 5;
 let spriteSheetImage = null;
