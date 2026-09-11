@@ -1,68 +1,92 @@
 // ============================================================
-// ===== CANDY MASS - INDIVIDUAL IMAGES VERSION =====
+// ===== CANDY MASS - COMPLETE SCRIPT (SPRITE + FALLBACK) =====
 // ============================================================
 
 // ============================================================
-// ===== CANDY IMAGES LOADER (assets/candies/single/) =====
+// ===== SPRITE SHEET LOADER (Auto-detect) =====
 // ============================================================
-const TOTAL_CANDIES = 30;
-const CANDY_IMAGES = [];
-let allCandiesLoaded = false;
-let imagesLoadedCount = 0;
+const SPRITE_SHEET_URL = 'candy-sheet.png';
+const COLS = 6;
+const ROWS = 5;
+let spriteSheetImage = null;
+let spritesLoaded = false;
+const candyData = [];
 
-function loadCandyImages() {
-    return new Promise((resolve) => {
-        for (let i = 1; i <= TOTAL_CANDIES; i++) {
-            const img = new Image();
-            img.onload = () => {
-                imagesLoadedCount++;
-                if (imagesLoadedCount === TOTAL_CANDIES) {
-                    allCandiesLoaded = true;
-                    console.log(`✅ All ${TOTAL_CANDIES} candy images loaded!`);
-                    resolve();
-                }
-            };
-            img.onerror = () => {
-                console.warn(`⚠️ Failed to load candy-${i}.png, using fallback`);
-                // Fallback: colored circle
-                const canvas = document.createElement('canvas');
-                canvas.width = 64;
-                canvas.height = 64;
-                const ctx = canvas.getContext('2d');
-                const colors = ['#FF4D4D','#4D79FF','#4DFF88','#FFFF4D','#994DFF','#FF8C00','#FF6B6B','#845EF7','#FCC419','#FF3366'];
-                ctx.fillStyle = colors[i % colors.length];
-                ctx.beginPath();
-                ctx.arc(32, 32, 28, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.strokeStyle = '#333';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                img.src = canvas.toDataURL();
-                imagesLoadedCount++;
-                if (imagesLoadedCount === TOTAL_CANDIES) {
-                    allCandiesLoaded = true;
-                    resolve();
-                }
-            };
-            img.src = `assets/candies/single/candy-${i}.png`;
-            CANDY_IMAGES.push(img);
+function updateCandyData() {
+    candyData.length = 0;
+    if (!spriteSheetImage) return;
+
+    const img = spriteSheetImage;
+    const cellW = img.width / COLS;
+    const cellH = img.height / ROWS;
+
+    // Center 80% crop (padding hatane ke liye)
+    const cropScale = 0.85;
+    const cropW = Math.floor(cellW * cropScale);
+    const cropH = Math.floor(cellH * cropScale);
+    const offsetX = Math.floor((cellW - cropW) / 2);
+    const offsetY = Math.floor((cellH - cropH) / 2);
+
+    console.log(`📐 Sheet: ${img.width}x${img.height}, Cell: ${cellW.toFixed(1)}x${cellH.toFixed(1)}, Crop: ${cropW}x${cropH}`);
+
+    let id = 1;
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            candyData.push({
+                id: id,
+                name: `candy-${id}`,
+                srcX: c * cellW + offsetX,
+                srcY: r * cellH + offsetY,
+                width: cropW,
+                height: cropH,
+                pts: 10 + Math.floor(Math.random() * 20)
+            });
+            id++;
         }
-    });
+    }
+    console.log(`✅ ${candyData.length} candies mapped!`);
 }
 
-// Candy data
-const candyData = [];
-for (let i = 1; i <= TOTAL_CANDIES; i++) {
-    candyData.push({
-        id: i,
-        name: `candy-${i}`,
-        pts: 10 + Math.floor(Math.random() * 20),
-        imgIndex: i - 1
+function loadSpriteSheet() {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            spriteSheetImage = img;
+            updateCandyData();
+            spritesLoaded = true;
+            console.log("✅ Sprite sheet loaded!");
+            resolve();
+        };
+        img.onerror = () => {
+            console.warn("⚠️ Sprite sheet not found. Using MANUAL candy drawing.");
+            spritesLoaded = false;
+            resolve();
+        };
+        img.src = SPRITE_SHEET_URL;
     });
 }
 
 function getRandomCandyType() {
-    return candyData[Math.floor(Math.random() * candyData.length)];
+    if (spritesLoaded && candyData.length > 0) {
+        return candyData[Math.floor(Math.random() * candyData.length)];
+    }
+    // Manual fallback
+    return getManualCandyType();
+}
+
+// ----- MANUAL CANDY GENERATOR (Fallback) -----
+const MANUAL_COLORS = ['#FF4D4D', '#4D79FF', '#4DFF88', '#FFFF4D', '#994DFF', '#FF8C00', '#FF3366', '#00BFFF'];
+const MANUAL_EMOJIS = ['🍬', '🍭', '⭐', '❤️', '💎', '🌸', '🎀', '🍫'];
+
+function getManualCandyType() {
+    return {
+        id: 0,
+        name: 'manual',
+        color: MANUAL_COLORS[Math.floor(Math.random() * MANUAL_COLORS.length)],
+        emoji: MANUAL_EMOJIS[Math.floor(Math.random() * MANUAL_EMOJIS.length)],
+        pts: 10 + Math.floor(Math.random() * 20),
+        isManual: true
+    };
 }
 
 // ============================================================
@@ -201,7 +225,7 @@ function enterGame(name, email) {
 
 window.addEventListener('load', async () => {
     loadSkin();
-    await loadCandyImages();
+    await loadSpriteSheet();
     const sess = getSession();
     if (sess && sess.email && !sess.email.startsWith('guest_')) {
         document.getElementById('loginScreen').style.display = 'none';
@@ -259,18 +283,14 @@ function showLeaderboard() {
 
 function closeLB() { showHomePage(); }
 
-// ============================================================
 // ===== CLOUD SAVE =====
-// ============================================================
-
 async function saveProgressToCloud() {
     if (!currentUserEmail || currentUserEmail.startsWith('guest_')) return;
     try {
         const db = window.firebaseDb;
         const doc = window.firebaseDoc;
         const setDoc = window.firebaseSetDoc;
-        if (!db || !doc || !setDoc) return;
-        if (!st) return;
+        if (!db || !doc || !setDoc || !st) return;
         const userRef = doc(db, "users", currentUserEmail);
         await setDoc(userRef, {
             name: currentUserName,
@@ -412,10 +432,7 @@ function cycleSkin() {
 }
 window.cycleSkin = cycleSkin;
 
-// ============================================================
 // ===== GAME CONFIGURATION =====
-// ============================================================
-
 function getBasketScale(level) {
     if (level < 3000) return 1.0;
     if (level < 5000) return 0.97;
@@ -427,11 +444,10 @@ function getLevelConfig(lvl) {
     let speed = 2.5 + (Math.min(lvl, 7000) / 7000) * 4.5;
     const interval = Math.max(30, 80 - lvl * 0.015);
     let target;
-    if (lvl <= 10) {
-        target = 8 + lvl;
-    } else {
+    if (lvl <= 10) target = 8 + lvl;
+    else {
         const progress = Math.min(1, (lvl - 10) / 9990);
-        target = Math.floor(10 + (240) * Math.pow(progress, 0.65));
+        target = Math.floor(10 + 240 * Math.pow(progress, 0.65));
         target = Math.max(10 + Math.floor(lvl * 0.015), target);
     }
     target = Math.min(250, Math.max(10, target));
@@ -451,12 +467,8 @@ function getBombChance(lvl) {
 function getLevelMode(lvl) {
     if (lvl < 5) return { mode: 'normal' };
     const t = lvl % 20;
-    if (lvl > 5000 && t % 3 === 0) {
-        return { mode: 'selective', targetShape: pickRandom(['star', 'heart', 'diamond', 'lollipop', 'wrapped', 'round']) };
-    }
-    if (lvl > 3000 && t % 5 === 0) {
-        return { mode: 'selective', targetShape: pickRandom(['star', 'heart', 'diamond']) };
-    }
+    if (lvl > 5000 && t % 3 === 0) return { mode: 'selective', targetShape: pickRandom(['star', 'heart', 'diamond', 'lollipop', 'wrapped', 'round']) };
+    if (lvl > 3000 && t % 5 === 0) return { mode: 'selective', targetShape: pickRandom(['star', 'heart', 'diamond']) };
     if (t === 0) return { mode: 'selective', targetShape: pickRandom(['star', 'heart', 'diamond']) };
     if (t === 10) return { mode: 'selective', targetShape: pickRandom(['lollipop', 'wrapped', 'round']) };
     if (t === 15 && lvl > 100) return { mode: 'selective', targetShape: pickRandom(['heart', 'star']) };
@@ -466,12 +478,9 @@ function getLevelMode(lvl) {
 
 function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
-function getModeLabel(s) { return { star: '⭐ Star', heart: '❤️ Heart', diamond: '💎 Diamond', lollipop: '🍭 Lollipop', wrapped: '🍬 Wrapped', round: '🔴 Round' } [s] || s; }
+function getModeLabel(s) { return { star: '⭐ Star', heart: '❤️ Heart', diamond: '💎 Diamond', lollipop: '🍭 Lollipop', wrapped: '🍬 Wrapped', round: '🔴 Round' }[s] || s; }
 
-// ============================================================
 // ===== BOMB TYPES =====
-// ============================================================
-
 const BOMB_TYPES = {
     GAME_OVER: { type: 'game-over', label: '💀', effect: 'gameOver', color: '#FF0000' },
     LIFE_REDUCE: { type: 'life-reduce', label: '💔', effect: 'lifeReduce', color: '#FF4444' },
@@ -485,10 +494,7 @@ function getRandomBombType() {
     return types[Math.floor(Math.random() * types.length)];
 }
 
-// ============================================================
 // ===== GAME STATE =====
-// ============================================================
-
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
@@ -541,22 +547,12 @@ let st = {
 };
 let isGamePaused = false;
 
-// ============================================================
 // ===== PARTICLES / CONFETTI =====
-// ============================================================
-
 function addParticles(x, y, c1, c2) {
     for (let i = 0; i < 6; i++) {
         const a = Math.random() * Math.PI * 2;
         const spd = 2 + Math.random() * 5;
-        st.particles.push({
-            x, y,
-            vx: Math.cos(a) * spd,
-            vy: Math.sin(a) * spd - 3,
-            life: 35, maxLife: 35,
-            color: Math.random() > 0.5 ? c1 : c2,
-            r: 3 + Math.random() * 5
-        });
+        st.particles.push({ x, y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd - 3, life: 35, maxLife: 35, color: Math.random() > 0.5 ? c1 : c2, r: 3 + Math.random() * 5 });
     }
 }
 
@@ -564,38 +560,18 @@ function addRedParticles(x, y) {
     for (let i = 0; i < 5; i++) {
         const a = Math.random() * Math.PI * 2;
         const spd = 2 + Math.random() * 3;
-        st.particles.push({
-            x, y,
-            vx: Math.cos(a) * spd,
-            vy: Math.sin(a) * spd - 2,
-            life: 28, maxLife: 28,
-            color: '#FF2222',
-            r: 3 + Math.random() * 4
-        });
+        st.particles.push({ x, y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd - 2, life: 28, maxLife: 28, color: '#FF2222', r: 3 + Math.random() * 4 });
     }
 }
 
 function spawnConfetti(count = 60) {
     const cols = ['#FFD700', '#FF4DA6', '#00BFFF', '#FF6090', '#A855F7', '#10D4AA', '#F43F5E', '#FFFFFF'];
     for (let i = 0; i < count; i++) {
-        st.confetti.push({
-            x: Math.random() * gameW,
-            y: -10 - Math.random() * 60,
-            vx: (Math.random() - 0.5) * 3.5,
-            vy: 2 + Math.random() * 3.5,
-            color: cols[Math.floor(Math.random() * cols.length)],
-            size: 5 + Math.random() * 8,
-            rot: Math.random() * Math.PI,
-            vrot: 0.05 + Math.random() * 0.12,
-            life: 220
-        });
+        st.confetti.push({ x: Math.random() * gameW, y: -10 - Math.random() * 60, vx: (Math.random() - 0.5) * 3.5, vy: 2 + Math.random() * 3.5, color: cols[Math.floor(Math.random() * cols.length)], size: 5 + Math.random() * 8, rot: Math.random() * Math.PI, vrot: 0.05 + Math.random() * 0.12, life: 220 });
     }
 }
 
-// ============================================================
 // ===== SPAWN FUNCTIONS =====
-// ============================================================
-
 function spawnItem() {
     const lvl = st.level;
 
@@ -622,6 +598,7 @@ function spawnItem() {
                 x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
                 y: -34 * scaleY + yOffset,
                 candyId: candyType.id,
+                candyType: candyType,
                 pts: candyType.pts,
                 size: size,
                 wobble: Math.random() * Math.PI * 2,
@@ -631,7 +608,6 @@ function spawnItem() {
                 isShield: false,
                 pulse: 0
             });
-
         }, b * 100);
     }
 }
@@ -655,38 +631,76 @@ function spawnBomb() {
 
 function activateShield() { st.shieldActive = true; st.shieldFrames = SHIELD_BASE_DURATION; st.shieldMaxFrames = SHIELD_BASE_DURATION; sfxShield(); updatePowerupHud(); }
 
-// ============================================================
 // ===== DRAWING FUNCTIONS =====
-// ============================================================
-
 function glow(c, b) { ctx.shadowColor = c; ctx.shadowBlur = b; }
 function ng() { ctx.shadowBlur = 0; }
 
+function darkenColor(hex) {
+    if (!hex || hex.length < 7) return '#333333';
+    let r = parseInt(hex.slice(1, 3), 16);
+    let g = parseInt(hex.slice(3, 5), 16);
+    let b = parseInt(hex.slice(5, 7), 16);
+    r = Math.max(0, r - 60);
+    g = Math.max(0, g - 60);
+    b = Math.max(0, b - 60);
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
 function drawCandySprite(item) {
-    const { x, y, size: r, rot, candyId } = item;
+    const { x, y, size: r, rot, candyId, candyType } = item;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(rot);
 
-    if (allCandiesLoaded && CANDY_IMAGES[candyId-1] && CANDY_IMAGES[candyId-1].complete) {
-        const img = CANDY_IMAGES[candyId-1];
-        const scale = r * 1.6;
-        // Draw image with aspect ratio
-        const aspect = img.width / img.height;
-        let drawWidth = scale;
-        let drawHeight = scale / aspect;
-        ctx.drawImage(img, -drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
-    } else {
-        // Fallback colored circle
-        const colors = ['#FF4D4D','#4D79FF','#4DFF88','#FFFF4D','#994DFF','#FF8C00'];
-        ctx.fillStyle = colors[(candyId || 0) % colors.length];
-        ctx.beginPath();
-        ctx.arc(0, 0, r * 0.8, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#333';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+    // ----- Agar sprite sheet loaded hai -----
+    if (spritesLoaded && spriteSheetImage && candyId > 0) {
+        const data = candyData.find(d => d.id === candyId);
+        if (data) {
+            const scale = r * 1.6;
+            const drawWidth = scale;
+            const drawHeight = scale * (data.height / data.width);
+            ctx.drawImage(spriteSheetImage, data.srcX, data.srcY, data.width, data.height, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+            ctx.restore();
+            return;
+        }
     }
+
+    // ----- Manual fallback drawing -----
+    const color = (candyType && candyType.color) || '#FF4D4D';
+    const emoji = (candyType && candyType.emoji) || '🍬';
+
+    // Glow
+    glow(color, 12);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.globalAlpha = 0.3;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 1.1, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ng();
+
+    // Background circle
+    const grad = ctx.createRadialGradient(-r * 0.2, -r * 0.3, 0, 0, 0, r);
+    grad.addColorStop(0, '#FFFFFF');
+    grad.addColorStop(0.5, color);
+    grad.addColorStop(1, darkenColor(color));
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.85, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = darkenColor(color);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Emoji
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = `${Math.round(r * 1.1)}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    glow('#FFFFFF', 4);
+    ctx.fillText(emoji, 0, 2);
+    ng();
 
     ctx.restore();
 }
@@ -722,12 +736,12 @@ function drawBombItem(r, bombType, fuseT) {
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.font = `bold ${Math.round(r*1.4)}px sans-serif`;
+    ctx.font = `bold ${Math.round(r * 1.4)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(bombType.label || '💣', 0, 2);
     ctx.fillStyle = bombColor;
-    ctx.font = `bold ${Math.round(r*0.45)}px sans-serif`;
+    ctx.font = `bold ${Math.round(r * 0.45)}px sans-serif`;
     ctx.fillText(bombType.type.replace('-', ' '), 0, r * 1.8);
     ng();
 }
@@ -735,7 +749,7 @@ function drawBombItem(r, bombType, fuseT) {
 function drawShieldItem(r, pulse) {
     const p = Math.sin(pulse) * 0.5 + 0.5;
     glow('#A855F7', 12 + p * 10);
-    ctx.strokeStyle = `rgba(168,85,247,${0.4+p*0.5})`;
+    ctx.strokeStyle = `rgba(168,85,247,${0.4 + p * 0.5})`;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(0, 0, r + 7 + p * 4, 0, Math.PI * 2);
@@ -758,24 +772,20 @@ function drawShieldItem(r, pulse) {
     ctx.strokeStyle = '#7C3AED';
     ctx.lineWidth = 2;
     ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.beginPath();
-    ctx.ellipse(-r * 0.28, -r * 0.3, r * 0.28, r * 0.16, -0.5, 0, Math.PI * 2);
-    ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.font = `${Math.round(r*0.9)}px sans-serif`;
+    ctx.font = `${Math.round(r * 0.9)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('✦', 0, r * 0.08);
     glow('#A855F7', 6);
     ctx.fillStyle = '#D09BFF';
-    ctx.font = `bold ${Math.round(r*0.5)}px sans-serif`;
+    ctx.font = `bold ${Math.round(r * 0.5)}px sans-serif`;
     ctx.fillText('SHIELD', 0, r * 1.75);
     ng();
 }
 
 function drawItem(item) {
-    const { x, y, size: r, rot } = item;
+    const { x, y, rot } = item;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(rot);
@@ -783,13 +793,13 @@ function drawItem(item) {
     if (item.isBomb) {
         const fuseT = item.fuseTimer || 0;
         const bombType = item.bombType || BOMB_TYPES.GAME_OVER;
-        drawBombItem(r, bombType, fuseT);
+        drawBombItem(item.size, bombType, fuseT);
         ctx.restore();
         return;
     }
 
     if (item.isShield) {
-        drawShieldItem(r, item.pulse || 0);
+        drawShieldItem(item.size, item.pulse || 0);
         ctx.restore();
         return;
     }
@@ -798,10 +808,7 @@ function drawItem(item) {
     ctx.restore();
 }
 
-// ============================================================
 // ===== BG, PROGRESS BAR, BASKET =====
-// ============================================================
-
 function drawBg() {
     const th = st.currentTheme || THEMES[0];
     const g = ctx.createLinearGradient(0, 0, 0, gameH);
@@ -843,7 +850,7 @@ function drawProgressBar() {
     ctx.roundRect(10 * scaleX, 6 * scaleY, (gameW - 20 * scaleX) * pct, 8 * scaleY, 4 * scaleX);
     ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.font = `bold ${9*scaleX}px sans-serif`;
+    ctx.font = `bold ${9 * scaleX}px sans-serif`;
     ctx.textAlign = 'right';
     ctx.fillText(st.levelCaught + '/' + st.levelTarget, gameW - 12 * scaleX, 15 * scaleY);
 }
@@ -895,38 +902,19 @@ function drawBasketWithSkin(bx, by, bw, bh) {
     ctx.restore();
 }
 
-// ============================================================
-// ===== INIT LEVEL, UPDATE HUD =====
-// ============================================================
-
+// ===== INIT LEVEL =====
 function initLevel(lvl, score, lives) {
     const cfg = getLevelConfig(lvl);
     const lm = getLevelMode(lvl);
     const th = getTheme(lvl);
     Object.assign(st, {
-        score: score || 0,
-        lives: lives || 3,
-        level: lvl,
-        items: [],
-        particles: [],
-        floats: [],
-        confetti: [],
-        spawnTimer: 0,
-        spawnInterval: cfg.interval,
-        speed: cfg.speed,
-        frame: 0,
-        levelTarget: cfg.target,
-        levelCaught: 0,
-        inTask: false,
-        taskDef: null,
-        taskCaught: 0,
-        levelMode: lm,
-        currentTheme: th,
-        combo: 0,
-        comboTimer: 0,
-        shieldActive: false,
-        shieldFrames: 0,
-        shieldMaxFrames: 0,
+        score: score || 0, lives: lives || 3, level: lvl,
+        items: [], particles: [], floats: [], confetti: [],
+        spawnTimer: 0, spawnInterval: cfg.interval, speed: cfg.speed, frame: 0,
+        levelTarget: cfg.target, levelCaught: 0,
+        inTask: false, taskDef: null, taskCaught: 0, levelMode: lm,
+        currentTheme: th, combo: 0, comboTimer: 0,
+        shieldActive: false, shieldFrames: 0, shieldMaxFrames: 0,
         levelCompleteTriggered: false
     });
     shakeFrames = 0;
@@ -1012,10 +1000,7 @@ function updatePowerupHud() {
     }
 }
 
-// ============================================================
 // ===== BOMB HANDLERS =====
-// ============================================================
-
 function handleBombEffect(bombType) {
     switch (bombType.type) {
         case 'game-over':
@@ -1029,7 +1014,7 @@ function handleBombEffect(bombType) {
             sfxWrong();
             triggerShake(5, 10);
             st.floats.push({ x: gameW / 2, y: gameH / 2, color: '#FF4444', life: 60, text: '💔 -1 Life!', big: true });
-            if (st.lives <= 0) { endGame(false); }
+            if (st.lives <= 0) endGame(false);
             break;
         case 'target-reduce':
             st.levelTarget = Math.max(st.levelCaught + 5, st.levelTarget - 15);
@@ -1052,10 +1037,7 @@ function handleBombEffect(bombType) {
     }
 }
 
-// ============================================================
 // ===== GAME LOOP =====
-// ============================================================
-
 const TARGET_FPS = 60;
 const FRAME_INTERVAL = 1000 / TARGET_FPS;
 let lastFrameTime = 0;
@@ -1151,12 +1133,11 @@ function gameLoop(timestamp) {
             if (multi > 1) sfxCombo(multi);
             sfxCatch();
 
-            const colors = ['#FF4D4D','#4D79FF','#4DFF88','#FFFF4D','#994DFF','#FF8C00'];
+            const colors = ['#FF4D4D', '#4D79FF', '#4DFF88', '#FFFF4D', '#994DFF', '#FF8C00'];
             const col = colors[(item.candyId || 0) % colors.length];
             addParticles(item.x, by, col, '#FFFFFF');
             st.floats.push({
-                x: item.x,
-                y: by - 16,
+                x: item.x, y: by - 16,
                 color: multi > 1 ? '#FFD700' : col,
                 life: 40,
                 text: (multi > 1 ? 'x' + multi + ' ' : '') + '+' + totalPts,
@@ -1194,10 +1175,7 @@ function gameLoop(timestamp) {
     });
 
     st.particles = st.particles.filter(p => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.22;
-        p.life--;
+        p.x += p.vx; p.y += p.vy; p.vy += 0.22; p.life--;
         ctx.save();
         ctx.globalAlpha = p.life / p.maxLife;
         glow(p.color, 6);
@@ -1211,14 +1189,13 @@ function gameLoop(timestamp) {
     });
 
     st.floats = st.floats.filter(f => {
-        f.y -= 1.3;
-        f.life--;
+        f.y -= 1.3; f.life--;
         ctx.save();
         const maxLife = f.big ? 80 : 45;
         ctx.globalAlpha = f.life / maxLife;
         glow(f.color, f.big ? 12 : 8);
         ctx.fillStyle = f.color;
-        ctx.font = `bold ${f.big?18*scaleX:15*scaleX}px sans-serif`;
+        ctx.font = `bold ${f.big ? 18 * scaleX : 15 * scaleX}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.fillText(f.text, f.x, f.y);
         ng();
@@ -1227,11 +1204,7 @@ function gameLoop(timestamp) {
     });
 
     st.confetti = st.confetti.filter(c => {
-        c.x += c.vx;
-        c.y += c.vy;
-        c.vy += 0.04;
-        c.rot += c.vrot;
-        c.life--;
+        c.x += c.vx; c.y += c.vy; c.vy += 0.04; c.rot += c.vrot; c.life--;
         ctx.save();
         ctx.globalAlpha = Math.min(1, c.life / 30);
         ctx.translate(c.x, c.y);
@@ -1249,7 +1222,7 @@ function gameLoop(timestamp) {
         ctx.globalAlpha = 0.85;
         glow(colors[multi] || '#FFD700', 8);
         ctx.fillStyle = colors[multi] || '#FFD700';
-        ctx.font = `bold ${13*scaleX}px sans-serif`;
+        ctx.font = `bold ${13 * scaleX}px sans-serif`;
         ctx.textAlign = 'left';
         ctx.fillText('🔥 COMBO x' + multi, 12 * scaleX, gameH - 16 * scaleY);
         ng();
@@ -1262,20 +1235,10 @@ function gameLoop(timestamp) {
         const pulse = Math.sin(st.frame * 0.12) * 0.4 + 0.6;
         ctx.save();
         glow('#A855F7', 12 * pulse);
-        ctx.strokeStyle = `rgba(168,85,247,${0.55*pulse})`;
+        ctx.strokeStyle = `rgba(168,85,247,${0.55 * pulse})`;
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(bx, by - 10, st.basket.w * 0.72 + 8, Math.PI, 0, false);
-        ctx.stroke();
-        ctx.strokeStyle = `rgba(168,85,247,${0.3*pulse})`;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(bx - st.basket.w * 0.72 - 8, by - 10);
-        ctx.lineTo(bx - st.basket.w * 0.72 - 8, by + st.basket.h);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(bx + st.basket.w * 0.72 + 8, by - 10);
-        ctx.lineTo(bx + st.basket.w * 0.72 + 8, by + st.basket.h);
         ctx.stroke();
         ng();
         ctx.restore();
@@ -1286,10 +1249,7 @@ function gameLoop(timestamp) {
     requestAnimationFrame(gameLoop);
 }
 
-// ============================================================
-// ===== GAME FLOW FUNCTIONS =====
-// ============================================================
-
+// ===== GAME FLOW =====
 function startGame(resume, savedData) {
     try { getAC().resume(); } catch (e) {}
     let saved = savedData || loadProgress();
@@ -1338,8 +1298,7 @@ function showTask() {
 }
 
 function showLevelComplete() {
-    const emoji = '🎉';
-    document.getElementById('lvEmoji').textContent = emoji;
+    document.getElementById('lvEmoji').textContent = '🎉';
     document.getElementById('lvTitle').textContent = 'Level ' + st.level + ' Complete!';
     document.getElementById('lvScore').textContent = 'Score: ' + st.score.toLocaleString();
     const cfg = getLevelConfig(st.level + 1);
@@ -1409,10 +1368,7 @@ function endGame(isBomb) {
     showOv('goOv');
 }
 
-// ============================================================
 // ===== PAUSE, ROADMAP, DAILY, SETTINGS =====
-// ============================================================
-
 function togglePause() {
     if (!st.running) return;
     const pauseOv = document.getElementById('pauseOv');
@@ -1431,25 +1387,19 @@ function showRoadmap() {
     showOv('roadmapOv');
     const saved = loadProgress();
     const curLevel = saved ? saved.level : 1;
-    const worlds = [
-        { id: 0, emoji: '👑', name: 'Candy Kingdom', min: 1, max: 10000, color: '#FF4DA6' }
-    ];
-    let html = '';
-    worlds.forEach(w => {
-        const pct = Math.round((curLevel / 10000) * 100);
-        html += `<div class="roadmap-world" style="border-left-color: ${w.color};">
-            <div class="roadmap-header">
-                <span class="roadmap-emoji">${w.emoji}</span>
-                <div class="roadmap-name">${w.name} ▶ Current</div>
-                <div class="roadmap-range">${w.min}-${w.max}</div>
-            </div>
-            <div class="roadmap-current">📍 You are here: Level ${curLevel}</div>
-            <div style="height:6px; background:rgba(255,255,255,0.1); border-radius:3px; margin:6px 0;">
-                <div style="width:${pct}%; height:100%; background:${w.color}; border-radius:3px;"></div>
-            </div>
-            <div style="font-size:12px; color:#FFD700;">${curLevel.toLocaleString()} / 10,000 (${pct}%)</div>
-        </div>`;
-    });
+    const pct = Math.round((curLevel / 10000) * 100);
+    let html = `<div class="roadmap-world" style="border-left-color: #FF4DA6;">
+        <div class="roadmap-header">
+            <span class="roadmap-emoji">👑</span>
+            <div class="roadmap-name">Candy Kingdom ▶ Current</div>
+            <div class="roadmap-range">1-10000</div>
+        </div>
+        <div class="roadmap-current">📍 You are here: Level ${curLevel}</div>
+        <div style="height:6px; background:rgba(255,255,255,0.1); border-radius:3px; margin:6px 0;">
+            <div style="width:${pct}%; height:100%; background:#FF4DA6; border-radius:3px;"></div>
+        </div>
+        <div style="font-size:12px; color:#FFD700;">${curLevel.toLocaleString()} / 10,000 (${pct}%)</div>
+    </div>`;
     document.getElementById('roadmapContent').innerHTML = html;
 }
 
@@ -1521,7 +1471,7 @@ function renderStreak() {
         let cls = 'future';
         if (i < streak % 7) cls = 'done';
         if (i === streak % 7 && canClaimToday()) cls = 'today';
-        html += `<div class="streak-dot ${cls}">${cls==='done'?'✓':'🍬'}</div>`;
+        html += `<div class="streak-dot ${cls}">${cls === 'done' ? '✓' : '🍬'}</div>`;
     }
     row.innerHTML = html;
     msg.textContent = streak === 0 ? 'Spin daily for rewards!' : `🔥 ${streak} day streak!`;
@@ -1572,7 +1522,6 @@ function spinWheel() {
     const duration = 3000;
     const startTime = performance.now();
     wheelSpinning = true;
-
     function animate(now) {
         const t = Math.min((now - startTime) / duration, 1);
         wheelAngle = startAngle + targetAngle * (1 - Math.pow(1 - t, 3));
@@ -1595,30 +1544,10 @@ function claimReward(seg) {
 
     let msg = '';
     switch (seg.reward.type) {
-        case 'pts':
-            st.score += seg.reward.val;
-            updateHUD();
-            msg = `+${seg.reward.val} Points!`;
-            sfxCatch();
-            break;
-        case 'lives':
-            st.lives = Math.min(st.lives + seg.reward.val, 5);
-            updateHUD();
-            msg = `+${seg.reward.val} Life!`;
-            sfxLife();
-            break;
-        case 'shield':
-            activateShield();
-            msg = 'Shield Activated!';
-            break;
-        case 'jackpot':
-            st.score += seg.reward.val;
-            st.lives = Math.min(st.lives + 2, 5);
-            updateHUD();
-            msg = `JACKPOT! +${seg.reward.val} pts & +2❤️!`;
-            sfxSurprise();
-            spawnConfetti();
-            break;
+        case 'pts': st.score += seg.reward.val; updateHUD(); msg = `+${seg.reward.val} Points!`; sfxCatch(); break;
+        case 'lives': st.lives = Math.min(st.lives + seg.reward.val, 5); updateHUD(); msg = `+${seg.reward.val} Life!`; sfxLife(); break;
+        case 'shield': activateShield(); msg = 'Shield Activated!'; break;
+        case 'jackpot': st.score += seg.reward.val; st.lives = Math.min(st.lives + 2, 5); updateHUD(); msg = `JACKPOT! +${seg.reward.val} pts & +2❤️!`; sfxSurprise(); spawnConfetti(); break;
     }
     saveProgress();
     saveLB();
@@ -1629,9 +1558,7 @@ function claimReward(seg) {
     if (rewardEmoji) rewardEmoji.textContent = seg.emoji;
     if (rewardText) rewardText.textContent = msg;
     if (resultDiv) resultDiv.style.display = 'block';
-    setTimeout(() => {
-        if (resultDiv) resultDiv.style.display = 'none';
-    }, 3000);
+    setTimeout(() => { if (resultDiv) resultDiv.style.display = 'none'; }, 3000);
     showDailyReward();
 }
 
@@ -1682,11 +1609,8 @@ function closeSettings() {
         wasGamePausedBeforeSettings = false;
         if (musicEnabled) startMusic(0);
     }
-    if (isOnHomePage) {
-        showHomePage();
-    } else {
-        showOv(null);
-    }
+    if (isOnHomePage) showHomePage();
+    else showOv(null);
 }
 
 function showHelp() { showOv('helpOv'); }
@@ -1726,18 +1650,10 @@ window.exitGame = exitGame;
 // ===== EVENT LISTENERS =====
 document.addEventListener('DOMContentLoaded', () => {
     const homeBtns = {
-        'homeMusicBtn': toggleMusic,
-        'homeSoundBtn': toggleSound,
-        'homeSkinBtn': cycleSkin,
-        'homeLogoutBtn': logout,
-        'homeNewGameBtn': () => startGame(false),
-        'homeContinueBtn': () => startGame(true),
-        'homeLbBtn': showLeaderboard,
-        'homeMapBtn': showRoadmap,
-        'homeDailyBtn': showDailyReward,
-        'homeSettingsBtn': showSettings,
-        'homeSkinBtn2': cycleSkin,
-        'homeHelpBtn': showHelp
+        'homeMusicBtn': toggleMusic, 'homeSoundBtn': toggleSound, 'homeSkinBtn': cycleSkin,
+        'homeLogoutBtn': logout, 'homeNewGameBtn': () => startGame(false), 'homeContinueBtn': () => startGame(true),
+        'homeLbBtn': showLeaderboard, 'homeMapBtn': showRoadmap, 'homeDailyBtn': showDailyReward,
+        'homeSettingsBtn': showSettings, 'homeSkinBtn2': cycleSkin, 'homeHelpBtn': showHelp
     };
     Object.keys(homeBtns).forEach(id => {
         const el = document.getElementById(id);
@@ -1759,7 +1675,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('dailyBackBtn')?.addEventListener('click', closeDailyReward);
     document.getElementById('goContinueBtn')?.addEventListener('click', () => startGame(true));
     document.getElementById('goRestartBtn')?.addEventListener('click', () => startGame(false));
-
     document.getElementById('settingsBtn')?.addEventListener('click', showSettings);
     document.getElementById('musicToggleBtn')?.addEventListener('click', toggleMusic);
     document.getElementById('soundToggleBtn')?.addEventListener('click', toggleSound);
@@ -1771,7 +1686,6 @@ canvas.addEventListener('mousemove', e => { if (st.running) moveB(e.clientX); })
 canvas.addEventListener('touchmove', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 canvas.addEventListener('touchstart', e => { e.preventDefault(); if (st.running) moveB(e.touches[0].clientX); }, { passive: false });
 
-console.log("✅ Candy Mass - INDIVIDUAL IMAGES VERSION Loaded!");
-console.log("🎨 30 unique candies from assets/candies/single/");
-console.log("🎯 Amplitude: 0.5 (Straight fall)");
-console.log("💣 5 Bomb Types");
+console.log("✅ Candy Mass - FINAL VERSION Loaded!");
+console.log("🎨 Sprite sheet + Manual fallback both supported!");
+console.log("💣 5 Bomb Types | 🎯 Target: 250 at Level 10000");
