@@ -263,6 +263,121 @@ function saveLB() {
         localStorage.setItem('cr_lb_v4', JSON.stringify(lb.slice(0, 100)));
     } catch (e) {}
 }
+// ============================================================
+// ===== CANDY MASS - CORE GAMEPLAY LOOP & PHYSICS =====
+// ============================================================
+
+// Global Game State Structure
+let st = {
+    level: 1,
+    score: 0,
+    lives: 3,
+    running: false,
+    candies: [],
+    basket: { x: 200, y: 488, w: 86, h: 26 }
+};
+
+// 1. STRICT SPAWNING LOGIC: Candies will ONLY spawn from the top
+function spawnCandy() {
+    if (!st.running || !allCandiesLoaded) return;
+    
+    const type = getRandomCandyType();
+    const candySize = 40 * scaleX; // Mobile responsive size
+    
+    const candy = {
+        id: Date.now() + Math.random(),
+        x: Math.random() * (gameW - candySize) + candySize / 2, // Random horizontal position
+        y: -candySize, // Strictly above the top screen border
+        w: candySize,
+        h: candySize,
+        speedY: (3 + Math.random() * 3) * scaleY * (1 + st.level * 0.1), // strictly downward speed
+        speedX: 0, // No horizontal flying drift
+        pts: type.pts,
+        imgIndex: type.imgIndex
+    };
+    st.candies.push(candy);
+}
+
+// 2. PHYSICS UPDATE LOOP
+function updatePhysics() {
+    if (!st.running) return;
+
+    // Update individual candy positions
+    for (let i = st.candies.length - 1; i >= 0; i--) {
+        let c = st.candies[i];
+        c.y += c.speedY; // Falling down strictly
+        c.x += c.speedX; // Will remain 0
+
+        // Collision Check with Player Basket
+        if (c.y + c.h / 2 >= st.basket.y - st.basket.h / 2 &&
+            c.y - c.h / 2 <= st.basket.y + st.basket.h / 2 &&
+            c.x + c.w / 2 >= st.basket.x - st.basket.w / 2 &&
+            c.x - c.w / 2 <= st.basket.x + st.basket.w / 2) {
+                st.score += c.pts;
+                st.candies.splice(i, 1);
+                saveProgress();
+                continue;
+        }
+
+        // Out of Bounds / Missed Candy Check
+        if (c.y - c.h > gameH) {
+            st.candies.splice(i, 1);
+            st.lives--;
+            if (st.lives <= 0) {
+                gameOver();
+            }
+        }
+    }
+}
+
+// 3. CANVAS RENDERING ENGINE
+function renderGame() {
+    const canvas = document.getElementById('canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, gameW, gameH);
+
+    // Draw Falling Candies from pre-loaded array
+    st.candies.forEach(c => {
+        const img = CANDY_IMAGES[c.imgIndex];
+        if (img && allCandiesLoaded) {
+            ctx.drawImage(img, c.x - c.w/2, c.y - c.h/2, c.w, c.h);
+        }
+    });
+
+    // Draw Player Catching Basket
+    ctx.fillStyle = '#FF4D4D'; // Dynamic fallback brand color
+    ctx.fillRect(st.basket.x - st.basket.w/2, st.basket.y - st.basket.h/2, st.basket.w, st.basket.h);
+
+    if (st.running) {
+        updatePhysics();
+        requestAnimationFrame(renderGame);
+    }
+}
+
+function startGame(resume, savedData) {
+    st.running = true;
+    st.candies = [];
+    if (resume && savedData) {
+        st.level = savedData.level;
+        st.score = savedData.score;
+        st.lives = savedData.lives;
+    } else {
+        st.level = 1;
+        st.score = 0;
+        st.lives = 3;
+    }
+    resizeCanvas();
+    // Spawn a new candy every 1.2 seconds strictly
+    setInterval(spawnCandy, 1200); 
+    requestAnimationFrame(renderGame);
+}
+
+function gameOver() {
+    st.running = false;
+    saveLB();
+    alert(`Game Over! Final Score: ${st.score}`);
+}
 
 function showLeaderboard() {
     showOv('lbOv');
