@@ -1558,7 +1558,7 @@ let cooldownTimerInterval = null;
 
 function updateCooldownTimer() {
     if (cooldownTimerInterval) clearInterval(cooldownTimerInterval);
-    cooldownTimerInterval = setInterval(() => {
+   // cooldownTimerInterval = setInterval(() => {
         const now = new Date();
         const tomorrow = new Date();
         tomorrow.setHours(24, 0, 0, 0);
@@ -1573,7 +1573,7 @@ function updateCooldownTimer() {
         }
         const h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
         document.getElementById('cooldownTimer').textContent = `${h}h ${m}m ${s}s`;
-    }, 1000);
+     1000);
 }
 
 function renderStreak() {
