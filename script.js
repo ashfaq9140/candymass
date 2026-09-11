@@ -370,7 +370,7 @@ function startGame(resume, savedData) {
     resizeCanvas();
     // Spawn a new candy every 1.2 seconds strictly
     setInterval(spawnCandy, 1200); 
-    requestAnimationFrame(renderGame);
+    //requestAnimationFrame(renderGame);
 }
 
 function gameOver() {
