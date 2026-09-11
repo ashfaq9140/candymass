@@ -1558,7 +1558,7 @@ let cooldownTimerInterval = null;
 
 function updateCooldownTimer() {
     if (cooldownTimerInterval) clearInterval(cooldownTimerInterval);
-    //cooldownTimerInterval = setInterval(() => {
+    cooldownTimerInterval = setInterval(() => {
         const now = new Date();
         const tomorrow = new Date();
         tomorrow.setHours(24, 0, 0, 0);
