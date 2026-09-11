@@ -647,19 +647,19 @@ const THEMES = [
 
 function getTheme(lvl) { return THEMES[0]; }
 
-let st = {
-    running: false, score: 0, lives: 3, level: 1,
-    basket: { x: gameW / 2, w: 86, h: 26, y: gameH - 52 },
-    items: [], particles: [], floats: [], confetti: [],
-    spawnTimer: 0, spawnInterval: 70, speed: 2.5, frame: 0,
-    levelTarget: 10, levelCaught: 0,
-    inTask: false, taskDef: null, taskCaught: 0,
-    levelMode: { mode: 'normal' },
-    currentTheme: THEMES[0],
-    combo: 0, comboTimer: 0,
-    shieldActive: false, shieldFrames: 0, shieldMaxFrames: 0,
-    levelCompleteTriggered: false
-};
+// Global variable 'st' ko dobara declare nahi karna hai, bas properties initialize karni hain
+if (typeof st === 'undefined' || !st) {
+    st = {};
+}
+st.level = 1;
+st.score = 0;
+st.lives = 3;
+st.running = false;
+st.candies = [];
+if (!st.basket) {
+    st.basket = { x: 200, y: 488, w: 86, h: 26 };
+}
+
 let isGamePaused = false;
 
 // ===== PARTICLES / CONFETTI =====
