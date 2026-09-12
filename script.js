@@ -1556,23 +1556,29 @@ let cooldownTimerInterval = null;
 
 function updateCooldownTimer() {
     if (cooldownTimerInterval) clearInterval(cooldownTimerInterval);
-   // cooldownTimerInterval = setInterval(() => {
-        const now = new Date();
-        const tomorrow = new Date();
-        tomorrow.setHours(24, 0, 0, 0);
-        const diff = tomorrow - now;
-        if (diff <= 0) {
-            clearInterval(cooldownTimerInterval);
-            document.getElementById('spinCooldown').style.display = 'none';
-            document.getElementById('spinBtnEl').disabled = false;
-            document.getElementById('spinBtnEl').style.opacity = '1';
-            document.getElementById('spinBtnEl').textContent = 'Spin Now';
-            return;
-        }
-        const h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
-        document.getElementById('cooldownTimer').textContent = `${h}h ${m}m ${s}s`;
-     1000);
+    
+    const now = new Date();
+    const tomorrow = new Date();
+    tomorrow.setHours(24, 0, 0, 0);
+    const diff = tomorrow - now;
+    
+    if (diff <= 0) {
+        if (cooldownTimerInterval) clearInterval(cooldownTimerInterval);
+        document.getElementById('spinCooldown').style.display = 'none';
+        document.getElementById('spinBtnEl').disabled = false;
+        document.getElementById('spinBtnEl').style.opacity = '1';
+        document.getElementById('spinBtnEl').textContent = 'Spin Now';
+        return;
+    }
+    
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    document.getElementById('cooldownTimer').textContent = `${h}h ${m}m ${s}s`;
+    
+    // Dangling 1000); has been safely removed here to prevent crashes
 }
+
 
 function renderStreak() {
     const sd = getStreak();
