@@ -215,8 +215,8 @@ function logout() {
     gameStarted = false;
     isOnHomePage = false;
 }
-let currentUserEmail = 'guest';
-let currentUserName = 'Guest';
+ currentUserEmail = 'guest';
+ currentUserName = 'Guest';
 
 function enterGame(name, email) {
     currentUserEmail = email;
