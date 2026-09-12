@@ -1,8 +1,9 @@
 // ============================================================
 // ===== CANDY MASS - COMPLETE SCRIPT (SPRITE + FALLBACK) =====
 // ============================================================
-const SPRITE_SHEET_URL = // Ensure path handles the exact folder name from GitHub
-img.src = `assets/candies/candy-${i}.png`; 
+const SPRITE_SHEET_URL = 
+let img = new Image(); 
+
 
 const COLS = 6;
 const ROWS = 5;
@@ -214,6 +215,8 @@ function logout() {
     gameStarted = false;
     isOnHomePage = false;
 }
+let currentUserEmail = 'guest';
+let currentUserName = 'Guest';
 
 function enterGame(name, email) {
     currentUserEmail = email;
