@@ -1,7 +1,7 @@
 // ============================================================
 // ===== CANDY MASS - COMPLETE SCRIPT (SPRITE + FALLBACK) =====
 // ============================================================
-const SPRITE_SHEET_URL = 'assets/candies/candy-sheet.png';
+const SPRITE_SHEET_URL = 'candy-sheet.png';
 let img = new Image();
 
 
