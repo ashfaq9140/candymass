@@ -28,11 +28,6 @@ spriteSheetImage.src = SPRITE_SHEET_URL;
 // ============================================================
 // ===== STEP 2: CANDY MASS - MAIN RENDERING INTERACTION LOOP =====
 // ============================================================
-candies.forEach(candy => {
-    const targetCanvasX = candy.x;
-    const targetCanvasY = candy.y; 
-    const candyDisplaySizeWidth = candy.width || 60;  
-    const candyDisplaySizeHeight = candy.height || 60; 
 
     drawSingleCandyFromSheet(
         ctx, 
