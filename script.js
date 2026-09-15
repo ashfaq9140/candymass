@@ -20,6 +20,52 @@ spriteSheetImage.onerror = () => {
     console.error("❌ Failed to load candy-sheet.png! File missing on root page.");
 };
 spriteSheetImage.src = SPRITE_SHEET_URL;
+// ============================================================
+// ===== STEP 1: CANDY MASS - 8x5 SLICING & RENDERING ENGINE =====
+// ============================================================
+function drawSingleCandyFromSheet(ctx, candyId, targetX, targetY, targetWidth, targetHeight) {
+    if (!spritesLoaded) {
+        ctx.fillStyle = "#FF007F";
+        ctx.fillRect(targetX, targetY, targetWidth, targetHeight);
+        return;
+    }
+
+    const itemIndex = candyId - 1; 
+    const spriteCol = itemIndex % COLS; 
+    const spriteRow = Math.floor(itemIndex / COLS); 
+
+    const sourceWidth = spriteSheetImage.width / COLS;
+    const sourceHeight = spriteSheetImage.height / ROWS;
+    const sourceX = spriteCol * sourceWidth;
+    const sourceY = spriteRow * sourceHeight;
+
+    ctx.save();
+    ctx.drawImage(
+        spriteSheetImage,
+        sourceX, sourceY, sourceWidth, sourceHeight, 
+        targetX, targetY, targetWidth, targetHeight   
+    );
+    ctx.restore();
+}
+
+// ============================================================
+// ===== STEP 2: CANDY MASS - MAIN RENDERING INTERACTION LOOP =====
+// ============================================================
+candiesArray.forEach(candy => {
+    const targetCanvasX = candy.x;
+    const targetCanvasY = candy.y; 
+    const candyDisplaySizeWidth = candy.width || 60;  
+    const candyDisplaySizeHeight = candy.height || 60; 
+
+    drawSingleCandyFromSheet(
+        ctx, 
+        candy.id, 
+        targetCanvasX, 
+        targetCanvasY, 
+        candyDisplaySizeWidth, 
+        candyDisplaySizeHeight
+    );
+});
 
 
     // Center 80% crop (padding hatane ke liye)
