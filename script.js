@@ -1,23 +1,26 @@
 // ============================================================
 // ===== CANDY MASS - COMPLETE SCRIPT (SPRITE + FALLBACK) =====
 // ============================================================
-const SPRITE_SHEET_URL = 'candy-sheet.png';
-let img = new Image();
+// ============================================================
+// ===== CANDY MASS - 8x5 MASTER SPRITE SHEET LOGIC =====
+// ============================================================
+const SPRITE_SHEET_URL = 'candy-sheet.png'; // Root page path locked
+const COLS = 8; // Locked to 8 columns based on new sheet grid
+const ROWS = 5; // Locked to 5 rows based on new sheet grid
 
-
-const COLS = 6;
-const ROWS = 5;
-let spriteSheetImage = null;
+let spriteSheetImage = new Image();
 let spritesLoaded = false;
-const candyData = [];
 
-function updateCandyData() {
-    candyData.length = 0;
-    if (!spriteSheetImage) return;
+// Pre-loading the new asset sheet globally
+spriteSheetImage.onload = () => {
+    spritesLoaded = true;
+    console.log("✅ New High-Quality 8x5 Candy & Bomb Sheet Loaded Successfully!");
+};
+spriteSheetImage.onerror = () => {
+    console.error("❌ Failed to load candy-sheet.png! File missing on root page.");
+};
+spriteSheetImage.src = SPRITE_SHEET_URL;
 
-    const img = spriteSheetImage;
-    const cellW = img.width / COLS;
-    const cellH = img.height / ROWS;
 
     // Center 80% crop (padding hatane ke liye)
     const cropScale = 0.85;
