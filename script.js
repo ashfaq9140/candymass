@@ -93,7 +93,7 @@ candiesArray.forEach(candy => {
         }
     }
     console.log(`✅ ${candyData.length} candies mapped!`);
-}
+
 
 function loadSpriteSheet() {
     return new Promise((resolve) => {
