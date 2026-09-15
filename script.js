@@ -810,7 +810,8 @@ function darkenColor(hex) {
             sourceX, sourceY, sourceWidth, sourceHeight, // Source coordinates
             -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight // Centered for rotation
         );
-        ctx.restore(); return;
+        ctx.restore();    
+        return;
     }
 
 
