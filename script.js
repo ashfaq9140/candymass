@@ -51,7 +51,7 @@ function drawSingleCandyFromSheet(ctx, candyId, targetX, targetY, targetWidth, t
 // ============================================================
 // ===== STEP 2: CANDY MASS - MAIN RENDERING INTERACTION LOOP =====
 // ============================================================
-candiesArray.forEach(candy => {
+candies.forEach(candy => {
     const targetCanvasX = candy.x;
     const targetCanvasY = candy.y; 
     const candyDisplaySizeWidth = candy.width || 60;  
