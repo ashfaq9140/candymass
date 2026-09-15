@@ -810,11 +810,10 @@ function darkenColor(hex) {
             sourceX, sourceY, sourceWidth, sourceHeight, // Source coordinates
             -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight // Centered for rotation
         );
-        ctx.restore();    
+        ctx.restore();
         return;
     }
-
-
+ 
    
     // Background circle
     const grad = ctx.createRadialGradient(-r * 0.2, -r * 0.3, 0, 0, 0, r);
