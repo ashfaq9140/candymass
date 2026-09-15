@@ -23,30 +23,7 @@ spriteSheetImage.src = SPRITE_SHEET_URL;
 // ============================================================
 // ===== STEP 1: CANDY MASS - 8x5 SLICING & RENDERING ENGINE =====
 // ============================================================
-function drawSingleCandyFromSheet(ctx, candyId, targetX, targetY, targetWidth, targetHeight) {
-    if (!spritesLoaded) {
-        ctx.fillStyle = "#FF007F";
-        ctx.fillRect(targetX, targetY, targetWidth, targetHeight);
-        return;
-    }
 
-    const itemIndex = candyId - 1; 
-    const spriteCol = itemIndex % COLS; 
-    const spriteRow = Math.floor(itemIndex / COLS); 
-
-    const sourceWidth = spriteSheetImage.width / COLS;
-    const sourceHeight = spriteSheetImage.height / ROWS;
-    const sourceX = spriteCol * sourceWidth;
-    const sourceY = spriteRow * sourceHeight;
-
-    ctx.save();
-    ctx.drawImage(
-        spriteSheetImage,
-        sourceX, sourceY, sourceWidth, sourceHeight, 
-        targetX, targetY, targetWidth, targetHeight   
-    );
-    ctx.restore();
-}
 
 // ============================================================
 // ===== STEP 2: CANDY MASS - MAIN RENDERING INTERACTION LOOP =====
@@ -811,40 +788,33 @@ function darkenColor(hex) {
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
-function drawCandySprite(item) {
-    const { x, y, size: r, rot, candyId, candyType } = item;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(rot);
-
     // ----- Agar sprite sheet loaded hai -----
     if (spritesLoaded && spriteSheetImage && candyId > 0) {
-        const data = candyData.find(d => d.id === candyId);
-        if (data) {
-            const scale = r * 1.6;
-            const drawWidth = scale;
-            const drawHeight = scale * (data.height / data.width);
-            ctx.drawImage(spriteSheetImage, data.srcX, data.srcY, data.width, data.height, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
-            ctx.restore();
-            return;
-        }
+        // New 8x5 Matrix Math Slicing Calculation
+        const itemIndex = candyId - 1; 
+        const spriteCol = itemIndex % COLS; 
+        const spriteRow = Math.floor(itemIndex / COLS); 
+
+        // Frame dimensions based on image width/height and grid
+        const sourceWidth = spriteSheetImage.width / COLS;
+        const sourceHeight = spriteSheetImage.height / ROWS;
+        const sourceX = spriteCol * sourceWidth;
+        const sourceY = spriteRow * sourceHeight;
+
+        const scale = r * 1.6;
+        const drawWidth = scale;
+        const drawHeight = scale; // Square bounding box for uniform look
+
+        ctx.drawImage(
+            spriteSheetImage,
+            sourceX, sourceY, sourceWidth, sourceHeight, // Source coordinates
+            -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight // Centered for rotation
+        );
+        ctx.restore();
+        return;
     }
 
-    // ----- Manual fallback drawing -----
-    const color = (candyType && candyType.color) || '#FF4D4D';
-    const emoji = (candyType && candyType.emoji) || '🍬';
-
-    // Glow
-    glow(color, 12);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2.5;
-    ctx.globalAlpha = 0.3;
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 1.1, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-    ng();
-
+   
     // Background circle
     const grad = ctx.createRadialGradient(-r * 0.2, -r * 0.3, 0, 0, 0, r);
     grad.addColorStop(0, '#FFFFFF');
