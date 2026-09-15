@@ -788,7 +788,7 @@ function darkenColor(hex) {
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
-    // ----- Agar sprite sheet loaded hai -----
+       // ----- Agar sprite sheet loaded hai -----
     if (spritesLoaded && spriteSheetImage && candyId > 0) {
         // New 8x5 Matrix Math Slicing Calculation
         const itemIndex = candyId - 1; 
@@ -813,6 +813,7 @@ function darkenColor(hex) {
         ctx.restore();
         return;
     }
+
 
    
     // Background circle
