@@ -840,7 +840,6 @@ function darkenColor(hex) {
     ng();
 
     ctx.restore();
-}
 
 function drawBombItem(r, bombType, fuseT) {
     const sparkOn = Math.sin(fuseT * 0.4) > 0;
