@@ -45,11 +45,9 @@ function loadSpriteSheet() {
 }
 
 function getRandomCandyType() {
-    if (spritesLoaded && candyData.length > 0) {
-        return candyData[Math.floor(Math.random() * candyData.length)];
-    }
-    // Manual fallback
-    return getManualCandyType();
+    // Standard COLS (8 column candies range map math)
+    const totalCandyTypes = 8; 
+    return Math.floor(Math.random() * totalCandyTypes) + 1; // Generates dynamic candy ID from 1 to 8
 }
 
 // ----- MANUAL CANDY GENERATOR (Fallback) -----
