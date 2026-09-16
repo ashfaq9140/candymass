@@ -744,6 +744,7 @@ function darkenColor(hex) {
      
  
    
+    function drawCandySprite(item, candyId) {
     // ----- STEP 1: SPRITE SHEET CODE ENGINE -----
     if (spritesLoaded && spriteSheetImage && item.candyId > 0) {
         const itemIndex = item.candyId - 1; 
@@ -788,9 +789,9 @@ function darkenColor(hex) {
     ctx.textBaseline = 'middle';
     glow('#FFFFFF', 4);
     ctx.fillText(currentEmoji, 0, 2);
-
-
     ctx.restore();
+}
+
 
 function drawBombItem(r, bombType, fuseT) {
     const sparkOn = Math.sin(fuseT * 0.4) > 0;
