@@ -30,7 +30,7 @@ function loadSpriteSheet() {
         const img = new Image();
         img.onload = () => {
             spriteSheetImage = img;
-            updateCandyData();
+            
             spritesLoaded = true;
             console.log("✅ Sprite sheet loaded!");
             resolve();
@@ -770,27 +770,51 @@ function darkenColor(hex) {
 }
  
    
-    // Background circle
-    const grad = ctx.createRadialGradient(-r * 0.2, -r * 0.3, 0, 0, 0, r);
+    // ----- STEP 1: SPRITE SHEET CODE ENGINE -----
+    if (spritesLoaded && spriteSheetImage && item.candyId > 0) {
+        const itemIndex = item.candyId - 1; 
+        const spriteCol = itemIndex % COLS; 
+        const spriteRow = Math.floor(itemIndex / COLS); 
+
+        const sourceWidth = spriteSheetImage.width / COLS;
+        const sourceHeight = spriteSheetImage.height / ROWS;
+        const sourceX = spriteCol * sourceWidth;
+        const sourceY = spriteRow * sourceHeight;
+
+        const scale = (item.r || 20) * 1.6;
+        ctx.drawImage(
+            spriteSheetImage,
+            sourceX, sourceY, sourceWidth, sourceHeight,
+            -scale / 2, -scale / 2, scale, scale
+        );
+        ctx.restore();
+        return;
+    }
+
+    // ----- STEP 2: FALLBACK MANUAL DRAWING -----
+    const currentR = item.r || 20;
+    const currentColor = item.color || '#FF007F';
+    const currentEmoji = item.emoji || '🍬';
+
+    const grad = ctx.createRadialGradient(-currentR * 0.2, -currentR * 0.3, 0, 0, 0, currentR);
     grad.addColorStop(0, '#FFFFFF');
-    grad.addColorStop(0.5, color);
-    grad.addColorStop(1, darkenColor(color));
+    grad.addColorStop(0.5, currentColor);
+    grad.addColorStop(1, darkenColor(currentColor));
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(0, 0, r * 0.85, 0, Math.PI * 2);
+    ctx.arc(0, 0, currentR * 0.85, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = darkenColor(color);
+    ctx.strokeStyle = darkenColor(currentColor);
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // Emoji
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = `${Math.round(r * 1.1)}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
+    ctx.font = `${Math.round(currentR * 1.1)}px "Segoe UI Emoji", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     glow('#FFFFFF', 4);
-    ctx.fillText(emoji, 0, 2);
-    ng();
+    ctx.fillText(currentEmoji, 0, 2);
+
 
     ctx.restore();
 
