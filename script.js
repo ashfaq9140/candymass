@@ -741,33 +741,7 @@ function darkenColor(hex) {
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
-     function drawCandySprite(item, r, candyId) {
-    // ----- Agar sprite sheet loaded hai -----
-    if (spritesLoaded && spriteSheetImage && candyId > 0) {
-        // New 8x5 Matrix Math Slicing Calculation
-        const itemIndex = candyId - 1; 
-        const spriteCol = itemIndex % COLS; 
-        const spriteRow = Math.floor(itemIndex / COLS); 
-
-        // Frame dimensions based on image width/height and grid
-        const sourceWidth = spriteSheetImage.width / COLS;
-        const sourceHeight = spriteSheetImage.height / ROWS;
-        const sourceX = spriteCol * sourceWidth;
-        const sourceY = spriteRow * sourceHeight;
-
-        const scale = r * 1.6;
-        const drawWidth = scale;
-        const drawHeight = scale; // Square bounding box for uniform look
-
-        ctx.drawImage(
-            spriteSheetImage,
-            sourceX, sourceY, sourceWidth, sourceHeight, // Source coordinates
-            -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight // Centered for rotation
-        );
-        ctx.restore();
-        return;
-    }
-}
+     
  
    
     // ----- STEP 1: SPRITE SHEET CODE ENGINE -----
