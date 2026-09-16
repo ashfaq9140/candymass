@@ -22,40 +22,7 @@ spriteSheetImage.onerror = () => {
 spriteSheetImage.src = SPRITE_SHEET_URL;
 // ============================================================
 // ===== STEP 1: CANDY MASS - 8x5 SLICING & RENDERING ENGINE =====
-// ============================================================
-
-
-// ============================================================
-// ===== STEP 2: CANDY MASS - MAIN RENDERING INTERACTION LOOP =====
-// ============================================================
-
-    
-
-    // Center 80% crop (padding hatane ke liye)
-    const cropScale = 0.85;
-    const cropW = Math.floor(cellW * cropScale);
-    const cropH = Math.floor(cellH * cropScale);
-    const offsetX = Math.floor((cellW - cropW) / 2);
-    const offsetY = Math.floor((cellH - cropH) / 2);
-
-    console.log(`📐 Sheet: ${img.width}x${img.height}, Cell: ${cellW.toFixed(1)}x${cellH.toFixed(1)}, Crop: ${cropW}x${cropH}`);
-
-    let id = 1;
-    for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-            candyData.push({
-                id: id,
-                name: `candy-${id}`,
-                srcX: c * cellW + offsetX,
-                srcY: r * cellH + offsetY,
-                width: cropW,
-                height: cropH,
-                pts: 10 + Math.floor(Math.random() * 20)
-            });
-            id++;
-        }
-    }
-    console.log(`✅ ${candyData.length} candies mapped!`);
+// ===========================================================
 
 
 function loadSpriteSheet() {
