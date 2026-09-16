@@ -29,16 +29,7 @@ spriteSheetImage.src = SPRITE_SHEET_URL;
 // ===== STEP 2: CANDY MASS - MAIN RENDERING INTERACTION LOOP =====
 // ============================================================
 
-    drawSingleCandyFromSheet(
-        ctx, 
-        candy.id, 
-        targetCanvasX, 
-        targetCanvasY, 
-        candyDisplaySizeWidth, 
-        candyDisplaySizeHeight
-    );
-});
-
+    
 
     // Center 80% crop (padding hatane ke liye)
     const cropScale = 0.85;
