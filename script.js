@@ -974,6 +974,7 @@ function drawItem(item) {
     ctx.translate(x, y);
     ctx.rotate(rot);
 
+    // --- 1. DYNAMIC BOMB MATRIX RENDERER ---
     if (item.isBomb) {
         const fuseT = item.fuseTimer || 0;
         const bombType = item.bombType || BOMB_TYPES.GAME_OVER;
@@ -982,13 +983,43 @@ function drawItem(item) {
         return;
     }
 
+    // --- 2. SHIELD GENERATOR RENDERER ---
     if (item.isShield) {
         drawShieldItem(item.size, item.pulse || 0);
         ctx.restore();
         return;
     }
 
-    drawCandySprite(item);
+    // --- 3. DYNAMIC 120-ITEM SPRITE SHEET CORES ---
+    const currentCandyId = item.candyId || 1;
+    if (spritesLoaded && spriteSheetImage && currentCandyId > 0) {
+        // Precise 8x5 grid matrix mapping bounds
+        const itemIndex = (currentCandyId - 1) % TOTAL_ITEMS_PER_WORLD; 
+        const spriteCol = itemIndex % COLS; 
+        const spriteRow = Math.floor(itemIndex / COLS) % ROWS; 
+
+        const sourceWidth = spriteSheetImage.width / COLS;
+        const sourceHeight = spriteSheetImage.height / ROWS;
+        const sourceX = spriteCol * sourceWidth;
+        const sourceY = spriteRow * sourceHeight;
+
+        // Perfect sizing bounds tracking without double translation artifacts
+        const scale = (item.w || 40) * 1.3; 
+
+        ctx.drawImage(
+            spriteSheetImage,
+            sourceX, sourceY, sourceWidth, sourceHeight,
+            -scale / 2, -scale / 2, scale, scale
+        );
+        ctx.restore();
+        return;
+    }
+
+    // Fallback shape if images are still loading asynchronously
+    ctx.fillStyle = '#FF007F';
+    ctx.beginPath();
+    ctx.arc(0, 0, (item.r || 20), 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
 }
 
