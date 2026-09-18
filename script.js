@@ -1,25 +1,63 @@
 // ============================================================
-// ===== CANDY MASS - COMPLETE SCRIPT (SPRITE + FALLBACK) =====
+// ===== MASTER CORE CONFIGURATION - ALL 3 DESIGN THEMES =====
 // ============================================================
-// ============================================================
-// ===== CANDY MASS - 8x5 MASTER SPRITE SHEET LOGIC =====
-// ============================================================
-const SPRITE_SHEET_URL = 'candy-sheet.png'; // Root page path locked
-const COLS = 8; // Locked to 8 columns based on new sheet grid
-const ROWS = 5; // Locked to 5 rows based on new sheet grid
 
-let spriteSheetImage = new Image();
+// --- GLOBAL MATRIX CONFIGURATION (Universal 8x5 Grid Locked) ---
+const COLS = 8; 
+const ROWS = 5; 
+const TOTAL_ITEMS_PER_WORLD = 40;
+
+// Global engine state controllers
+let spriteSheetImage = null;
 let spritesLoaded = false;
+let currentActiveWorld = 1; // 1 = Fruit, 2 = Fish, 3 = Coffee
 
-// Pre-loading the new asset sheet globally
-spriteSheetImage.onload = () => {
-    spritesLoaded = true;
-    console.log("✅ New High-Quality 8x5 Candy & Bomb Sheet Loaded Successfully!");
+// --- WORLD 1: FRUITS & CANDIES THEME (Levels 1-3500) ---
+const FRUIT_SHEET_URL = 'candy-sheet.png';
+let fruitSheetImage = new Image();
+let fruitSpritesLoaded = false;
+
+// --- WORLD 2: DEEP SEA FISH THEME (Levels 3501-7000) ---
+const FISH_SHEET_URL = 'fish-sheet.png';
+let fishSheetImage = new Image();
+let fishSpritesLoaded = false;
+
+// --- WORLD 3: PREMIUM COFFEE BEAN THEME (Levels 7001-10000) ---
+const COFFEE_SHEET_URL = 'coffee-sheet.png';
+let coffeeSheetImage = new Image();
+let coffeeSpritesLoaded = false;
+
+// --- 3-WORLD PROGRESSIVE ASSET LOADING ENGINE ---
+fruitSheetImage.onload = () => {
+    fruitSpritesLoaded = true;
+    if (currentActiveWorld === 1) {
+        spriteSheetImage = fruitSheetImage;
+        spritesLoaded = true;
+    }
+    console.log("🍎 World 1: Fruit & Candy Sheet Loaded (8x5 Grid)!");
 };
-spriteSheetImage.onerror = () => {
-    console.error("❌ Failed to load candy-sheet.png! File missing on root page.");
+fruitSheetImage.src = FRUIT_SHEET_URL;
+
+fishSheetImage.onload = () => {
+    fishSpritesLoaded = true;
+    if (currentActiveWorld === 2) {
+        spriteSheetImage = fishSheetImage;
+        spritesLoaded = true;
+    }
+    console.log("🐟 World 2: Deep Sea Fish Sheet Loaded (8x5 Grid)!");
 };
-spriteSheetImage.src = SPRITE_SHEET_URL;
+fishSheetImage.src = FISH_SHEET_URL;
+
+coffeeSheetImage.onload = () => {
+    coffeeSpritesLoaded = true;
+    if (currentActiveWorld === 3) {
+        spriteSheetImage = coffeeSheetImage;
+        spritesLoaded = true;
+    }
+    console.log("☕ World 3: Premium Coffee Bean Sheet Loaded (8x5 Grid)!");
+};
+coffeeSheetImage.src = COFFEE_SHEET_URL;
+
 // ============================================================
 // ===== STEP 1: CANDY MASS - 8x5 SLICING & RENDERING ENGINE =====
 // ===========================================================
