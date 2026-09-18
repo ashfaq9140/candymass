@@ -295,24 +295,57 @@ let st = {
 
 // 1. STRICT SPAWNING LOGIC: Candies will ONLY spawn from the top
 function spawnCandy() {
-    if (!st.running || !allCandiesLoaded) return;
+    if (!st.running) return;
+
+    // --- 1. DYNAMIC POOL SIZE CALCULATION FOR 10,000 LEVELS ---
+    let maxCandyTypes = 6; // Level 1-20: Just 6 basic items (Row 1 layout)
     
-    const type = getRandomCandyType();
-    const candySize = 40 * scaleX; // Mobile responsive size
+    if (st.level > 20 && st.level <= 50) {
+        maxCandyTypes = 12; // Level 21-50: Expands variety
+    } else if (st.level > 50 && st.level <= 100) {
+        maxCandyTypes = 24; // Level 51-100: Unlocks Shield (21) & 10X (23)
+    } else if (st.level > 100 && st.level <= 200) {
+        maxCandyTypes = 32; // Level 101-200: Harder configurations
+    } else if (st.level > 200) {
+        maxCandyTypes = 40; // Level 201+: Full 40 items grid unlocked with all 4 bombs!
+    }
+
+    // Generate accurate candy ID mapped from 1 to calculated pool size bounds
+    const generatedCandyId = Math.floor(Math.random() * maxCandyTypes) + 1;
+    const candySize = 40 * scaleX; 
+
+    // --- 2. ANTI-VIBRATION SMOOTH WAVE PHYSICS ---
+    const initialX = Math.random() * (gameW - candySize) + candySize / 2;
     
+    // Random swing direction offset (-1 for left drift, 1 for right drift)
+    const driftDirection = Math.random() < 0.5 ? -1 : 1;
+
     const candy = {
         id: Date.now() + Math.random(),
-        x: Math.random() * (gameW - candySize) + candySize / 2, // Random horizontal position
-        y: -candySize, // Strictly above the top screen border
+        candyId: generatedCandyId, // Mapped perfectly to our 8x5 sprite sheet rows
+        x: initialX,
+        startX: initialX, // Base center point for the smooth wave physics
+        y: -candySize,
         w: candySize,
         h: candySize,
-        speedY: (3 + Math.random() * 3) * scaleY * (1 + st.level * 0.1), // strictly downward speed
-        speedX: 0, // No horizontal flying drift
-        pts: type.pts,
-        imgIndex: type.imgIndex
+        r: candySize / 2, // Explicit circle bounds radius for drawing engine
+        
+        // Progressive speed scales up with levels to push player focus bounds
+        speedY: (3 + Math.random() * 3) * scaleY * (1 + st.level * 0.02),
+        
+        // Re-activating the old rotation angle and swing drift mechanics
+        angle: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() * 0.05 + 0.02) * driftDirection,
+        
+        // Smooth sine wave horizontal amplitude parameters
+        waveAmplitude: (15 + Math.random() * 20) * scaleX, 
+        waveFrequency: 0.03 + Math.random() * 0.02, 
+        waveOffset: Math.random() * Math.PI * 2
     };
+
     st.candies.push(candy);
 }
+
 
 // 2. PHYSICS UPDATE LOOP
 function updatePhysics() {
