@@ -64,23 +64,20 @@ coffeeSheetImage.src = COFFEE_SHEET_URL;
 
 
 function loadSpriteSheet() {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-            spriteSheetImage = img;
-            
-            spritesLoaded = true;
-            console.log("✅ Sprite sheet loaded!");
-            resolve();
-        };
-        img.onerror = () => {
-            console.warn("⚠️ Sprite sheet not found. Using MANUAL candy drawing.");
-            spritesLoaded = false;
-            resolve();
-        };
-        img.src = SPRITE_SHEET_URL;
-    });
+    // Dynamic asset selector based on current active level criteria
+    if (currentActiveWorld === 1) {
+        spriteSheetImage = fruitSheetImage;
+        spritesLoaded = fruitSpritesLoaded;
+    } else if (currentActiveWorld === 2) {
+        spriteSheetImage = fishSheetImage;
+        spritesLoaded = fishSpritesLoaded;
+    } else if (currentActiveWorld === 3) {
+        spriteSheetImage = coffeeSheetImage;
+        spritesLoaded = coffeeSpritesLoaded;
+    }
+    console.log(`🧠 Sprite Sheet Engine Synchronized for World ${currentActiveWorld}`);
 }
+
 
 function getRandomCandyType() {
     // Standard COLS (8 column candies range map math)
