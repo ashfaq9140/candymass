@@ -763,24 +763,42 @@ function spawnItem() {
                 return;
             }
 
-            const candyType = getRandomCandyType();
-            const size = 38 + Math.random() * 20;
-            const yOffset = -b * 25 * scaleY;
+                 // --- 1. DYNAMIC POOL SIZE CALCULATION FOR 10,000 LEVELS ---
+            let maxCandyTypes = 6; // Level 1-20: Just 6 basic items
+            if (st.level > 20 && st.level <= 50) maxCandyTypes = 12;
+            else if (st.level > 50 && st.level <= 100) maxCandyTypes = 24; // Unlocks Shield & 10X
+            else if (st.level > 100 && st.level <= 200) maxCandyTypes = 32;
+            else if (st.level > 200) maxCandyTypes = 40; // Level 201+: Full 40 items unlocked
+
+            const generatedCandyId = Math.floor(Math.random() * maxCandyTypes) + 1;
+            const finalSize = (38 + Math.random() * 20) * scaleX;
+            const initialX = 30 * scaleX + Math.random() * (gameW - 60 * scaleX);
+            const driftDirection = Math.random() < 0.5 ? -1 : 1;
 
             st.items.push({
-                x: 30 * scaleX + Math.random() * (gameW - 60 * scaleX),
+                x: initialX,
+                startX: initialX, // Base center point for smooth wave sine physics shifts
                 y: -34 * scaleY + yOffset,
-                candyId: candyType.id,
-                candyType: candyType,
-                pts: candyType.pts,
-                size: size,
+                candyId: generatedCandyId, // Mapped perfectly to our 8x5 sprite sheet layout
+                size: finalSize,
+                r: finalSize / 2, // explicit circle radius for layout math
+                w: finalSize,
+                h: finalSize,
                 wobble: Math.random() * Math.PI * 2,
-                speed: st.speed + (0.5 + Math.random() * 0.8),
+                speed: (st.speed + (0.5 + Math.random() * 0.8)) * (1 + st.level * 0.01),
                 rot: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() * 0.04 + 0.01) * driftDirection,
                 isBomb: false,
-                isShield: false,
-                pulse: 0
+                isShield: (generatedCandyId === 21), // Auto-tags Rainbow Cube as active shield item
+                isMultiplier10X: (generatedCandyId === 23), // Auto-tags Purple candy as 10X item
+                pulse: 0,
+                
+                // Smooth sine wave horizontal amplitude parameters
+                waveAmplitude: (15 + Math.random() * 20) * scaleX,
+                waveFrequency: 0.03 + Math.random() * 0.02,
+                waveOffset: Math.random() * Math.PI * 2
             });
+       
         }, b * 100);
     }
 }
