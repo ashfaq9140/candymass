@@ -1392,11 +1392,32 @@ function startGame(resume, savedData) {
 
 function nextLevel() {
     st.level++;
+            // Dynamic world metrics check before initialization
+        updateActiveWorldMetrics(st.level);
+
     initLevel(st.level, st.score, st.lives);
     startMusic(0);
     showOv(null);
     st.running = true;
     requestAnimationFrame(gameLoop);
+}
+// ============================================================
+// ===== AUTOMATIC 3-WORLD SWITCHER ENGINE FOR 10,000 LEVELS =====
+// ============================================================
+function updateActiveWorldMetrics(currentLevel) {
+    if (currentLevel <= 3500) {
+        currentActiveWorld = 1;
+        spriteSheetImage = fruitSheetImage;
+        spritesLoaded = fruitSpritesLoaded;
+    } else if (currentLevel <= 7000) {
+        currentActiveWorld = 2;
+        spriteSheetImage = fishSheetImage;
+        spritesLoaded = fishSpritesLoaded;
+    } else {
+        currentActiveWorld = 3;
+        spriteSheetImage = coffeeSheetImage;
+        spritesLoaded = coffeeSpritesLoaded;
+    }
 }
 
 function onLevelComplete() {
