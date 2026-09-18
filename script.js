@@ -354,8 +354,20 @@ function updatePhysics() {
     // Update individual candy positions
     for (let i = st.candies.length - 1; i >= 0; i--) {
         let c = st.candies[i];
-        c.y += c.speedY; // Falling down strictly
-        c.x += c.speedX; // Will remain 0
+                   // --- ANTI-VIBRATION SMOOTH WAVE PHYSICS ---
+            c.y += c.speedY; // Continuous smooth vertical fall
+            
+            // Advance the wave offset using vertical velocity bounds
+            if (c.waveOffset !== undefined) {
+                c.waveOffset += c.waveFrequency || 0.04;
+                // Perfect Math.sin drift tracking from the original spawn center point
+                c.x = c.startX + Math.sin(c.waveOffset) * (c.waveAmplitude || 20);
+            }
+
+            // Apply old dynamic rotation angle shift to avoid static stiffness
+            if (c.angle !== undefined && c.rotationSpeed !== undefined) {
+                c.angle += c.rotationSpeed;
+            }
 
         // Collision Check with Player Basket
         if (c.y + c.h / 2 >= st.basket.y - st.basket.h / 2 &&
