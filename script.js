@@ -763,17 +763,7 @@ function spawnItem() {
                 return;
             }
 
-                 // --- 1. DYNAMIC POOL SIZE CALCULATION FOR 10,000 LEVELS ---
-            let maxCandyTypes = 6; // Level 1-20: Just 6 basic items
-            if (st.level > 20 && st.level <= 50) maxCandyTypes = 12;
-            else if (st.level > 50 && st.level <= 100) maxCandyTypes = 24; // Unlocks Shield & 10X
-            else if (st.level > 100 && st.level <= 200) maxCandyTypes = 32;
-            else if (st.level > 200) maxCandyTypes = 40; // Level 201+: Full 40 items unlocked
-
-            const generatedCandyId = Math.floor(Math.random() * maxCandyTypes) + 1;
-            const finalSize = (38 + Math.random() * 20) * scaleX;
-            const initialX = 30 * scaleX + Math.random() * (gameW - 60 * scaleX);
-            const driftDirection = Math.random() < 0.5 ? -1 : 1;
+                
             // ============================================================
             // ===== WORLD 1: 3,500-LEVEL PROGRESSIVE UNLOCK ENGINE =====
             // ============================================================
