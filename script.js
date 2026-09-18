@@ -778,7 +778,7 @@ function spawnItem() {
             st.items.push({
                 x: initialX,
                 startX: initialX, // Base center point for smooth wave sine physics shifts
-                y: -34 * scaleY + yOffset,
+                y: -34 * scaleY,
                 candyId: generatedCandyId, // Mapped perfectly to our 8x5 sprite sheet layout
                 size: finalSize,
                 r: finalSize / 2, // explicit circle radius for layout math
