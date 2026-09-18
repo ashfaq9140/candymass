@@ -763,21 +763,12 @@ function spawnItem() {
                 return;
             }
 
-                
-            // ============================================================
-            // ===== WORLD 1: 3,500-LEVEL PROGRESSIVE UNLOCK ENGINE =====
-            // ============================================================
-            let maxCandyTypes = 6; // Level 1-100: Only first 6 basic fruits/candies drop
-
-            if (st.level > 100 && st.level <= 500) {
-                maxCandyTypes = 12; // Level 101-500: Slow Expansion Phase
-            } else if (st.level > 500 && st.level <= 1000) {
-                maxCandyTypes = 24; // Level 501-1000: Unlocks up to 24 items (10X Candy enters at Level 500)
-            } else if (st.level > 1000 && st.level <= 1500) {
-                maxCandyTypes = 32; // Level 1001-1500: Unlocks up to 32 items (Shield Cube enters at Level 1000)
-            } else if (st.level > 1500) {
-                maxCandyTypes = 40; // Level 1501-3500: Full Hardcore Chaos with all 40 items and 4 bombs
-            }
+                   // --- 1. DYNAMIC INDEPENDENT POOL GENERATOR ---
+            let maxCandyTypes = 6; 
+            if (st.level > 100 && st.level <= 500) maxCandyTypes = 12;
+            else if (st.level > 500 && st.level <= 1000) maxCandyTypes = 24; 
+            else if (st.level > 1000 && st.level <= 1500) maxCandyTypes = 32;
+            else if (st.level > 1500) maxCandyTypes = 40; 
 
             let generatedCandyId = Math.floor(Math.random() * maxCandyTypes) + 1;
 
@@ -785,9 +776,40 @@ function spawnItem() {
             const isTaskLevel = (st.level % 5 === 0);
             if (isTaskLevel) {
                 while (generatedCandyId === 33 || generatedCandyId === 34 || generatedCandyId === 35 || generatedCandyId === 40) {
-                    generatedCandyId = Math.floor(Math.random() * 6) + 1; // Safely forces basic fruit drops
+                    generatedCandyId = Math.floor(Math.random() * 6) + 1; 
                 }
             }
+
+            const finalSize = (38 + Math.random() * 20) * scaleX;
+            const initialX = 30 * scaleX + Math.random() * (gameW - 60 * scaleX);
+            const driftDirection = Math.random() < 0.5 ? -1 : 1;
+
+            st.items.push({
+                x: initialX,
+                startX: initialX, 
+                y: -34 * scaleY,
+                candyId: generatedCandyId, 
+                size: finalSize,
+                r: finalSize / 2, 
+                w: finalSize,
+                h: finalSize,
+                wobble: Math.random() * Math.PI * 2,
+                speed: (st.speed + (0.5 + Math.random() * 0.8)) * (1 + st.level * 0.01),
+                rot: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() * 0.04 + 0.01) * driftDirection,
+                isBomb: (!isTaskLevel && (generatedCandyId === 33 || generatedCandyId === 34 || generatedCandyId === 35 || generatedCandyId === 40)), 
+                isShield: (generatedCandyId === 21), 
+                isMultiplier10X: (generatedCandyId === 23), 
+                pulse: 0,
+                
+                // Smooth sine wave horizontal amplitude parameters
+                waveAmplitude: (15 + Math.random() * 20) * scaleX,
+                waveFrequency: 0.03 + Math.random() * 0.02,
+                waveOffset: Math.random() * Math.PI * 2
+            });
+        }, b * 100);
+         
+           
 
 
             
