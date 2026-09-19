@@ -1110,14 +1110,22 @@ function drawBg() {
 
 function drawProgressBar() {
     const pct = Math.min(1, st.levelCaught / st.levelTarget);
-    const th = st.currentTheme || THEMES[0];
-    ctx.fillStyle = 'rgba(255,255,255,0.07)';
-    ctx.beginPath();
-    ctx.roundRect(10 * scaleX, 6 * scaleY, gameW - 20 * scaleX, 8 * scaleY, 4 * scaleX);
-    ctx.fill();
-    const pg = ctx.createLinearGradient(10 * scaleX, 0, 10 * scaleX + (gameW - 20 * scaleX) * pct, 0);
-    pg.addColorStop(0, th.bar[0]);
-    pg.addColorStop(1, th.bar[1]);
+            // --- 10,000 LEVEL AUTOMATED PROGRESS BAR COLORS ---
+        let barColorStart = '#ff007f'; // World 1 Fruit Theme Start Pink
+        let barColorEnd = '#ffaa00';   // World 1 Fruit Theme End Orange
+
+        if (st.level > 3500 && st.level <= 7000) {
+            barColorStart = '#00f6ff'; // World 2 Fish Theme Start Aqua Blue
+            barColorEnd = '#00ffaa';   // World 2 Fish Theme End Neon Green
+        } else if (st.level > 7000) {
+            barColorStart = '#d4a373'; // World 3 Coffee Theme Start Gold Cream
+            barColorEnd = '#faedcd';   // World 3 Coffee Theme End Soft Ivory
+        }
+
+        const pg = ctx.createLinearGradient(10 * scaleX, 0, 10 * scaleX + (gameW - 20 * scaleX) * pct, 0);
+        pg.addColorStop(0, barColorStart);
+        pg.addColorStop(1, barColorEnd);
+
     ctx.fillStyle = pg;
     ctx.beginPath();
     ctx.roundRect(10 * scaleX, 6 * scaleY, (gameW - 20 * scaleX) * pct, 8 * scaleY, 4 * scaleX);
