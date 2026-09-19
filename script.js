@@ -799,8 +799,8 @@ function spawnItem() {
             // Strict anti-bomb safety override for alternating task evaluation checkpoints
             const isTaskLevel = (st.level % 5 === 0);
             if (isTaskLevel) {
-                while (generatedCandyId === 33 || generatedCandyId === 34 || generatedCandyId === 35 || generatedCandyId === 40) {
-                    generatedCandyId = Math.floor(Math.random() * 6) + 1; 
+                                while (generatedCandyId === 33 || generatedCandyId === 34 || generatedCandyId === 35 || generatedCandyId === 40) {
+
                 }
             }
 
