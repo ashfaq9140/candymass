@@ -818,7 +818,7 @@ function spawnItem() {
                 w: finalSize,
                 h: finalSize,
                 wobble: Math.random() * Math.PI * 2,
-                speed: (st.speed + (0.5 + Math.random() * 0.8)) * (1 + st.level * 0.01),
+                speed: (st.speed + (1.5 + Math.random() * 0.8)) * (1 + st.level * 0.01),
                 rot: Math.random() * Math.PI * 2,
                 rotationSpeed: (Math.random() * 0.04 + 0.01) * driftDirection,
                 isBomb: (!isTaskLevel && (generatedCandyId === 33 || generatedCandyId === 34 || generatedCandyId === 35 || generatedCandyId === 40)), 
@@ -829,39 +829,9 @@ function spawnItem() {
                 // Smooth sine wave horizontal amplitude parameters
                 waveAmplitude: (15 + Math.random() * 20) * scaleX,
                 waveFrequency: 0.03 + Math.random() * 0.02,
-                waveOffset: Math.random() * Math.PI * 2
+                waveOffset: Math.random() * Math.PI * 4
             });
-        }, b * 100);
-         
-           
-
-
-            
-            st.items.push({
-                x: initialX,
-                startX: initialX, // Base center point for smooth wave sine physics shifts
-                y: -34 * scaleY,
-                candyId: generatedCandyId, // Mapped perfectly to our 8x5 sprite sheet layout
-                size: finalSize,
-                r: finalSize / 2, // explicit circle radius for layout math
-                w: finalSize,
-                h: finalSize,
-                wobble: Math.random() * Math.PI * 2,
-                speed: (st.speed + (0.5 + Math.random() * 0.8)) * (1 + st.level * 0.01),
-                rot: Math.random() * Math.PI * 2,
-                rotationSpeed: (Math.random() * 0.04 + 0.01) * driftDirection,
-                isBomb: false,
-                isShield: (generatedCandyId === 21), // Auto-tags Rainbow Cube as active shield item
-                isMultiplier10X: (generatedCandyId === 23), // Auto-tags Purple candy as 10X item
-                pulse: 0,
-                
-                // Smooth sine wave horizontal amplitude parameters
-                waveAmplitude: (15 + Math.random() * 20) * scaleX,
-                waveFrequency: 0.03 + Math.random() * 0.02,
-                waveOffset: Math.random() * Math.PI * 2
-            });
-       
-        }, b * 100);
+        }, b * 100)
     }
 }
 
