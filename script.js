@@ -677,15 +677,32 @@ let shakeFrames = 0, shakeIntensity = 0;
 
 function triggerShake(intensity = 8, frames = 18) { shakeFrames = frames; shakeIntensity = intensity; }
 
+// ============================================================
+// ===== AUTOMATED 3-WORLD MOTOR FOR 10,000 LEVELS MATRIX =====
+// ============================================================
 const TASKS = [
-    { desc: 'Catch 10 Hearts ❤️', type: 'heart', count: 10 }, { desc: 'Catch 8 Stars ⭐', type: 'star', count: 8 },
-    { desc: 'Catch 15 Round 🔴', type: 'round', count: 15 }, { desc: 'Catch 6 Diamonds 💎', type: 'diamond', count: 6 },
-    { desc: 'Catch 12 Wrapped 🍬', type: 'wrapped', count: 12 }, { desc: 'Catch any 20 candies', type: 'any', count: 20 }
+    { desc: 'Catch 10 Target Items 💎', count: 10 },
+    { desc: 'Complete Special Task Track 🎯', count: 12 },
+    { desc: 'Survive the Hazard Phase ⚡', count: 8 }
 ];
 
-const THEMES = [
-    { id: 0, name: 'Candy Kingdom', emoji: '👑', bg: ['#060012', '#120030', '#200840'], star: '#FFB8FF', bar: ['#FF4DA6', '#FF8C00'], topBar: 'linear-gradient(90deg,#0A001E,#1A0040)', desc: 'Sweet candy royal world!' }
-];
+// Dynamic Engine to automatically return layout sizes based on active level bounds
+function syncGlobalWorldArchitecture(currentLevel) {
+    if (currentLevel <= 3500) {
+        currentActiveWorld = 1;
+        spriteSheetImage = fruitSheetImage;
+        spritesLoaded = fruitSpritesLoaded;
+    } else if (currentLevel <= 7000) {
+        currentActiveWorld = 2;
+        spriteSheetImage = fishSheetImage;
+        spritesLoaded = fishSpritesLoaded;
+    } else {
+        currentActiveWorld = 3;
+        spriteSheetImage = coffeeSheetImage;
+        spritesLoaded = coffeeSpritesLoaded;
+    }
+}
+
 
 function getTheme(lvl) { return THEMES[0]; }
 
