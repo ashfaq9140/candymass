@@ -80,24 +80,8 @@ function loadSpriteSheet() {
 
 
 function getRandomCandyType() {
-    // Standard COLS (8 column candies range map math)
-    const totalCandyTypes = 8; 
-    return Math.floor(Math.random() * totalCandyTypes) + 1; // Generates dynamic candy ID from 1 to 8
-}
-
-// ----- MANUAL CANDY GENERATOR (Fallback) -----
-const MANUAL_COLORS = ['#FF4D4D', '#4D79FF', '#4DFF88', '#FFFF4D', '#994DFF', '#FF8C00', '#FF3366', '#00BFFF'];
-const MANUAL_EMOJIS = ['🍬', '🍭', '⭐', '❤️', '💎', '🌸', '🎀', '🍫'];
-
-function getManualCandyType() {
-    return {
-        id: 0,
-        name: 'manual',
-        color: MANUAL_COLORS[Math.floor(Math.random() * MANUAL_COLORS.length)],
-        emoji: MANUAL_EMOJIS[Math.floor(Math.random() * MANUAL_EMOJIS.length)],
-        pts: 10 + Math.floor(Math.random() * 20),
-        isManual: true
-    };
+    // Math logic engine to safely generate random IDs matching sprite grid bounds
+    return Math.floor(Math.random() * 8) + 1; 
 }
 
 // ============================================================
