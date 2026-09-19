@@ -355,10 +355,33 @@ function updatePhysics() {
             c.y - c.h / 2 <= st.basket.y + st.basket.h / 2 &&
             c.x + c.w / 2 >= st.basket.x - st.basket.w / 2 &&
             c.x - c.w / 2 <= st.basket.x + st.basket.w / 2) {
-                st.score += c.pts;
-                st.candies.splice(i, 1);
-                saveProgress();
-                continue;
+                       // --- AUTOMATED TASK EVALUATION & LIFE ENGINE ---
+            const isTaskLevel = (st.level % 5 === 0);
+            
+            if (isTaskLevel) {
+                // If it's a task level, let's strictly check if the player caught the target candy ID
+                // Your task candy triggers based on current level distribution arrays
+                if (c.candyId === 24 || c.candyId === 3 || c.candyId === 18) {
+                    st.score += (c.pts || 10) + 5; // Bonus points for right task item
+                    if (st.lives < 3) st.lives++; // Add life reward up to max 3
+                } else {
+                    st.lives--; // Deduct 1 life for catching the wrong candy during task track
+                    if (st.lives <= 0) {
+                        st.running = false;
+                        gameOver();
+                        ctx.restore();
+                        return;
+                    }
+                }
+            } else {
+                // Standard scoring loop for regular non-task gameplay levels
+                st.score += (c.pts || 10);
+            }
+
+            st.candies.splice(i, 1);
+            saveProgress();
+            continue;
+    
         }
 
         // Out of Bounds / Missed Candy Check
