@@ -1072,11 +1072,22 @@ function drawItem(item) {
 
 // ===== BG, PROGRESS BAR, BASKET =====
 function drawBg() {
-    const th = st.currentTheme || THEMES[0];
-    const g = ctx.createLinearGradient(0, 0, 0, gameH);
-    g.addColorStop(0, th.bg[0]);
-    g.addColorStop(0.5, th.bg[1]);
-    g.addColorStop(1, th.bg[2]);
+           // --- 10,000 LEVEL AUTOMATED BG GRADIENT ENGINE ---
+        let topColor = '#000000'; // Fallback World 1 Fruit Theme Top
+        let bottomColor = '#111111'; // Fallback World 1 Fruit Theme Bottom
+
+        if (st.level > 3500 && st.level <= 7000) {
+            topColor = '#000b1e'; // World 2 Deep Sea Fish Top Blue
+            bottomColor = '#001a3a'; // World 2 Deep Sea Fish Bottom Blue
+        } else if (st.level > 7000) {
+            topColor = '#140a00'; // World 3 Premium Coffee Top Brown
+            bottomColor = '#2d1600'; // World 3 Premium Coffee Bottom Brown
+        }
+
+        const g = ctx.createLinearGradient(0, 0, 0, gameH);
+        g.addColorStop(0, topColor);
+        g.addColorStop(1, bottomColor);
+
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, gameW, gameH);
     const t = st.frame * 0.013;
