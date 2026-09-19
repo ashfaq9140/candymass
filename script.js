@@ -1096,7 +1096,7 @@ function drawBg() {
         const sy = (i * 99.3 + st.frame * 0.05 + i * 3.5) % gameH;
         const br = 0.03 + 0.03 * Math.sin(st.frame * 0.05 + i);
         ctx.globalAlpha = br;
-        ctx.fillStyle = th.star;
+        ctx.fillStyle = '#ffffff';
         ctx.beginPath();
         ctx.arc(sx, sy, 1 + (i % 3) * 0.5, 0, Math.PI * 2);
         ctx.fill();
