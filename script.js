@@ -727,7 +727,22 @@ function syncGlobalWorldArchitecture(currentLevel) {
 }
 
 
-function getTheme(lvl) { return THEMES[0]; }
+function getTheme() {
+    // Automated global asset configuration switcher for 10,000 levels matrix
+    if (st.level <= 3500) {
+        spriteSheetImage = fruitSheetImage;
+        spritesLoaded = fruitSpritesLoaded;
+        return { name: 'Fruit Kingdom', bg: '#000000' };
+    } else if (st.level <= 7000) {
+        spriteSheetImage = fishSheetImage;
+        spritesLoaded = fishSpritesLoaded;
+        return { name: 'Deep Sea Fish', bg: '#001133' };
+    } else {
+        spriteSheetImage = coffeeSheetImage;
+        spritesLoaded = coffeeSpritesLoaded;
+        return { name: 'Premium Coffee', bg: '#1a0d00' };
+    }
+}
 
 // Global variable 'st' ko dobara declare nahi karna hai, bas properties initialize karni hain
 if (typeof st === 'undefined' || !st) {
