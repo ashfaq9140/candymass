@@ -1122,7 +1122,7 @@ function drawProgressBar() {
             barColorEnd = '#faedcd';   // World 3 Coffee Theme End Soft Ivory
         }
 
-        const pg = ctx.createLinearGradient(10 * scaleX, 0, 10 * scaleX + (gameW - 20 * scaleX) * pct, 0);
+      const pg = ctx.createLinearGradient(10 * scaleX, 0, 10 * scaleX + (gameW - 20 * scaleX) * pct, 0);
         pg.addColorStop(0, barColorStart);
         pg.addColorStop(1, barColorEnd);
 
