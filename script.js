@@ -404,7 +404,6 @@ function updatePhysics() {
             }
         }
     }
-}
 
 // 3. CANVAS RENDERING ENGINE
 function renderGame() {
