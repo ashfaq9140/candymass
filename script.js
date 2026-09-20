@@ -355,17 +355,24 @@ function updatePhysics() {
             c.y - c.h / 2 <= st.basket.y + st.basket.h / 2 &&
             c.x + c.w / 2 >= st.basket.x - st.basket.w / 2 &&
             c.x - c.w / 2 <= st.basket.x + st.basket.w / 2) {
-                       // --- AUTOMATED TASK EVALUATION & LIFE ENGINE ---
+                         // --- 10,000 LEVEL AUTOMATED TASK & LIFE CHECKER ---
             const isTaskLevel = (st.level % 5 === 0);
-            
+
             if (isTaskLevel) {
-                // If it's a task level, let's strictly check if the player caught the target candy ID
-                // Your task candy triggers based on current level distribution arrays
-                if (c.candyId === 24 || c.candyId === 3 || c.candyId === 18) {
-                    st.score += (c.pts || 10) + 5; // Bonus points for right task item
-                    if (st.lives < 3) st.lives++; // Add life reward up to max 3
+                // Dynamic target item for Level 5 task tracks (First item of current sheet row)
+                const targetCandyId = 1; 
+
+                if (c.candyId === targetCandyId) {
+                    st.score += (c.pts || 10) + 5; // Bonus score for right target
+                    st.levelCaught = (st.levelCaught || 0) + 1; // Increment progress bar counter strictly
+                    if (st.lives < 3) st.lives++; // Reward 1 extra life up to max 3
+                    
+                    // Auto-advance level if task target count is successfully reached
+                    if (st.levelCaught >= (st.levelTarget || 12)) {
+                        nextLevel();
+                    }
                 } else {
-                    st.lives--; // Deduct 1 life for catching the wrong candy during task track
+                    st.lives--; // Deduct 1 life for catching wrong item during task pressure
                     if (st.lives <= 0) {
                         st.running = false;
                         gameOver();
@@ -374,6 +381,10 @@ function updatePhysics() {
                     }
                 }
             } else {
+                // Standard scoring loop for regular non-task gameplay levels
+                st.score += (c.pts || 10);
+            }
+          
                 // Standard scoring loop for regular non-task gameplay levels
                 st.score += (c.pts || 10);
             }
