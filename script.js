@@ -360,7 +360,7 @@ function updatePhysics() {
 
             if (isTaskLevel) {
                 // Dynamic target item for Level 5 task tracks (First item of current sheet row)
-                const targetCandyId = 1; 
+                const targetCandyId = 3; 
 
                 if (c.candyId === targetCandyId) {
                     st.score += (c.pts || 10) + 5; // Bonus score for right target
