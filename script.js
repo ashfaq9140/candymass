@@ -1213,7 +1213,7 @@ function initLevel(lvl, score, lives) {
         items: [], particles: [], floats: [], confetti: [],
         spawnTimer: 0, spawnInterval: cfg.interval, speed: cfg.speed, frame: 0,
         levelTarget: 10, levelCaught: 0,
-        inTask: false, taskDef: null, taskCaught: 0, levelMode: lm,
+        inTask: (lvl % 5 === 0), taskDef: null, taskCaught: 0, levelMode: lm,
         currentTheme: th, combo: 0, comboTimer: 0,
         shieldActive: false, shieldFrames: 0, shieldMaxFrames: 0,
         levelCompleteTriggered: false
