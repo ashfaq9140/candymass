@@ -1236,7 +1236,7 @@ function applyTheme(th) {
     document.getElementById('topBar').style.background = th.topBar;
     document.body.style.background = th.bg[0];
     const tt = document.getElementById('themeTag');
-    if (tt) tt.textContent = th.emoji + ' ' + th.name;
+    if (tt) tt.textContent = th.name;
 }
 
 function updateModeTag() {
