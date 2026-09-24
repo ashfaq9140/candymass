@@ -355,50 +355,7 @@ function updatePhysics() {
             c.y - c.h / 2 <= st.basket.y + st.basket.h / 2 &&
             c.x + c.w / 2 >= st.basket.x - st.basket.w / 2 &&
             c.x - c.w / 2 <= st.basket.x + st.basket.w / 2) {
-                         // --- 10,000 LEVEL AUTOMATED TASK & 4-LIVES BONUS ENGINE ---
-            const isTaskLevel = (st.level % 5 === 0);
-
-            if (isTaskLevel) {
-                // If a dynamic random task target candy ID is not locked for this level, safely initialize one
-                if (!st.taskTargetCandyId) {
-                    st.taskTargetCandyId = Math.floor(Math.random() * 32) + 1; // Safely picks any item from 1 to 32 (excludes bombs)
-                    st.levelCaught = 0; // Reset tracking counter for fresh task execution
-                }
-
-                if (c.candyId === st.taskTargetCandyId) {
-                    // 1. Correct random target item caught successfully!
-                    st.score += (c.pts || 10) + 5; 
-                    st.levelCaught = (st.levelCaught || 0) + 1; 
-                    
-                    if (st.lives < 3) st.lives++; 
-                    
-                    // --- YOUR SPECIAL SCRIPT: 4-LIVES TASK COMPLETION BONUS ---
-                    if (st.levelCaught >= (st.levelTarget || 10)) {
-                        if (st.lives === 3) {
-                            st.lives = 4; // Safely upgrades maximum lives block to 4 as a supreme victory reward!
-                            console.log("🌟 Master Play! 3 Lives upgraded to 4 Lives Reward.");
-                        }
-                        st.taskTargetCandyId = null; // Flush current task state clean
-                        nextLevel(); // Smoothly advance to the next level progress layer
-                    }
-                } else {
-                    // 2. Strict Script Punishment: Wrong fruit caught during task level drops 1 life!
-                    st.lives--; 
-                    if (st.lives <= 0) {
-                        st.running = false;
-                        gameOver();
-                        ctx.restore();
-                        return;
-                    }
-                }
-            } else {
-                // Standard scoring loop for regular non-task gameplay levels
-                st.score += (c.pts || 10);
-            }
-            
-                // Standard scoring loop for regular non-task gameplay levels
-                st.score += (c.pts || 10);
-            }
+                        
 
             st.candies.splice(i, 1);
             saveProgress();
