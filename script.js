@@ -790,11 +790,11 @@ function spawnItem() {
 
             // Strict anti-bomb safety override for alternating task evaluation checkpoints
             const isTaskLevel = (st.level % 5 === 0);
-            if (isTaskLevel) {
-                                while (generatedCandyId === 33 || generatedCandyId === 34 || generatedCandyId === 35 || generatedCandyId === 40) {
-
-                }
+                    if (isTaskLevel) {
+            while (generatedCandyId === 33 || generatedCandyId === 34 || generatedCandyId === 35 || generatedCandyId === 40) {
+                generatedCandyId = Math.floor(Math.random() * 32) + 1;
             }
+        }
 
             const finalSize = (38 + Math.random() * 20) * scaleX;
             const initialX = 30 * scaleX + Math.random() * (gameW - 60 * scaleX);
