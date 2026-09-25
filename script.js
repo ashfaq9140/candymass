@@ -1965,10 +1965,20 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('soundToggleBtn')?.addEventListener('click', toggleSound);
     document.getElementById('pauseBtn')?.addEventListener('click', togglePause);
 // --- Input events ---
-canvas.addEventListener('mousemove', e => { if (st.running) moveB(e.clientX); });
-canvas.addEventListener('touchmove', e => { e.preventDefault(); if (st.running && e.touches.length) moveB(e.touches[0].clientX); });
-canvas.addEventListener('touchstart', e => { e.preventDefault(); if (st.running && e.touches.length) moveB(e.touches[0].clientX); });
+canvas.addEventListener('mousemove', e => { 
+    if (st.running) moveB(e.clientX); 
+});
+canvas.addEventListener('touchmove', e => { 
+    e.preventDefault(); 
+    if (st.running && e.touches && e.touches.length) moveB(e.touches[0].clientX); 
+});
+canvas.addEventListener('touchstart', e => { 
+    e.preventDefault(); 
+    if (st.running && e.touches && e.touches.length) moveB(e.touches[0].clientX); 
+});
 
 console.log("✅ Candy Mass - FINAL VERSION Loaded!");
 console.log("🍒 Sprite sheet + Manual fallback both supported!");
 console.log("🍇 5 Bomb Types | 🎯 Target: 250 at Level 10000");
+
+});
