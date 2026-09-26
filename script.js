@@ -824,7 +824,7 @@ function spawnItem() {
                 waveOffset: Math.random() * Math.PI * 4
                   });
     }
-}
+    })
 
 function spawnBomb() {
     const bombType = getRandomBombType();
