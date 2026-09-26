@@ -822,8 +822,7 @@ function spawnItem() {
                 waveAmplitude: (15 + Math.random() * 20) * scaleX,
                 waveFrequency: 0.03 + Math.random() * 0.02,
                 waveOffset: Math.random() * Math.PI * 4
-            });
-        }, b * 100)
+                  });
     }
 }
 
