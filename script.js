@@ -367,11 +367,12 @@ function updatePhysics() {
         if (c.y - c.h > gameH) {
             st.candies.splice(i, 1);
             st.lives--;
-            if (st.lives <= 0) {
+                       if (st.lives <= 0) {
                 gameOver();
             }
         }
     }
+ 
 // 3. CANVAS RENDERING ENGINE
 function renderGame() {
     const canvas = document.getElementById('canvas');
