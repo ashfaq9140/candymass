@@ -1974,5 +1974,4 @@ console.log("✅ Candy Mass - FINAL VERSION Loaded!");
 console.log("🍒 Sprite sheet + Manual fallback both supported!");
 console.log("🍇 5 Bomb Types | 🎯 Target: 250 at Level 10000");
 
-
 });
