@@ -372,7 +372,8 @@ function updatePhysics() {
             }
         }
     }
- 
+
+    
 // 3. CANVAS RENDERING ENGINE
 function renderGame() {
     const canvas = document.getElementById('canvas');
