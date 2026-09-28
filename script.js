@@ -371,10 +371,11 @@ function updatePhysics() {
                 gameOver();
             }
         }
-    }
+     }
+ } // <--- सिर्फ यह एक ब्रैकेट यहाँ टाइप करना है! 
 
-    
-// 3. CANVAS RENDERING ENGINE
+ // // 3. CANVAS RENDERING ENGINE
+   
 function renderGame() {
     const canvas = document.getElementById('canvas');
     if (!canvas) return;
@@ -1973,5 +1974,4 @@ canvas.addEventListener('touchstart', e => { e.preventDefault(); if (st.running 
 console.log("✅ Candy Mass - FINAL VERSION Loaded!");
 console.log("🍒 Sprite sheet + Manual fallback both supported!");
 console.log("🍇 5 Bomb Types | 🎯 Target: 250 at Level 10000");
-
 });
