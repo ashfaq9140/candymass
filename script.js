@@ -60,8 +60,7 @@ coffeeSheetImage.src = COFFEE_SHEET_URL;
 
 // ============================================================
 // ===== STEP 1: CANDY MASS - 8x5 SLICING & RENDERING ENGINE =====
-// ===========================================================
-
+// ============================================================
 
 function loadSpriteSheet() {
     // Dynamic asset selector based on current active level criteria
@@ -77,7 +76,6 @@ function loadSpriteSheet() {
     }
     console.log(`🧠 Sprite Sheet Engine Synchronized for World ${currentActiveWorld}`);
 }
-
 
 function getRandomCandyType() {
     // Math logic engine to safely generate random IDs matching sprite grid bounds
@@ -211,8 +209,8 @@ function logout() {
     gameStarted = false;
     isOnHomePage = false;
 }
- currentUserEmail = 'guest';
- currentUserName = 'Guest';
+currentUserEmail = 'guest';
+currentUserName = 'Guest';
 
 function enterGame(name, email) {
     currentUserEmail = email;
@@ -260,6 +258,7 @@ function saveLB() {
         localStorage.setItem('cr_lb_v4', JSON.stringify(lb.slice(0, 100)));
     } catch (e) {}
 }
+
 // ============================================================
 // ===== CANDY MASS - CORE GAMEPLAY LOOP & PHYSICS =====
 // ============================================================
@@ -327,7 +326,6 @@ function spawnCandy() {
     st.candies.push(candy);
 }
 
-
 // 2. PHYSICS UPDATE LOOP
 function updatePhysics() {
     if (!st.running) return;
@@ -335,20 +333,20 @@ function updatePhysics() {
     // Update individual candy positions
     for (let i = st.candies.length - 1; i >= 0; i--) {
         let c = st.candies[i];
-                   // --- ANTI-VIBRATION SMOOTH WAVE PHYSICS ---
-            c.y += c.speedY; // Continuous smooth vertical fall
-            
-            // Advance the wave offset using vertical velocity bounds
-            if (c.waveOffset !== undefined) {
-                c.waveOffset += c.waveFrequency || 0.04;
-                // Perfect Math.sin drift tracking from the original spawn center point
-                c.x = c.startX + Math.sin(c.waveOffset) * (c.waveAmplitude || 20);
-            }
+        // --- ANTI-VIBRATION SMOOTH WAVE PHYSICS ---
+        c.y += c.speedY; // Continuous smooth vertical fall
+        
+        // Advance the wave offset using vertical velocity bounds
+        if (c.waveOffset !== undefined) {
+            c.waveOffset += c.waveFrequency || 0.04;
+            // Perfect Math.sin drift tracking from the original spawn center point
+            c.x = c.startX + Math.sin(c.waveOffset) * (c.waveAmplitude || 20);
+        }
 
-            // Apply old dynamic rotation angle shift to avoid static stiffness
-            if (c.angle !== undefined && c.rotationSpeed !== undefined) {
-                c.angle += c.rotationSpeed;
-            }
+        // Apply old dynamic rotation angle shift to avoid static stiffness
+        if (c.angle !== undefined && c.rotationSpeed !== undefined) {
+            c.angle += c.rotationSpeed;
+        }
 
         // Collision Check with Player Basket
         if (c.y + c.h / 2 >= st.basket.y - st.basket.h / 2 &&
@@ -356,26 +354,23 @@ function updatePhysics() {
             c.x + c.w / 2 >= st.basket.x - st.basket.w / 2 &&
             c.x - c.w / 2 <= st.basket.x + st.basket.w / 2) {
                         
-
             st.candies.splice(i, 1);
             saveProgress();
             continue;
-    
         }
 
         // Out of Bounds / Missed Candy Check
         if (c.y - c.h > gameH) {
             st.candies.splice(i, 1);
             st.lives--;
-                       if (st.lives <= 0) {
+            if (st.lives <= 0) {
                 gameOver();
             }
         }
-     }
- } // <--- सिर्फ यह एक ब्रैकेट यहाँ टाइप करना है! 
+    }
+} // <--- सिर्फ यह एक ब्रैकेट यहाँ टाइप करना है! 
 
- // // 3. CANVAS RENDERING ENGINE
-   
+// 3. CANVAS RENDERING ENGINE
 function renderGame() {
     const canvas = document.getElementById('canvas');
     if (!canvas) return;
@@ -706,7 +701,6 @@ function syncGlobalWorldArchitecture(currentLevel) {
     }
 }
 
-
 function getTheme() {
     // Automated global asset configuration switcher for 10,000 levels matrix
     if (st.level <= 3500) {
@@ -782,7 +776,7 @@ function spawnItem() {
                 return;
             }
 
-                   // --- 1. DYNAMIC INDEPENDENT POOL GENERATOR ---
+            // --- 1. DYNAMIC INDEPENDENT POOL GENERATOR ---
             let maxCandyTypes = 6; 
             if (st.level > 100 && st.level <= 500) maxCandyTypes = 12;
             else if (st.level > 500 && st.level <= 1000) maxCandyTypes = 24; 
@@ -793,11 +787,11 @@ function spawnItem() {
 
             // Strict anti-bomb safety override for alternating task evaluation checkpoints
             const isTaskLevel = (st.level % 5 === 0);
-                    if (isTaskLevel) {
-            while (generatedCandyId === 33 || generatedCandyId === 34 || generatedCandyId === 35 || generatedCandyId === 40) {
-                generatedCandyId = Math.floor(Math.random() * 32) + 1;
+            if (isTaskLevel) {
+                while (generatedCandyId === 33 || generatedCandyId === 34 || generatedCandyId === 35 || generatedCandyId === 40) {
+                    generatedCandyId = Math.floor(Math.random() * 32) + 1;
+                }
             }
-        
 
             const finalSize = (38 + Math.random() * 20) * scaleX;
             const initialX = 30 * scaleX + Math.random() * (gameW - 60 * scaleX);
@@ -825,9 +819,10 @@ function spawnItem() {
                 waveAmplitude: (15 + Math.random() * 20) * scaleX,
                 waveFrequency: 0.03 + Math.random() * 0.02,
                 waveOffset: Math.random() * Math.PI * 4
-                  });
-    }
-    })
+            });
+        }, b * 100);  // <-- setTimeout ka closing
+    }                 // <-- for loop ka closing
+}                     // <-- ✅ FIX #1: spawnItem function ka closing (YE NAYA ADD KIYA HAI)
 
 function spawnBomb() {
     const bombType = getRandomBombType();
@@ -863,10 +858,7 @@ function darkenColor(hex) {
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
-     
- 
-   
-    function drawCandySprite(item, candyId) {
+function drawCandySprite(item, candyId) {
     // ----- STEP 1: SPRITE SHEET CODE ENGINE -----
     if (spritesLoaded && spriteSheetImage && item.candyId > 0) {
         const itemIndex = item.candyId - 1; 
@@ -913,7 +905,6 @@ function darkenColor(hex) {
     ctx.fillText(currentEmoji, 0, 2);
     ctx.restore();
 }
-
 
 function drawBombItem(r, bombType, fuseT) {
     const sparkOn = Math.sin(fuseT * 0.4) > 0;
@@ -1051,21 +1042,21 @@ function drawItem(item) {
 
 // ===== BG, PROGRESS BAR, BASKET =====
 function drawBg() {
-           // --- 10,000 LEVEL AUTOMATED BG GRADIENT ENGINE ---
-        let topColor = '#000000'; // Fallback World 1 Fruit Theme Top
-        let bottomColor = '#111111'; // Fallback World 1 Fruit Theme Bottom
+    // --- 10,000 LEVEL AUTOMATED BG GRADIENT ENGINE ---
+    let topColor = '#000000'; // Fallback World 1 Fruit Theme Top
+    let bottomColor = '#111111'; // Fallback World 1 Fruit Theme Bottom
 
-        if (st.level > 3500 && st.level <= 7000) {
-            topColor = '#000b1e'; // World 2 Deep Sea Fish Top Blue
-            bottomColor = '#001a3a'; // World 2 Deep Sea Fish Bottom Blue
-        } else if (st.level > 7000) {
-            topColor = '#140a00'; // World 3 Premium Coffee Top Brown
-            bottomColor = '#2d1600'; // World 3 Premium Coffee Bottom Brown
-        }
+    if (st.level > 3500 && st.level <= 7000) {
+        topColor = '#000b1e'; // World 2 Deep Sea Fish Top Blue
+        bottomColor = '#001a3a'; // World 2 Deep Sea Fish Bottom Blue
+    } else if (st.level > 7000) {
+        topColor = '#140a00'; // World 3 Premium Coffee Top Brown
+        bottomColor = '#2d1600'; // World 3 Premium Coffee Bottom Brown
+    }
 
-        const g = ctx.createLinearGradient(0, 0, 0, gameH);
-        g.addColorStop(0, topColor);
-        g.addColorStop(1, bottomColor);
+    const g = ctx.createLinearGradient(0, 0, 0, gameH);
+    g.addColorStop(0, topColor);
+    g.addColorStop(1, bottomColor);
 
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, gameW, gameH);
@@ -1089,21 +1080,21 @@ function drawBg() {
 
 function drawProgressBar() {
     const pct = Math.min(1, st.levelCaught / st.levelTarget);
-            // --- 10,000 LEVEL AUTOMATED PROGRESS BAR COLORS ---
-        let barColorStart = '#ff007f'; // World 1 Fruit Theme Start Pink
-        let barColorEnd = '#ffaa00';   // World 1 Fruit Theme End Orange
+    // --- 10,000 LEVEL AUTOMATED PROGRESS BAR COLORS ---
+    let barColorStart = '#ff007f'; // World 1 Fruit Theme Start Pink
+    let barColorEnd = '#ffaa00';   // World 1 Fruit Theme End Orange
 
-        if (st.level > 3500 && st.level <= 7000) {
-            barColorStart = '#00f6ff'; // World 2 Fish Theme Start Aqua Blue
-            barColorEnd = '#00ffaa';   // World 2 Fish Theme End Neon Green
-        } else if (st.level > 7000) {
-            barColorStart = '#d4a373'; // World 3 Coffee Theme Start Gold Cream
-            barColorEnd = '#faedcd';   // World 3 Coffee Theme End Soft Ivory
-        }
+    if (st.level > 3500 && st.level <= 7000) {
+        barColorStart = '#00f6ff'; // World 2 Fish Theme Start Aqua Blue
+        barColorEnd = '#00ffaa';   // World 2 Fish Theme End Neon Green
+    } else if (st.level > 7000) {
+        barColorStart = '#d4a373'; // World 3 Coffee Theme Start Gold Cream
+        barColorEnd = '#faedcd';   // World 3 Coffee Theme End Soft Ivory
+    }
 
-      const pg = ctx.createLinearGradient(10 * scaleX, 0, 10 * scaleX + (gameW - 20 * scaleX) * pct, 0);
-        pg.addColorStop(0, barColorStart);
-        pg.addColorStop(1, barColorEnd);
+    const pg = ctx.createLinearGradient(10 * scaleX, 0, 10 * scaleX + (gameW - 20 * scaleX) * pct, 0);
+    pg.addColorStop(0, barColorStart);
+    pg.addColorStop(1, barColorEnd);
 
     ctx.fillStyle = pg;
     ctx.beginPath();
@@ -1528,15 +1519,15 @@ function startGame(resume, savedData) {
 
 function nextLevel() {
     st.level++;
-            // Dynamic world metrics check before initialization
-        updateActiveWorldMetrics(st.level);
-
+    // Dynamic world metrics check before initialization
+    updateActiveWorldMetrics(st.level);
     initLevel(st.level, st.score, st.lives);
     startMusic(0);
     showOv(null);
     st.running = true;
     requestAnimationFrame(gameLoop);
 }
+
 // ============================================================
 // ===== AUTOMATIC 3-WORLD SWITCHER ENGINE FOR 10,000 LEVELS =====
 // ============================================================
@@ -1746,7 +1737,6 @@ function updateCooldownTimer() {
     
     // Dangling 1000); has been safely removed here to prevent crashes
 }
-
 
 function renderStreak() {
     const sd = getStreak();
@@ -1966,12 +1956,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('musicToggleBtn')?.addEventListener('click', toggleMusic);
     document.getElementById('soundToggleBtn')?.addEventListener('click', toggleSound);
     document.getElementById('pauseBtn')?.addEventListener('click', togglePause);
-// --- Input events ---
+}); // <-- ✅ FIX #2: DOMContentLoaded ka closing (YE NAYA ADD KIYA HAI)
+
+// --- Input events --- (Yeh ab DOMContentLoaded ke BAAHAR hai)
 canvas.addEventListener('mousemove', e => { if (st.running) moveB(e.clientX); });
-canvas.addEventListener('touchmove', e => { e.preventDefault(); if (st.running && e.touches && e.touches.length) moveB(e.touches.clientX); });
-canvas.addEventListener('touchstart', e => { e.preventDefault(); if (st.running && e.touches && e.touches.length) moveB(e.touches.clientX); });
+canvas.addEventListener('touchmove', e => { e.preventDefault(); if (st.running && e.touches && e.touches.length) moveB(e.touches[0].clientX); }, { passive: false }); // ✅ FIX #3: touches[0]
+canvas.addEventListener('touchstart', e => { e.preventDefault(); if (st.running && e.touches && e.touches.length) moveB(e.touches[0].clientX); }, { passive: false }); // ✅ FIX #3: touches[0]
 
 console.log("✅ Candy Mass - FINAL VERSION Loaded!");
 console.log("🍒 Sprite sheet + Manual fallback both supported!");
 console.log("🍇 5 Bomb Types | 🎯 Target: 250 at Level 10000");
-});
