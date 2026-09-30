@@ -333,17 +333,13 @@ function updatePhysics() {
     // Update individual candy positions
     for (let i = st.candies.length - 1; i >= 0; i--) {
         let c = st.candies[i];
-        // --- ANTI-VIBRATION SMOOTH WAVE PHYSICS ---
         c.y += c.speedY; // Continuous smooth vertical fall
         
-        // Advance the wave offset using vertical velocity bounds
         if (c.waveOffset !== undefined) {
             c.waveOffset += c.waveFrequency || 0.04;
-            // Perfect Math.sin drift tracking from the original spawn center point
             c.x = c.startX + Math.sin(c.waveOffset) * (c.waveAmplitude || 20);
         }
 
-        // Apply old dynamic rotation angle shift to avoid static stiffness
         if (c.angle !== undefined && c.rotationSpeed !== undefined) {
             c.angle += c.rotationSpeed;
         }
@@ -355,10 +351,12 @@ function updatePhysics() {
             c.x - c.w / 2 <= st.basket.x + st.basket.w / 2) {
                         
             st.candies.splice(i, 1);
-            st.score += 10; // हर फल पकड़ने पर स्कोर बढ़ेगा
-            // --- 5 LEVEL PROGRESSION ENGINE (HAZARD BYPASS) ---
+            st.score += 10;
+
+            // --- UNIVERSAL MAXIMUM PROGRESSION ENGINE OVERRIDE ---
+            // यह कोड बिना किसी 'Target Item' या 'Hazard Phase' की शर्त के सीधे लेवल ६ चालू कर देगा!
             if (st.level === 5) {
-                st.level = 6; // लेवल ५ को लात मारकर सीधे ६ कर देगा!
+                st.level = 6; 
                 st.score = 0;
                 st.candies = [];
                 alert("🎉 Level Up! Advanced to Level 6");
@@ -382,7 +380,7 @@ function updatePhysics() {
             }
         }
     }
-} // <--- सिर्फ यह एक ब्रैकेट यहाँ टाइप करना है! 
+}
 
 // 3. CANVAS RENDERING ENGINE
 function renderGame() {
