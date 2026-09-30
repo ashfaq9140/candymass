@@ -355,6 +355,13 @@ function updatePhysics() {
             c.x - c.w / 2 <= st.basket.x + st.basket.w / 2) {
                         
             st.candies.splice(i, 1);
+            st.score += 10; // हर फल पकड़ने पर स्कोर बढ़ेगा
+if (st.score >= 50) { // जब ५ फल (५० स्कोर) पूरे हो जाएँ
+    st.level++; // लेवल ५ से बढ़कर सीधे ६ हो जाएगा!
+    st.score = 0; // नए लेवल के लिए स्कोर वापस 0
+    st.candies = []; // पुरानी स्क्रीन साफ़
+    alert(`🎉 Level Up! Advanced to Level ${st.level}`);
+}
             saveProgress();
             continue;
         }
