@@ -2,10 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Candy Mass</title>
-<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Candy Mass - 10,000 Levels</title>
+
+<!-- ===== PWA / PLAY STORE ===== -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0A001E">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Candy Mass">
+<meta name="application-name" content="Candy Mass">
+<meta name="description" content="Candy Mass - 10,000 levels ka candy catching game. Candy, fish aur coffee themes, bonus tasks aur bombs.">
 <link rel="icon" href="candymass_icon.png" type="image/png">
+<link rel="apple-touch-icon" href="candymass_icon.png">
+<link rel="stylesheet" href="style.css?v=4.1">
 </head>
 <body>
 <div id="app">
@@ -33,7 +44,7 @@
   <div id="topBar">
     <div id="userRow">
       <span id="userName">👤 Guest</span>
-      <span id="themeTag">👑 Candy Kingdom</span>
+      <span id="themeTag">🍬 Candy Kingdom</span>
       <div class="top-icons">
         <button id="settingsBtn">⚙️</button>
         <button id="musicToggleBtn">🎵</button>
@@ -47,6 +58,7 @@
       <div class="hb"><div class="hl">Lives</div><div id="li">❤️❤️❤️</div></div>
     </div>
     <div id="taskHud">🎯 <span id="taskHudText">-</span><div id="taskHudBar"><div id="taskHudFill"></div></div><span id="taskHudPct"></span> <span id="modeTag"></span></div>
+    <div id="bombLegend" style="font-size:8.5px; font-weight:700; letter-spacing:0.2px; background:rgba(0,0,0,0.25); border-radius:8px; padding:2px 6px; margin-top:2px; text-align:center;">💣 -</div>
     <div id="powerupHud" style="display:none; align-items:center; gap:10px; padding:3px 4px; font-size:11px; font-weight:700; background:rgba(0,0,0,0.2); border-radius:8px; margin-top:2px;">
       <span id="shieldHud" style="display:none; align-items:center; gap:4px; color:#A855F7;">
         🛡️
@@ -75,7 +87,7 @@
         <button class="icon-btn" id="oldSettingsBtn">⚙️ Settings</button>
         <button class="icon-btn" id="oldHelpBtn">❓ Help</button>
       </div>
-      <div class="version">v3.0 | Mass Interactive Games</div>
+      <div class="version">v4.0 | Mass Interactive Games</div>
     </div>
   </div>
 
@@ -103,7 +115,7 @@
         <button class="icon-btn" id="homeSkinBtn2">🎨 Skin</button>
         <button class="icon-btn" id="homeHelpBtn">❓ Help</button>
       </div>
-      <div class="version">v3.0 | Mass Interactive Games</div>
+      <div class="version">v4.0 | Mass Interactive Games</div>
     </div>
   </div>
 
@@ -117,6 +129,7 @@
       <div class="setting-item"><span>✨ Pocket Effects</span><label class="switch"><input type="checkbox" id="setPocket"><span class="slider"></span></label></div>
       <div class="setting-item"><span>🚪 Logout</span><button id="settingsLogoutBtn" style="background:#FF4466; border:none; border-radius:20px; padding:5px 12px; color:white;">Logout</button></div>
       <div class="setting-item"><span>❌ Exit Game</span><button id="exitGameBtn" style="background:#444; border:none; border-radius:20px; padding:5px 12px; color:white;">Exit</button></div>
+      <div class="setting-item"><span>📄 Privacy Policy</span><a href="privacy.html" style="color:#FFD700; font-size:12px; text-decoration:underline;">Open</a></div>
       <button class="gbtn gbtn-gold" id="closeSettingsBtn">Save & Close</button>
     </div>
   </div>
@@ -125,6 +138,9 @@
   <div class="overlay" id="helpOv">
     <div class="ov-card">
       <div class="ov-title">❓ Help & FAQ</div>
+      <div class="faq-item"><b>🎯 Task levels</b><br>Har 5th level par TASK aata hai. Task me sirf green ring wali <b>★ CATCH</b> candy (ya 🛡️/✨ power-up) pakdo. Galat candy pakdi = -1 ❤️.</div>
+      <div class="faq-item"><b>💣 Bombs</b><br>Top bar me bomb list dekho. Red ring + 💥 = instant Game Over, 💔 = -1 life, 📉 = target +15, 💰 = -500 score. 🛡️ Shield bomb se bachata hai.</div>
+      <div class="faq-item"><b>🌍 3 Themes</b><br>Level 1-3500 Candy, 3501-7000 Fish, 7001-10000 Coffee. Theme badalte hi purani candy poori ruk jati hai.</div>
       <div class="faq-item"><b>❄️ Game freeze?</b><br>Restart game from menu.</div>
       <div class="faq-item"><b>💾 Progress lost?</b><br>Login with Google to save across devices.</div>
       <div class="faq-item"><b>🔊 No sound?</b><br>Check settings.</div>
@@ -227,7 +243,7 @@
   import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
   const firebaseConfig = {
-    apiKey: "AIzaSyAISLDYHY59ULcHeWtPIrExEvWE18C-7ds",
+    apiKey: "AIzaSYAISLDYHY59ULcHeWtPIrExEvWE18C-7ds",
     authDomain: "candy-mass-game.firebaseapp.com",
     projectId: "candy-mass-game",
     storageBucket: "candy-mass-game.firebasestorage.app",
@@ -252,23 +268,23 @@
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       console.log("User signed in:", user.displayName);
-      
+
       const users = JSON.parse(localStorage.getItem('cr_users_v2') || '[]');
       if (!users.find(u => u.email === user.email)) {
         users.push({ name: user.displayName, email: user.email, via: 'google', id: user.uid });
       }
       localStorage.setItem('cr_users_v2', JSON.stringify(users));
-      
+
       const SESSION_KEY = 'cr_session_v4';
-      localStorage.setItem(SESSION_KEY, JSON.stringify({ 
-        email: user.email, 
-        name: user.displayName, 
-        via: 'google' 
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        email: user.email,
+        name: user.displayName,
+        via: 'google'
       }));
 
       document.getElementById('loginScreen').style.display = 'none';
-      if (typeof enterGame === 'function') {
-        enterGame(user.displayName, user.email);
+      if (typeof window.enterGame === 'function') {
+        window.enterGame(user.displayName, user.email);
       } else {
         console.error("enterGame function not found.");
       }
@@ -289,15 +305,15 @@
           users.push({ name: user.displayName, email: user.email, via: 'google', id: user.uid });
         }
         localStorage.setItem('cr_users_v2', JSON.stringify(users));
-        localStorage.setItem(SESSION_KEY, JSON.stringify({ 
-          email: user.email, 
-          name: user.displayName, 
-          via: 'google' 
+        localStorage.setItem(SESSION_KEY, JSON.stringify({
+          email: user.email,
+          name: user.displayName,
+          via: 'google'
         }));
       }
       document.getElementById('loginScreen').style.display = 'none';
-      if (typeof enterGame === 'function') {
-        enterGame(user.displayName, user.email);
+      if (typeof window.enterGame === 'function') {
+        window.enterGame(user.displayName, user.email);
       }
     }
   });
@@ -309,6 +325,6 @@
   console.log("Firebase Auth + Firestore ready!");
 </script>
 
-<script src="script.js?v=9999"></script>
+<script src="script.js?v=4.1"></script>
 </body>
 </html>

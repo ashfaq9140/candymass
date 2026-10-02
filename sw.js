@@ -2,6 +2,9 @@
 // ===== CANDY MASS - SERVICE WORKER ==========================
 // Offline play + Play Store (TWA) requirements ke liye.
 // Ye file index.html ke saath hi repo ke root me rakho.
+//
+// v4.1: HTML ke liye network-first rakha gaya hai taaki naya
+// deploy turant dikhe (cache me purana index.html atka na rahe).
 // ============================================================
 
 const CACHE_NAME = 'candymass-v4-1';
@@ -26,11 +29,9 @@ const SHEET_CANDIDATES = [
 self.addEventListener('install', (event) => {
     event.waitUntil((async () => {
         const cache = await caches.open(CACHE_NAME);
-        // core assets - inme se koi bhi fail ho to install fail na ho
         await Promise.all(CORE_ASSETS.map((url) =>
             cache.add(url).catch(() => { /* jo na mile use chhod do */ })
         ));
-        // sprite sheets - jo exist karti hain wahi cache hongi
         await Promise.all(SHEET_CANDIDATES.map((url) =>
             fetch(url, { cache: 'no-cache' })
                 .then((res) => { if (res && res.ok) return cache.put(url, res); })
@@ -56,11 +57,32 @@ self.addEventListener('fetch', (event) => {
     // Firebase / Google API calls ko kabhi cache nahi karna
     if (url.origin !== self.location.origin) return;
 
+    const isDocument = req.mode === 'navigate' ||
+        (req.headers.get('accept') || '').indexOf('text/html') !== -1;
+
+    // ---- HTML: network-first, offline par cache se ----
+    if (isDocument) {
+        event.respondWith((async () => {
+            try {
+                const fresh = await fetch(req);
+                const copy = fresh.clone();
+                caches.open(CACHE_NAME).then((c) => c.put(req, copy)).catch(() => {});
+                return fresh;
+            } catch (e) {
+                const cached = await caches.match(req);
+                if (cached) return cached;
+                const shell = await caches.match('./index.html');
+                if (shell) return shell;
+                return new Response('Offline', { status: 503, statusText: 'Offline' });
+            }
+        })());
+        return;
+    }
+
+    // ---- baaki assets: cache-first (offline ke liye) ----
     event.respondWith((async () => {
-        // pehle cache dekho (offline ke liye), warna network
         const cached = await caches.match(req);
         if (cached) {
-            // background me update karte raho (stale-while-revalidate)
             fetch(req).then((res) => {
                 if (res && res.ok) caches.open(CACHE_NAME).then((c) => c.put(req, res));
             }).catch(() => {});
@@ -74,7 +96,6 @@ self.addEventListener('fetch', (event) => {
             }
             return res;
         } catch (e) {
-            // offline aur cache me bhi nahi -> game shell do
             const shell = await caches.match('./index.html');
             if (shell) return shell;
             return new Response('Offline', { status: 503, statusText: 'Offline' });
