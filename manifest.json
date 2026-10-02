@@ -1,0 +1,35 @@
+{
+  "name": "Candy Mass - 10,000 Levels",
+  "short_name": "Candy Mass",
+  "description": "Candy, fish aur coffee themes ke saath 10,000 levels ka catching game. Special candy pakdo, bombs se bacho aur level up karo.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "portrait",
+  "background_color": "#060012",
+  "theme_color": "#0A001E",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "candymass_icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "candymass_icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "candymass_icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
