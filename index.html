@@ -11,8 +11,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Candy Mass">
 <meta name="application-name" content="Candy Mass">
-<link rel="stylesheet" href="style.css?v=4.4">
+<link rel="stylesheet" href="style.css?v=4.5">
 <link rel="icon" href="candymass_icon.png" type="image/png">
+<link rel="icon" sizes="192x192" href="candymass_icon.png">
 <link rel="apple-touch-icon" href="candymass_icon.png">
 </head>
 <body>
@@ -114,7 +115,7 @@
         <button class="icon-btn" id="homeHelpBtn">❓ Help</button>
       </div>
       <button class="icon-btn" id="homeCoinBtn" style="width:100%; margin-bottom:6px; font-size:13px;">🪙 0</button>
-      <div class="version" id="verTag">v4.4 | Mass Interactive Games</div>
+      <div class="version" id="verTag">v4.5 | Mass Interactive Games</div>
     </div>
   </div>
 
@@ -136,12 +137,13 @@
   <div class="overlay" id="helpOv">
     <div class="ov-card">
       <div class="ov-title">❓ Help & FAQ</div>
-      <div class="faq-item"><b>🎯 Task levels</b><br>Har 5th level par TASK aata hai. Task me sirf green ring wali <b>★ CATCH</b> candy (ya 🛡️/✨ power-up) pakdo. Galat candy pakdi = -1 ❤️.</div>
-      <div class="faq-item"><b>💣 Bombs</b><br>Top bar me bomb list dekho. Red ring + 💥 = instant Game Over, 💔 = -1 life, 📉 = target +15, 💰 = -500 score. 🛡️ Shield bomb se bachata hai.</div>
-      <div class="faq-item"><b>🌍 3 Themes</b><br>Level 1-3500 Candy, 3501-7000 Fish, 7001-10000 Coffee. Theme badalte hi purani candy poori ruk jati hai.</div>
-      <div class="faq-item"><b>❄️ Game freeze?</b><br>Restart game from menu.</div>
-      <div class="faq-item"><b>💾 Progress lost?</b><br>Login with Google to save across devices.</div>
-      <div class="faq-item"><b>🔊 No sound?</b><br>Check settings.</div>
+      <div class="faq-item"><b>🎯 Task levels</b><br>Every 5th level is a TASK. Catch only the candy with the green ring and the <b>★ CATCH</b> label (or the 🛡️/✨ power-up). Catching a wrong candy costs you 1 ❤️.</div>
+      <div class="faq-item"><b>💣 Bombs</b><br>Check the bomb list in the top bar. Red ring + 💥 = instant game over, 💔 = -1 life, 📉 = target +15, 💰 = -500 score. The 🛡️ Shield saves you from one bomb.</div>
+      <div class="faq-item"><b>🌍 3 Themes</b><br>Levels 1-3500 Candy, 3501-7000 Fish, 7001-10000 Coffee. When the theme changes, the old candies stop falling completely.</div>
+      <div class="faq-item"><b>🎨 Baskets</b><br>15 baskets in total - 5 per theme. They unlock automatically as you level up, or you can unlock them early with coins from the daily spin.</div>
+      <div class="faq-item"><b>❄️ Game freeze?</b><br>Restart the game from the menu.</div>
+      <div class="faq-item"><b>💾 Progress lost?</b><br>Sign in with Google to save your progress across devices.</div>
+      <div class="faq-item"><b>🔊 No sound?</b><br>Check the settings.</div>
       <button class="gbtn" id="helpBackBtn">Back</button>
     </div>
   </div>
@@ -227,8 +229,8 @@
   <div class="overlay" id="basketOv">
     <div class="ov-card" style="max-width:340px;">
       <div class="ov-title">🎨 Basket Shop</div>
-      <div class="shop-coin-row">Aapke coins: <b id="shopCoinLabel">🪙 0</b></div>
-      <div class="shop-hint">Level badhne par naye basket apne aap unlock hote hain. Coins se pehle bhi unlock kar sakte ho (coins Daily Reward spin se milte hain).</div>
+      <div class="shop-coin-row">Your coins: <b id="shopCoinLabel">🪙 0</b></div>
+      <div class="shop-hint">New baskets unlock automatically as you level up. You can also unlock them early with coins (coins come from the daily reward spin).</div>
       <div id="basketGrid"></div>
       <button class="gbtn gbtn-gold" id="basketBackBtn">Close</button>
     </div>
@@ -338,6 +340,6 @@
   console.log("Firebase Auth + Firestore ready!");
 </script>
 
-<script src="script.js?v=4.4"></script>
+<script src="script.js?v=4.5"></script>
 </body>
 </html>

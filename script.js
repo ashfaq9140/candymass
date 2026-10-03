@@ -266,8 +266,8 @@ function loadSheet(key) {
     const tryNext = () => {
         if (i >= candidates.length) {
             worldReady[key] = false;
-            console.warn('Sheet nahi mili (' + key + '). Tried: ' + candidates.join(', ') +
-                ' - game fallback shapes se chalega. Sheet files repo ke root me rakho.');
+            console.warn('Sprite sheet not found (' + key + '). Tried: ' + candidates.join(', ') +
+                ' - falling back to simple shapes. Keep the sheet files in the repo root.');
             return;
         }
         const name = candidates[i++];
@@ -541,9 +541,9 @@ function makeTaskDef() {
     const count = taskTargetCount(st.level);
     if (kind === 'target') {
         const id = pickTaskTargetId();
-        return { kind: 'target', targetId: id, count: count, desc: 'Sirf SPECIAL candy catch karo' };
+        return { kind: 'target', targetId: id, count: count, desc: 'Catch only the SPECIAL candy' };
     }
-    return { kind: 'special', count: count, desc: 'Sirf SHIELD / 10X power-up catch karo' };
+    return { kind: 'special', count: count, desc: 'Catch only SHIELD / 10X power-ups' };
 }
 
 // ============================================================
@@ -994,8 +994,8 @@ function selectBasket(i) {
     }
     const have = getCoins();
     if (have >= s.cost) {
-        if (confirm(s.emoji + ' ' + s.name + ' ko ' + s.cost.toLocaleString() +
-            ' 🪙 coins se unlock karna hai?\n\nAapke paas: ' + have.toLocaleString() + ' 🪙')) {
+        if (confirm('Unlock ' + s.emoji + ' ' + s.name + ' for ' + s.cost.toLocaleString() +
+            ' 🪙 coins?\n\nYour coins: ' + have.toLocaleString() + ' 🪙')) {
             addCoins(-s.cost);
             ownedSkins[i] = true;
             saveOwnedSkins();
@@ -1006,12 +1006,12 @@ function selectBasket(i) {
         }
     } else {
         const need = s.cost - have;
-        alert('🔒 ' + s.emoji + ' ' + s.name + ' abhi locked hai.\n\n' +
-            'Level ' + s.unlockLevel.toLocaleString() + ' par apne aap unlock ho jayega.\n' +
-            'Ya abhi ' + s.cost.toLocaleString() + ' 🪙 coins se unlock karo.\n\n' +
-            'Aapke paas: ' + have.toLocaleString() + ' 🪙\n' +
-            'Aur chahiye: ' + need.toLocaleString() + ' 🪙\n\n' +
-            '(Coins roz ke Daily Reward spin se milte hain)');
+        alert('🔒 ' + s.emoji + ' ' + s.name + ' is locked.\n\n' +
+            'It unlocks automatically at Level ' + s.unlockLevel.toLocaleString() + '.\n' +
+            'Or unlock it now for ' + s.cost.toLocaleString() + ' 🪙 coins.\n\n' +
+            'Your coins: ' + have.toLocaleString() + ' 🪙\n' +
+            'You need: ' + need.toLocaleString() + ' more 🪙\n\n' +
+            '(Coins come from the daily reward spin)');
     }
 }
 
@@ -1527,8 +1527,8 @@ function updateTaskHud() {
     }
     const pct = Math.min(100, Math.round(st.taskCaught / Math.max(1, st.taskDef.count) * 100));
     textEl.textContent = st.taskKind === 'target'
-        ? ('🎯 TASK: special candy catch karo ' + st.taskCaught + '/' + st.taskDef.count + ' ')
-        : ('🎯 TASK: 🛡️/✨ power-up catch karo ' + st.taskCaught + '/' + st.taskDef.count + ' ');
+        ? ('🎯 TASK: catch special candy ' + st.taskCaught + '/' + st.taskDef.count + ' ')
+        : ('🎯 TASK: catch 🛡️/✨ power-ups ' + st.taskCaught + '/' + st.taskDef.count + ' ');
     fillEl.style.width = pct + '%';
     pctEl.textContent = '';
 }
@@ -1720,11 +1720,11 @@ function checkBasketUnlocks(fromLvl, toLvl) {
     });
     if (!unlocked.length) return;
     sfxSurprise();
-    addFloat('🎨 Naya basket unlocked!', '#FFD700', true);
+    addFloat('🎨 New basket unlocked!', '#FFD700', true);
     setTimeout(() => {
         const names = unlocked.map(s => s.emoji + ' ' + s.name).join(', ');
-        alert('🎨 Naya basket unlock ho gaya!\n\n' + names +
-            '\n\nHome par 🎨 Baskets button se basket badal sakte ho.');
+        alert('🎨 New basket unlocked!\n\n' + names +
+            '\n\nChange your basket from the 🎨 Baskets button on the home screen.');
     }, 400);
 }
 
@@ -1763,12 +1763,12 @@ function showTask() {
     let desc;
     if (def.kind === 'target') {
         const name = (st.cfg.multiId === def.targetId) ? '✨ 10X candy' : ('Candy #' + def.targetId);
-        desc = '🎯 Sirf <b>' + name + '</b> catch karo, baaki candies ko JAANE do!';
-        desc += '<br><span style="color:#FF6B6B;">Galat candy catch ki = -1 ❤️</span>';
-        desc += '<br><span style="color:#00FFB0;">Target par green ring + ★ CATCH label dikhega.</span>';
+        desc = '🎯 Catch only the <b>' + name + '</b> and let the other candies fall!';
+        desc += '<br><span style="color:#FF6B6B;">Catching a wrong candy = -1 ❤️</span>';
+        desc += '<br><span style="color:#00FFB0;">Look for the green ring + ★ CATCH label.</span>';
     } else {
-        desc = '🎯 Sirf <b>🛡️ SHIELD</b> ya <b>✨ 10X</b> power-up catch karo, baaki sab JAANE do!';
-        desc += '<br><span style="color:#FF6B6B;">Galat item catch kiya = -1 ❤️</span>';
+        desc = '🎯 Catch only <b>🛡️ SHIELD</b> or <b>✨ 10X</b> power-ups and let everything else fall!';
+        desc += '<br><span style="color:#FF6B6B;">Catching a wrong item = -1 ❤️</span>';
     }
 
     document.getElementById('taskDesc').innerHTML = desc;
@@ -1807,7 +1807,7 @@ function onTaskComplete() {
     const sub = document.getElementById('celebSub');
     if (emoji) emoji.textContent = '🎯';
     if (title) title.textContent = 'Task Complete!';
-    if (sub) sub.innerHTML = 'Excellent! +1 ❤️ life mila!<br>Score: ' + st.score.toLocaleString();
+    if (sub) sub.innerHTML = 'Excellent! +1 ❤️ life earned!<br>Score: ' + st.score.toLocaleString();
     showOv('celebOv');
 }
 
@@ -1934,7 +1934,7 @@ function onCatch(item) {
             sfxWrong();
             triggerShake(6, 12);
             addRedParticles(item.x, by);
-            addFloat('❌ Galat candy! -1 ❤️', '#FF4444', true);
+            addFloat('❌ Wrong candy! -1 ❤️', '#FF4444', true);
             if (st.lives <= 0) endGame(false);
         }
         return;
@@ -2254,7 +2254,7 @@ function showDailyReward() {
     const already = !canClaimToday();
     spinBtn.disabled = already;
     spinBtn.style.opacity = already ? '0.45' : '1';
-    spinBtn.textContent = already ? '✅ Aaj ka spin ho gaya' : '🎰 SPIN NOW';
+    spinBtn.textContent = already ? '✅ Already spun today' : '🎰 SPIN NOW';
     const cd = document.getElementById('spinCooldown');
     cd.style.display = already ? 'block' : 'none';
     if (already) updateCooldownTimer();
@@ -2287,7 +2287,7 @@ function updateCooldownTimer() {
     const txt = h + 'h ' + m + 'm ' + s + 's';
     const timerEl = document.getElementById('cooldownTimer');
     if (timerEl) timerEl.textContent = txt;
-    else if (cd) cd.textContent = 'Agla spin ' + txt + ' baad';
+    else if (cd) cd.textContent = 'Next spin in ' + txt;
 }
 
 function renderStreak() {
@@ -2303,7 +2303,7 @@ function renderStreak() {
         html += '<div class="streak-dot ' + cls + '">' + (cls === 'done' ? '✓' : '🍬') + '</div>';
     }
     row.innerHTML = html;
-    msg.textContent = streak === 0 ? 'Roz spin karo aur coins kamao!' : '🔥 ' + streak + ' din ka streak!';
+    msg.textContent = streak === 0 ? 'Spin every day to earn coins!' : '🔥 ' + streak + ' day streak!';
 }
 
 function shade(hex, amt) {
@@ -2405,7 +2405,7 @@ function spinWheel() {
     const t0 = performance.now();
     wheelSpinning = true;
     const btn = document.getElementById('spinBtnEl');
-    if (btn) { btn.disabled = true; btn.textContent = '🎡 Ghum raha hai...'; }
+    if (btn) { btn.disabled = true; btn.textContent = '🎡 Spinning...'; }
 
     let tick = 0;
     function animate(now) {
@@ -2439,7 +2439,7 @@ function claimReward(seg) {
         msg = '+' + r.val.toLocaleString() + ' points'; color = '#00FFB0'; sfxCatch();
     } else if (r.type === 'coins') {
         addCoins(r.val);
-        msg = '+' + r.val.toLocaleString() + ' coins — Basket Shop me kharch karo!';
+        msg = '+' + r.val.toLocaleString() + ' coins — spend them in the Basket Shop!';
         color = '#FFD700'; sfxShield();
     } else if (r.type === 'lives') {
         st.lives = Math.min(st.lives + r.val, 5); updateHUD();
@@ -2475,7 +2475,7 @@ function claimReward(seg) {
     }
 
     const btn = document.getElementById('spinBtnEl');
-    if (btn) { btn.disabled = true; btn.style.opacity = '0.45'; btn.textContent = '✅ Aaj ka spin ho gaya'; }
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.45'; btn.textContent = '✅ Already spun today'; }
     const cd = document.getElementById('spinCooldown');
     if (cd) cd.style.display = 'block';
     updateCooldownTimer();
@@ -2587,7 +2587,7 @@ window.toggleSound = toggleSound;
 window.exitGame = exitGame;
 window.getLevelTarget = getLevelTarget;
 window.CandyMassDebug = {
-    VERSION: 'v4.4',
+    VERSION: 'v4.5',
     st: st,
     worldReady: worldReady,
     worldImages: worldImages,
@@ -2665,8 +2665,8 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-console.log('✅ Candy Mass v4.4 loaded — 10,000 level engine');
-console.log('   (agar yahan v4.4 nahi dikh raha to purana cached version chal raha hai — Ctrl+Shift+R dabao)');
+console.log('✅ Candy Mass v4.5 loaded — 10,000 level engine');
+console.log('   (if this does not say v4.5, an old cached version is loading — press Ctrl+Shift+R)');
 console.log('🎯 Target curve:', [1, 2, 3, 5, 10, 20, 50, 100, 500, 1000, 2000, 3500, 5000, 7000, 9000, 9999, 10000]
     .map(l => 'L' + l + '=' + getLevelTarget(l)).join('  '));
 console.log('💣 Worlds:', Object.keys(WORLD_SHEETS).map(k => k + ' bombs[' + Object.keys(WORLD_SHEETS[k].bombs).join(',') + ']').join(' | '));
