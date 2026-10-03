@@ -34,6 +34,9 @@
     </button>
     <div class="auth-divider"><hr><span>OR</span><hr></div>
     <button class="guest-btn" id="guestLoginBtn">🎮 Play as Guest</button>
+    <button class="guest-btn" id="retryLoginBtn" style="display:none; margin-top:10px; border-color:rgba(255,255,255,0.2); color:#fff;">
+        🔄 Try Google sign-in again
+    </button>
   </div>
   <div class="studio-credit">
     🍭 Mass Interactive Games | <a href="/privacy.html" style="color: rgba(255,255,255,0.5); text-decoration: none;">Privacy Policy</a>
@@ -334,9 +337,45 @@
       }
     } catch (error) {
       console.error("Google login error:", error);
-      document.getElementById('loginErr').innerHTML = error.message;
+      showLoginError(error);
     }
   };
+
+  // Firebase ke technical error ko player-friendly message me badlo
+  function showLoginError(error) {
+    const box = document.getElementById('loginErr');
+    const retry = document.getElementById('retryLoginBtn');
+    const code = (error && error.code) || '';
+    const msg = (error && error.message) || 'Unknown error';
+    let friendly = '';
+
+    if (/api-key-not-valid|API_KEY_INVALID/i.test(code + ' ' + msg)) {
+      friendly = '⚠️ Google sign-in is not configured for this site yet.<br>' +
+        '<span style="color:rgba(255,255,255,0.6)">You can still play as a Guest — progress is saved on this device.</span>';
+    } else if (/unauthorized-domain/i.test(code + ' ' + msg)) {
+      friendly = '⚠️ This website is not in the allowed sign-in list.<br>' +
+        '<span style="color:rgba(255,255,255,0.6)">Please play as a Guest, or add this domain in the Firebase console.</span>';
+    } else if (/popup-closed-by-user|cancelled-popup-request/i.test(code + ' ' + msg)) {
+      friendly = 'Sign-in was cancelled. Try again or play as a Guest.';
+    } else if (/popup-blocked/i.test(code + ' ' + msg)) {
+      friendly = '⚠️ Your browser blocked the sign-in popup.<br>' +
+        '<span style="color:rgba(255,255,255,0.6)">Allow popups for this site, or play as a Guest.</span>';
+    } else if (/operation-not-allowed/i.test(code)) {
+      friendly = '⚠️ Google sign-in is not enabled for this project.<br>' +
+        '<span style="color:rgba(255,255,255,0.6)">Please play as a Guest.</span>';
+    } else if (/network-request-failed/i.test(code + ' ' + msg)) {
+      friendly = '⚠️ Network problem. Check your internet and try again, or play as a Guest.';
+    } else {
+      friendly = '⚠️ Sign-in failed. Please try again or play as a Guest.';
+    }
+
+    if (box) {
+      box.innerHTML = friendly;
+      box.style.display = 'block';
+    }
+    if (retry) retry.style.display = 'block';
+  }
+  window.showLoginError = showLoginError;
 
   onAuthStateChanged(auth, (user) => {
     if (user) {
@@ -364,6 +403,23 @@
 
   document.getElementById('googleLoginBtn').addEventListener('click', () => {
     window.handleFirebaseLogin();
+  });
+  document.getElementById('retryLoginBtn').addEventListener('click', () => {
+    const box = document.getElementById('loginErr');
+    if (box) { box.style.display = 'none'; box.innerHTML = ''; }
+    window.handleFirebaseLogin();
+  });
+
+  // Agar Firebase shuru me hi fail ho jaye to login screen par saaf message do
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      const box = document.getElementById('loginErr');
+      if (!box || box.style.display === 'none') return;
+      if (/Firebase|api-key|API_KEY/i.test(box.innerHTML || '')) {
+        box.innerHTML = '⚠️ Google sign-in is unavailable right now.<br>' +
+          '<span style="color:rgba(255,255,255,0.6)">Please play as a Guest — your progress is saved on this device.</span>';
+      }
+    }, 1200);
   });
 
   console.log("Firebase Auth + Firestore ready!");
