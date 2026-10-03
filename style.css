@@ -461,3 +461,142 @@ body.game-active {
 
 /* Glow variant */
 .candy.glow-on { box-shadow: 0 0 20px currentColor, inset -5px -5px 10px rgba(0,0,0,0.2); }
+
+/* ============================================================
+   ===== v4.2 : WHEEL, BASKET SHOP, COINS =====================
+   ============================================================ */
+
+/* ---- Daily reward wheel ---- */
+#wheelCanvas {
+  width: 250px;
+  height: 250px;
+  max-width: 100%;
+  margin: 6px auto 0;
+  display: block;
+  filter: drop-shadow(0 6px 18px rgba(255, 215, 0, 0.28));
+}
+#spinArrow {
+  text-align: center;
+  color: #FF3B6B;
+  font-size: 20px;
+  line-height: 12px;
+  margin-top: -6px;
+  text-shadow: 0 0 10px #FF3B6B;
+  animation: spinArrowPulse 1.2s ease-in-out infinite;
+}
+@keyframes spinArrowPulse {
+  0%, 100% { transform: translateY(0); opacity: 0.75; }
+  50% { transform: translateY(3px); opacity: 1; }
+}
+
+#spinBtnEl { letter-spacing: 0.6px; }
+#spinBtnEl:disabled { filter: grayscale(0.35); }
+
+#spinCooldown {
+  display: none;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #FFD700;
+  background: rgba(255, 215, 0, 0.10);
+  border: 1px solid rgba(255, 215, 0, 0.28);
+  border-radius: 30px;
+  padding: 6px 12px;
+  margin-top: 8px;
+}
+#spinCooldown::before { content: "⏳ Agla spin: "; color: #FFB8D0; font-weight: 600; }
+
+#rewardResult {
+  display: none;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(255,215,0,0.16), rgba(255,140,0,0.10));
+  border: 1px solid rgba(255, 215, 0, 0.45);
+  color: #FFD700;
+  font-size: 14px;
+  font-weight: 700;
+}
+#rewardResult #rewardText { display: block; margin-top: 2px; }
+#rewardResult.pop { animation: rewardPop 0.55s cubic-bezier(0.2, 1.5, 0.4, 1); }
+@keyframes rewardPop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ---- Basket shop ---- */
+.shop-coin-row {
+  font-size: 13px;
+  color: #FFB8D0;
+  text-align: center;
+  margin: 2px 0 6px;
+}
+.shop-coin-row b { color: #FFD700; font-size: 15px; }
+.shop-hint {
+  font-size: 10.5px;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.45;
+  background: rgba(255,255,255,0.04);
+  border-radius: 12px;
+  padding: 7px 9px;
+  margin-bottom: 8px;
+}
+#basketGrid {
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+.basket-theme-head {
+  font-size: 11px;
+  font-weight: 800;
+  color: #00FFB0;
+  letter-spacing: 0.4px;
+  margin: 10px 2px 6px;
+  border-bottom: 1px solid rgba(0, 255, 176, 0.25);
+  padding-bottom: 3px;
+}
+.basket-theme-head:first-child { margin-top: 2px; }
+
+.basket-item {
+  display: inline-block;
+  vertical-align: top;
+  width: calc(50% - 8px);
+  margin: 4px;
+  padding: 8px 4px 7px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.2s, background 0.2s;
+}
+.basket-item:active { transform: scale(0.95); }
+.basket-item canvas { display: block; margin: 0 auto; }
+.basket-item.equipped {
+  border-color: #00FFB0;
+  background: rgba(0, 255, 176, 0.10);
+  box-shadow: 0 0 14px rgba(0, 255, 176, 0.30);
+}
+.basket-item.locked { opacity: 0.72; }
+.bk-name {
+  font-size: 11px;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin-top: 3px;
+}
+.bk-status {
+  font-size: 9.5px;
+  line-height: 1.35;
+  margin-top: 2px;
+  min-height: 20px;
+}
+
+/* chhote phone par HUD thoda compact */
+@media (max-width: 380px) {
+  #wheelCanvas { width: 210px; height: 210px; }
+  .basket-item { width: calc(50% - 7px); margin: 3px; }
+  .hv { font-size: 15px; }
+  #coinHud { font-size: 12px !important; }
+}

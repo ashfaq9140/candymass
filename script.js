@@ -442,16 +442,50 @@ function getLevelTarget(lvl) {
     return Math.min(MAX_TARGET - 1, Math.max(10, Math.round(raw)));
 }
 
-// Speed: L1 ~2.7 px/frame se L10000 ~8.6 px/frame
+// Speed: L1 ~2.7 px/frame se L10000 tak ~6.0 px/frame.
+// Pehle ye 8.6 tak jaati thi jo bahut tez thi, isliye cap laga diya.
+// Power < 1 hone se shuru me speed jaldi badhti hai, phir ruk jati hai.
+const SPEED_MIN = 2.7;
+const SPEED_MAX = 6.0;
 function getSpeedForLevel(lvl) {
     const t = Math.min(lvl, 10000) / 10000;
-    return 2.7 + Math.pow(t, 0.85) * 5.9;
+    return SPEED_MIN + Math.pow(t, 0.62) * (SPEED_MAX - SPEED_MIN);
 }
 
-// Spawn interval (frames @60fps): L1 ~ 1.5s ... L10000 ~ 0.6s
+// Spawn interval (frames @60fps): L1 ~ 1.5s ... L10000 ~ 0.75s
+// Yaani candy level ke saath "jaldi jaldi" girti hai, par ek limit tak.
+const SPAWN_MIN = 45;    // 0.75 s
+const SPAWN_MAX = 92;    // 1.53 s
 function getSpawnIntervalForLevel(lvl) {
     const t = Math.min(lvl, 10000) / 10000;
-    return Math.round(92 - 56 * Math.pow(t, 0.75));
+    return Math.round(SPAWN_MAX - (SPAWN_MAX - SPAWN_MIN) * Math.pow(t, 0.70));
+}
+
+// ===== WAVE (lehar) MOVEMENT SETTINGS =====
+// Candy upar se niche girti hai aur us dauran left-right lehar banati rehti hai.
+// Amplitude = kitna left-right (gameW ka hissa), Frequency = ek second me kitni baar.
+function getWaveConfig(lvl) {
+    const t = Math.min(lvl, 10000) / 10000;
+    return {
+        ampMin: 0.10,                                   // gameW ka 10%
+        ampMax: 0.10 + Math.pow(t, 0.5) * 0.06,         // level 10000 tak 16%
+        freqMin: 0.011,
+        freqMax: 0.011 + Math.pow(t, 0.6) * 0.009
+    };
+}
+
+function makeWave(lvl) {
+    const cfg = getWaveConfig(lvl);
+    const direction = Math.random() < 0.5 ? -1 : 1;
+    // direction = -1 -> pehle LEFT jaayegi, +1 -> pehle RIGHT jaayegi
+    const phase = direction < 0 ? (1.25 + Math.random() * 0.5) * Math.PI
+                                : (0.25 + Math.random() * 0.5) * Math.PI;
+    return {
+        amp: gameW * (cfg.ampMin + Math.random() * (cfg.ampMax - cfg.ampMin)),
+        freq: cfg.freqMin + Math.random() * (cfg.freqMax - cfg.freqMin),
+        phase: phase,
+        direction: direction
+    };
 }
 
 // Bomb probability: L1 1% ... L10000 12%
@@ -565,19 +599,22 @@ function makeFallingItem(candyId, opts) {
     const initialX = 30 * scaleX + Math.random() * (gameW - 60 * scaleX);
     const drift = Math.random() < 0.5 ? -1 : 1;
     const bombType = getBombTypeForId(candyId);
+    const wave = makeWave(st.level);
     return {
         candyId: candyId,
         x: initialX,
+        startX: initialX,          // wave isi center ke around hilta hai
         y: -40 * scaleY,
         w: size,
         h: size,
         r: size / 2,
         size: size,
         speed: (st.speed + (1.0 + Math.random() * 0.9)) * (1 + Math.min(st.level, 10000) * 0.0004),
-        wobble: Math.random() * Math.PI * 2,
-        waveAmplitude: (14 + Math.random() * 18) * scaleX,
-        waveFrequency: 0.03 + Math.random() * 0.02,
-        waveOffset: Math.random() * Math.PI * 4,
+        // ---- lehar (wave) parameters ----
+        waveAmp: wave.amp,
+        waveFreq: wave.freq,
+        wavePhase: wave.phase,
+        waveDirection: wave.direction,
         rot: Math.random() * Math.PI * 2,
         rotationSpeed: (Math.random() * 0.04 + 0.01) * drift,
         isBomb: !!bombType,
@@ -830,13 +867,73 @@ function drawProgressBar() {
     ctx.fillText(st.levelCaught + '/' + st.levelTarget, gameW - 12 * scaleX, 11 * scaleY);
 }
 
+// ===== BASKET SKINS =====
+// Har theme me 5 basket: pehla default (level 1 se free), baaki 4 level se
+// unlock hote hain. Coins se bhi pehle unlock kar sakte ho (daily spin se milte hain).
+// unlockLevel = is level par apne aap unlock. cost = coins se jaldi unlock ka daam.
 const BASKET_SKINS = [
-    { name: 'Default', emoji: '🪣', b1: '#F0A060', b2: '#C8752A', b3: '#7A3A08', bt: '#FFD090', bm: '#E08830' },
-    { name: 'Copper', emoji: '🪙', b1: '#B87333', b2: '#D4956A', b3: '#8B5A2B', bt: '#E8B88A', bm: '#C08040' },
-    { name: 'Retro', emoji: '📼', b1: '#6C8C9C', b2: '#8CACBC', b3: '#4C6C7C', bt: '#BCD8E8', bm: '#7C9CAC' },
-    { name: 'Golden', emoji: '👑', b1: '#D4AF37', b2: '#F0D060', b3: '#B8960F', bt: '#FFE880', bm: '#E0B820' }
+    // ---------- 🍬 CANDY THEME ----------
+    { name: 'Wooden',      emoji: '🪣', theme: 'candy',  tier: 1, unlockLevel: 1,    cost: 0,
+      b1: '#F0A060', b2: '#C8752A', b3: '#7A3A08', bt: '#FFD090', bm: '#E08830', pattern: 'weave' },
+    { name: 'Candy Pink',  emoji: '🍬', theme: 'candy',  tier: 2, unlockLevel: 700,  cost: 800,
+      b1: '#FF9EC4', b2: '#FF4D94', b3: '#B01858', bt: '#FFD1E3', bm: '#FF6BA8', pattern: 'stripes' },
+    { name: 'Cupcake',     emoji: '🧁', theme: 'candy',  tier: 3, unlockLevel: 1400, cost: 1600,
+      b1: '#C99BE8', b2: '#9B5FD0', b3: '#5B2E8C', bt: '#EBD4FF', bm: '#B47BE0', pattern: 'dots' },
+    { name: 'Jelly Bean',  emoji: '🍭', theme: 'candy',  tier: 4, unlockLevel: 2100, cost: 2800,
+      b1: '#7BE8A0', b2: '#28B463', b3: '#0E6B38', bt: '#CCFFDD', bm: '#4DD686', pattern: 'stripes' },
+    { name: 'Rainbow',     emoji: '🌈', theme: 'candy',  tier: 5, unlockLevel: 2800, cost: 4500,
+      b1: '#FF6B6B', b2: '#FFD93D', b3: '#845EF7', bt: '#FFFFFF', bm: '#FF9E44', pattern: 'rainbow' },
+
+    // ---------- 🐟 FISH THEME ----------
+    { name: 'Wooden',      emoji: '🪣', theme: 'fish',   tier: 1, unlockLevel: 3501, cost: 0,
+      b1: '#F0A060', b2: '#C8752A', b3: '#7A3A08', bt: '#FFD090', bm: '#E08830', pattern: 'weave' },
+    { name: 'Coral',       emoji: '🪸', theme: 'fish',   tier: 2, unlockLevel: 4200, cost: 1200,
+      b1: '#FF9E8A', b2: '#F4633F', b3: '#A82C12', bt: '#FFD6CB', bm: '#FF8266', pattern: 'dots' },
+    { name: 'Aqua Shell',  emoji: '🐚', theme: 'fish',   tier: 3, unlockLevel: 4900, cost: 2200,
+      b1: '#7BE4DE', b2: '#1FA9A0', b3: '#0B5C58', bt: '#D6FFFC', bm: '#48C9C0', pattern: 'stripes' },
+    { name: 'Deep Sea',    emoji: '🌊', theme: 'fish',   tier: 4, unlockLevel: 5600, cost: 3500,
+      b1: '#5B8FE8', b2: '#2A4FB0', b3: '#12265E', bt: '#C9DCFF', bm: '#4A78D6', pattern: 'bolts' },
+    { name: 'Pearl Gold',  emoji: '🫧', theme: 'fish',   tier: 5, unlockLevel: 6300, cost: 5500,
+      b1: '#FFE9A8', b2: '#E8C158', b3: '#9A7614', bt: '#FFFBEF', bm: '#F2D479', pattern: 'rainbow' },
+
+    // ---------- ☕ COFFEE THEME ----------
+    { name: 'Wooden',      emoji: '🪣', theme: 'coffee', tier: 1, unlockLevel: 7001, cost: 0,
+      b1: '#F0A060', b2: '#C8752A', b3: '#7A3A08', bt: '#FFD090', bm: '#E08830', pattern: 'weave' },
+    { name: 'Latte',       emoji: '🥛', theme: 'coffee', tier: 2, unlockLevel: 7650, cost: 1500,
+      b1: '#F0DCC0', b2: '#C9A87C', b3: '#8A6A44', bt: '#FFFAF0', bm: '#DEC49E', pattern: 'dots' },
+    { name: 'Mocha',       emoji: '🍫', theme: 'coffee', tier: 3, unlockLevel: 8300, cost: 2600,
+      b1: '#B07A4A', b2: '#7A4A24', b3: '#42220C', bt: '#E8C9A8', bm: '#96603A', pattern: 'stripes' },
+    { name: 'Copper Pot',  emoji: '🫖', theme: 'coffee', tier: 4, unlockLevel: 8950, cost: 4000,
+      b1: '#E8B070', b2: '#B87333', b3: '#6E3F12', bt: '#FFE2BC', bm: '#CE8A46', pattern: 'bolts' },
+    { name: 'Golden Bean', emoji: '👑', theme: 'coffee', tier: 5, unlockLevel: 9600, cost: 6000,
+      b1: '#FFE066', b2: '#D4AF37', b3: '#8A6A08', bt: '#FFF8D6', bm: '#E8C64A', pattern: 'rainbow' }
 ];
+
 let currentSkinIndex = 0;
+let ownedSkins = {};       // { index: true } - coins se kharide gaye
+let coins = 0;
+
+// ===== COINS (daily reward se milte hain) =====
+function getCoins() {
+    const v = parseInt(localStorage.getItem('cm_coins') || '0', 10);
+    return isNaN(v) ? 0 : v;
+}
+function setCoins(v) {
+    coins = Math.max(0, Math.floor(v || 0));
+    localStorage.setItem('cm_coins', String(coins));
+    updateCoinLabels();
+}
+function addCoins(n) { setCoins(getCoins() + n); }
+
+function updateCoinLabels() {
+    const str = '🪙 ' + getCoins().toLocaleString();
+    const a = document.getElementById('coinHud');
+    if (a) a.textContent = str;
+    const b = document.getElementById('homeCoinBtn');
+    if (b) b.textContent = str;
+    const c = document.getElementById('shopCoinLabel');
+    if (c) c.textContent = str;
+}
 
 function loadSkin() {
     const saved = localStorage.getItem('cm_basket_skin');
@@ -844,68 +941,270 @@ function loadSkin() {
         currentSkinIndex = parseInt(saved, 10);
         if (isNaN(currentSkinIndex) || currentSkinIndex < 0 || currentSkinIndex >= BASKET_SKINS.length) currentSkinIndex = 0;
     }
+    try { ownedSkins = JSON.parse(localStorage.getItem('cm_owned_skins') || '{}') || {}; } catch (e) { ownedSkins = {}; }
+    coins = getCoins();
+    // agar saved basket lock ho gaya ho (jaise data reset) to default par aa jao
+    if (!isSkinUnlocked(currentSkinIndex)) currentSkinIndex = 0;
+    updateSkinButton();
+    updateCoinLabels();
+}
+
+function saveSkin() {
+    localStorage.setItem('cm_basket_skin', currentSkinIndex);
     updateSkinButton();
 }
 
-function saveSkin() { localStorage.setItem('cm_basket_skin', currentSkinIndex); updateSkinButton(); }
+function saveOwnedSkins() { localStorage.setItem('cm_owned_skins', JSON.stringify(ownedSkins)); }
+
+// Basket unlocked hai? Level ya coins se.
+function isSkinUnlocked(i) {
+    const s = BASKET_SKINS[i];
+    if (!s) return false;
+    if (ownedSkins[i]) return true;
+    return st.level >= s.unlockLevel;
+}
+
+function getUnlockText(i) {
+    const s = BASKET_SKINS[i];
+    if (isSkinUnlocked(i)) return '';
+    return 'Level ' + s.unlockLevel.toLocaleString() + ' par unlock';
+}
 
 function updateSkinButton() {
-    const skinText = '🎨 ' + BASKET_SKINS[currentSkinIndex].emoji + ' ' + BASKET_SKINS[currentSkinIndex].name;
+    const cur = BASKET_SKINS[currentSkinIndex] || BASKET_SKINS[0];
+    const skinText = '🎨 ' + cur.emoji + ' ' + cur.name;
     const btn = document.getElementById('skinBtn');
     if (btn) btn.textContent = skinText;
     const btn2 = document.getElementById('homeSkinBtn2');
     if (btn2) btn2.textContent = skinText;
 }
 
-function cycleSkin() {
-    currentSkinIndex = (currentSkinIndex + 1) % BASKET_SKINS.length;
-    saveSkin();
+// Purana cycleSkin (home par) - ab basket shop kholta hai
+function cycleSkin() { showBasketShop(); }
+
+// Basket select karo (locked ho to coins se unlock poocho)
+function selectBasket(i) {
+    const s = BASKET_SKINS[i];
+    if (!s) return;
+    if (isSkinUnlocked(i)) {
+        currentSkinIndex = i;
+        saveSkin();
+        renderBasketShop();
+        beep(880, 'sine', 0.08, 0.22);
+        return;
+    }
+    // coins se unlock
+    const have = getCoins();
+    if (have >= s.cost) {
+        if (confirm(s.emoji + ' ' + s.name + ' ko ' + s.cost.toLocaleString() +
+            ' 🪙 coins se unlock karna hai?\n\nAapke paas: ' + have.toLocaleString() + ' 🪙')) {
+            addCoins(-s.cost);
+            ownedSkins[i] = true;
+            saveOwnedSkins();
+            currentSkinIndex = i;
+            saveSkin();
+            sfxSurprise();
+            renderBasketShop();
+        }
+    } else {
+        const need = s.cost - have;
+        alert('🔒 ' + s.emoji + ' ' + s.name + ' abhi locked hai.\n\n' +
+            'Level ' + s.unlockLevel.toLocaleString() + ' par apne aap unlock ho jayega.\n' +
+            'Ya abhi ' + s.cost.toLocaleString() + ' 🪙 coins se unlock karo.\n\n' +
+            'Aapke paas: ' + have.toLocaleString() + ' 🪙\n' +
+            'Aur chahiye: ' + need.toLocaleString() + ' 🪙\n\n' +
+            '(Coins roz ke Daily Reward spin se milte hain)');
+    }
+}
+
+function showBasketShop() {
+    showOv('basketOv');
+    renderBasketShop();
+}
+
+function closeBasketShop() {
+    if (isOnHomePage) showHomePage();
+    else showOv(null);
+}
+
+function renderBasketShop() {
+    const wrap = document.getElementById('basketGrid');
+    if (!wrap) return;
+    updateCoinLabels();
+    const lvl = st.level;
+    let html = '';
+    let lastTheme = '';
+    BASKET_SKINS.forEach((s, i) => {
+        if (s.theme !== lastTheme) {
+            const tm = { candy: '🍬 Candy Kingdom', fish: '🐟 Deep Sea Fish', coffee: '☕ Premium Coffee' }[s.theme];
+            html += '<div class="basket-theme-head">' + tm + '</div>';
+            lastTheme = s.theme;
+        }
+        const unlocked = isSkinUnlocked(i);
+        const equipped = (i === currentSkinIndex);
+        let status;
+        if (equipped) status = '<span style="color:#00FFB0;">✓ Equipped</span>';
+        else if (unlocked) status = '<span style="color:#FFD700;">Tap to equip</span>';
+        else if (getCoins() >= s.cost) status = '<span style="color:#FFD700;">🪙 ' + s.cost.toLocaleString() + ' — tap to unlock</span>';
+        else status = '<span style="color:#9a9ab0;">🔒 Level ' + s.unlockLevel.toLocaleString() + '<br>🪙 ' + s.cost.toLocaleString() + '</span>';
+
+        // mini basket preview canvas
+        const cid = 'bkCanvas' + i;
+        html += '<div class="basket-item ' + (equipped ? 'equipped' : '') + (unlocked ? '' : ' locked') + '" data-idx="' + i + '">' +
+            '<canvas id="' + cid + '" width="76" height="52"></canvas>' +
+            '<div class="bk-name">' + s.emoji + ' ' + s.name + '</div>' +
+            '<div class="bk-status">' + status + '</div></div>';
+    });
+    wrap.innerHTML = html;
+    // preview draw karo + click handler lagao
+    BASKET_SKINS.forEach((s, i) => {
+        drawBasketPreview(i);
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.basket-item'), (el) => {
+        el.addEventListener('click', () => selectBasket(parseInt(el.getAttribute('data-idx'), 10)));
+    });
+}
+
+function drawBasketPreview(i) {
+    const cv = document.getElementById('bkCanvas' + i);
+    if (!cv) return;
+    const g = cv.getContext('2d');
+    const skin = BASKET_SKINS[i];
+    g.clearRect(0, 0, cv.width, cv.height);
+    g.save();
+    g.translate(cv.width / 2, 8);
+    paintBasket(g, 0, 0, 54, 20, skin, isSkinUnlocked(i));
+    g.restore();
+}
+
+// Basket ka asli drawing (game + preview dono isi se bante hain)
+function paintBasket(g, bx, by, bw, bh, skin, dim) {
+    g.save();
+    if (dim) g.globalAlpha = 0.4;
+
+    // body
+    const grad = g.createLinearGradient(bx - bw / 2, by, bx + bw / 2, by + bh * 2);
+    grad.addColorStop(0, skin.b1);
+    grad.addColorStop(0.45, skin.b2);
+    grad.addColorStop(1, skin.b3);
+    g.fillStyle = grad;
+    g.strokeStyle = skin.b3;
+    g.lineWidth = 2.5;
+    g.beginPath();
+    g.moveTo(bx - bw / 2, by);
+    g.lineTo(bx - bw / 2 + 8, by + bh);
+    g.lineTo(bx + bw / 2 - 8, by + bh);
+    g.lineTo(bx + bw / 2, by);
+    g.closePath();
+    g.fill();
+    g.stroke();
+
+    // pattern
+    const p = skin.pattern || 'weave';
+    if (p === 'weave') {
+        g.strokeStyle = 'rgba(0,0,0,0.18)';
+        g.lineWidth = 1.2;
+        for (let k = 1; k < 4; k++) {
+            const px = bx - bw / 2 + (bw / 4) * k;
+            g.beginPath(); g.moveTo(px, by); g.lineTo(px + 3, by + bh); g.stroke();
+        }
+        for (let k = 1; k < 3; k++) {
+            const py = by + (bh / 3) * k;
+            g.beginPath(); g.moveTo(bx - bw / 2 + 4, py); g.lineTo(bx + bw / 2 - 4, py); g.stroke();
+        }
+    } else if (p === 'stripes') {
+        g.save();
+        g.beginPath();
+        g.moveTo(bx - bw / 2, by); g.lineTo(bx - bw / 2 + 8, by + bh);
+        g.lineTo(bx + bw / 2 - 8, by + bh); g.lineTo(bx + bw / 2, by);
+        g.closePath(); g.clip();
+        g.fillStyle = 'rgba(255,255,255,0.28)';
+        for (let sx = bx - bw / 2; sx < bx + bw / 2; sx += 10) {
+            g.beginPath();
+            g.moveTo(sx, by); g.lineTo(sx + 4, by + bh);
+            g.lineTo(sx + 8, by + bh); g.lineTo(sx + 4, by);
+            g.closePath(); g.fill();
+        }
+        g.restore();
+    } else if (p === 'dots') {
+        g.save();
+        g.beginPath();
+        g.moveTo(bx - bw / 2, by); g.lineTo(bx - bw / 2 + 8, by + bh);
+        g.lineTo(bx + bw / 2 - 8, by + bh); g.lineTo(bx + bw / 2, by);
+        g.closePath(); g.clip();
+        g.fillStyle = 'rgba(255,255,255,0.35)';
+        for (let ry = 0; ry < 3; ry++) {
+            for (let rx = 0; rx < 4; rx++) {
+                const cx2 = bx - bw / 2 + 8 + rx * (bw - 16) / 3 + (ry % 2 ? 5 : 0);
+                const cy2 = by + 5 + ry * (bh - 8) / 2;
+                g.beginPath(); g.arc(cx2, cy2, 1.8, 0, Math.PI * 2); g.fill();
+            }
+        }
+        g.restore();
+    } else if (p === 'bolts') {
+        g.save();
+        g.strokeStyle = 'rgba(255,255,255,0.4)';
+        g.lineWidth = 2;
+        for (let ry = 1; ry < 3; ry++) {
+            const py = by + (bh / 3) * ry;
+            g.beginPath(); g.moveTo(bx - bw / 2 + 6, py); g.lineTo(bx + bw / 2 - 6, py); g.stroke();
+        }
+        g.fillStyle = 'rgba(255,255,255,0.5)';
+        [[-bw / 2 + 8, by + 4], [bw / 2 - 8, by + 4], [-bw / 2 + 10, by + bh - 3], [bw / 2 - 10, by + bh - 3]]
+            .forEach(pt => { g.beginPath(); g.arc(bx + pt[0], pt[1], 1.9, 0, Math.PI * 2); g.fill(); });
+        g.restore();
+    } else if (p === 'rainbow') {
+        g.save();
+        g.beginPath();
+        g.moveTo(bx - bw / 2, by); g.lineTo(bx - bw / 2 + 8, by + bh);
+        g.lineTo(bx + bw / 2 - 8, by + bh); g.lineTo(bx + bw / 2, by);
+        g.closePath(); g.clip();
+        const rg = g.createLinearGradient(bx - bw / 2, by, bx + bw / 2, by + bh);
+        rg.addColorStop(0, 'rgba(255,80,80,0.55)');
+        rg.addColorStop(0.25, 'rgba(255,210,60,0.55)');
+        rg.addColorStop(0.5, 'rgba(70,220,130,0.55)');
+        rg.addColorStop(0.75, 'rgba(80,150,255,0.55)');
+        rg.addColorStop(1, 'rgba(180,90,255,0.55)');
+        g.fillStyle = rg;
+        g.fillRect(bx - bw / 2, by, bw, bh + 2);
+        g.restore();
+    }
+
+    // rim
+    const rg2 = g.createLinearGradient(bx - bw / 2, by, bx + bw / 2, by);
+    rg2.addColorStop(0, skin.bt);
+    rg2.addColorStop(0.5, skin.bm);
+    rg2.addColorStop(1, skin.bt);
+    g.fillStyle = rg2;
+    g.strokeStyle = skin.b3;
+    g.lineWidth = 1.5;
+    g.beginPath();
+    g.roundRect(bx - bw / 2 - 2, by - 4, bw + 4, 8, 3);
+    g.fill();
+    g.stroke();
+
+    // tier 5 baskets par halka glow
+    if (skin.tier >= 5 && !dim) {
+        g.strokeStyle = 'rgba(255,255,255,0.5)';
+        g.lineWidth = 1.5;
+        g.beginPath();
+        g.roundRect(bx - bw / 2 - 4, by - 6, bw + 8, bh + 10, 5);
+        g.stroke();
+    }
+    g.restore();
 }
 
 function drawBasketWithSkin(bx, by, bw, bh) {
-    const skin = BASKET_SKINS[currentSkinIndex];
+    const skin = BASKET_SKINS[currentSkinIndex] || BASKET_SKINS[0];
     ctx.save();
+    // zameen par halki roshni
     glow('#FF88AA', 14);
     ctx.fillStyle = 'rgba(255,100,150,0.05)';
     ctx.beginPath();
     ctx.ellipse(bx, by + bh, bw * 0.65, 7, 0, 0, Math.PI * 2);
     ctx.fill();
     ng();
-    const g = ctx.createLinearGradient(bx - bw / 2, by, bx + bw / 2, by + bh * 2);
-    g.addColorStop(0, skin.b1);
-    g.addColorStop(0.4, skin.b2);
-    g.addColorStop(1, skin.b3);
-    ctx.fillStyle = g;
-    ctx.strokeStyle = skin.b3;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(bx - bw / 2, by);
-    ctx.lineTo(bx - bw / 2 + 8, by + bh);
-    ctx.lineTo(bx + bw / 2 - 8, by + bh);
-    ctx.lineTo(bx + bw / 2, by);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-    ctx.lineWidth = 1.2;
-    for (let i = 1; i < 4; i++) {
-        const px = bx - bw / 2 + (bw / 4) * i;
-        ctx.beginPath();
-        ctx.moveTo(px, by);
-        ctx.lineTo(px + 3, by + bh);
-        ctx.stroke();
-    }
-    const rg = ctx.createLinearGradient(bx - bw / 2, by, bx + bw / 2, by);
-    rg.addColorStop(0, skin.bt);
-    rg.addColorStop(0.5, skin.bm);
-    rg.addColorStop(1, skin.bt);
-    ctx.fillStyle = rg;
-    ctx.strokeStyle = skin.b3;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.roundRect(bx - bw / 2 - 2, by - 4, bw + 4, 8, 3);
-    ctx.fill();
-    ctx.stroke();
+    paintBasket(ctx, bx, by, bw, bh, skin, false);
     ctx.restore();
 }
 
@@ -1293,7 +1592,7 @@ let shakeFrames = 0, shakeIntensity = 0;
 function triggerShake(intensity, frames) { shakeFrames = frames || 18; shakeIntensity = intensity || 8; }
 
 function showOv(id) {
-    const overlays = ['homeOv', 'levelOv', 'taskOv', 'celebOv', 'lbOv', 'roadmapOv', 'dailyOv', 'goOv', 'settingsOv', 'helpOv', 'pauseOv'];
+    const overlays = ['homeOv', 'levelOv', 'taskOv', 'celebOv', 'lbOv', 'roadmapOv', 'dailyOv', 'basketOv', 'goOv', 'settingsOv', 'helpOv', 'pauseOv'];
     overlays.forEach(s => { const el = document.getElementById(s); if (el) el.style.display = 'none'; });
     const homePage = document.getElementById('homePageOv');
     if (homePage) homePage.style.display = 'none';
@@ -1429,13 +1728,34 @@ function advanceLevel() {
     const carriedScore = st.score;
     const carriedLives = st.lives;
     const next = Math.min(10000, st.level + 1);
+    const before = st.level;
     initLevel(next, carriedScore, carriedLives);
+    checkBasketUnlocks(before, next);
     showOv(null);
     st.running = true;
     isGamePaused = false;
     lastFrameTime = 0;
     startMusic(0);
     requestAnimationFrame(gameLoop);
+}
+
+// Level badhne par naya basket unlock hua? Player ko batao.
+function checkBasketUnlocks(fromLvl, toLvl) {
+    const unlocked = [];
+    BASKET_SKINS.forEach((s, i) => {
+        if (s.cost === 0) return;                       // default basket chhod do
+        if (s.unlockLevel > fromLvl && s.unlockLevel <= toLvl && !ownedSkins[i]) {
+            unlocked.push(s);
+        }
+    });
+    if (!unlocked.length) return;
+    sfxSurprise();
+    addFloat('🎨 Naya basket unlocked!', '#FFD700', true);
+    setTimeout(() => {
+        const names = unlocked.map(s => s.emoji + ' ' + s.name).join(', ');
+        alert('🎨 Naya basket unlock ho gaya!\n\n' + names +
+            '\n\nHome par 🎨 button se basket badal sakte ho.');
+    }, 400);
 }
 
 // ============================================================
@@ -1750,9 +2070,14 @@ function gameLoop(timestamp) {
     for (let i = 0; i < st.items.length; i++) {
         const it = st.items[i];
         it.y += it.speed;
-        it.wobble += 0.028;
+
+        // ---- LEHAR (WAVE) MOVEMENT: girte-girte left-right ----
+        if (it.waveAmp) {
+            it.wavePhase += it.waveFreq;
+            it.x = it.startX + Math.sin(it.wavePhase) * it.waveAmp;
+        }
+
         it.rot += it.rotationSpeed;
-        it.x += Math.sin(it.wobble) * 0.5;
         it.x = Math.max(it.size * 0.5, Math.min(gameW - it.size * 0.5, it.x));
 
         const caught = it.y > by - 12 && it.y < by + bh + 6 &&
@@ -1909,14 +2234,18 @@ function closeRoadmap() { showHomePage(); }
 // ===== DAILY REWARD =====
 const DAILY_KEY = 'cm_daily_v1';
 const STREAK_KEY = 'cm_streak_v1';
+
+// Naya wheel: 8 segments, alternating rang, aur rewards jo GAME ME kaam aate hain —
+// coins (basket unlock ke liye), lives, shield (agle level me), points aur jackpot.
 const WHEEL_SEGMENTS = [
-    { label: '+500', emoji: '⭐', color: '#FF4DA6', reward: { type: 'pts', val: 500 } },
-    { label: '+2 ❤️', emoji: '❤️', color: '#FF3366', reward: { type: 'lives', val: 2 } },
-    { label: '+1000', emoji: '💎', color: '#FFD700', reward: { type: 'pts', val: 1000 } },
-    { label: '🛡️', emoji: '🛡️', color: '#845EF7', reward: { type: 'shield', val: 1 } },
-    { label: '+3 ❤️', emoji: '💖', color: '#FF6EB4', reward: { type: 'lives', val: 3 } },
-    { label: '+200', emoji: '🍬', color: '#10D4AA', reward: { type: 'pts', val: 200 } },
-    { label: 'JACKPOT!', emoji: '🏆', color: '#FF8C00', reward: { type: 'jackpot', val: 5000 } }
+    { label: '+500',    emoji: '⭐', color: '#E23E7A', reward: { type: 'pts', val: 500 } },
+    { label: '+50 🪙',  emoji: '🪙', color: '#3D8BFD', reward: { type: 'coins', val: 50 } },
+    { label: '+2 ❤️',   emoji: '❤️', color: '#E23E7A', reward: { type: 'lives', val: 2 } },
+    { label: '🛡️ 20s',  emoji: '🛡️', color: '#8B5CF6', reward: { type: 'shield', val: 20 } },
+    { label: '+150 🪙', emoji: '💰', color: '#3D8BFD', reward: { type: 'coins', val: 150 } },
+    { label: '+5 ❤️',   emoji: '💖', color: '#E23E7A', reward: { type: 'lives', val: 5 } },
+    { label: '+2000',   emoji: '💎', color: '#3D8BFD', reward: { type: 'pts', val: 2000 } },
+    { label: 'JACKPOT', emoji: '🏆', color: '#F0A020', reward: { type: 'jackpot', val: 5000 } }
 ];
 let wheelAngle = 0, wheelSpinning = false;
 
@@ -1932,11 +2261,12 @@ function showDailyReward() {
     showOv('dailyOv');
     drawWheel(wheelAngle);
     renderStreak();
+    updateCoinLabels();
     const spinBtn = document.getElementById('spinBtnEl');
     const already = !canClaimToday();
     spinBtn.disabled = already;
-    spinBtn.style.opacity = already ? '0.4' : '1';
-    spinBtn.textContent = already ? 'Already Spun' : 'Spin Now';
+    spinBtn.style.opacity = already ? '0.45' : '1';
+    spinBtn.textContent = already ? '✅ Aaj ka spin ho gaya' : '🎰 SPIN NOW';
     const cd = document.getElementById('spinCooldown');
     cd.style.display = already ? 'block' : 'none';
     if (already) updateCooldownTimer();
@@ -1960,7 +2290,8 @@ function updateCooldownTimer() {
     if (diff <= 0) {
         if (cooldownTimerInterval) { clearInterval(cooldownTimerInterval); cooldownTimerInterval = null; }
         if (cd) cd.style.display = 'none';
-        if (spinBtn) { spinBtn.disabled = false; spinBtn.style.opacity = '1'; spinBtn.textContent = 'Spin Now'; }
+        if (spinBtn) { spinBtn.disabled = false; spinBtn.style.opacity = '1'; spinBtn.textContent = '🎰 SPIN NOW'; }
+        checkDailyBadge();
         return;
     }
     const h = Math.floor(diff / 3600000);
@@ -1969,7 +2300,7 @@ function updateCooldownTimer() {
     const txt = h + 'h ' + m + 'm ' + s + 's';
     const timerEl = document.getElementById('cooldownTimer');
     if (timerEl) timerEl.textContent = txt;
-    else if (cd) cd.textContent = 'Next spin in ' + txt;
+    else if (cd) cd.textContent = 'Agla spin ' + txt + ' baad';
 }
 
 function renderStreak() {
@@ -1985,60 +2316,126 @@ function renderStreak() {
         html += '<div class="streak-dot ' + cls + '">' + (cls === 'done' ? '✓' : '🍬') + '</div>';
     }
     row.innerHTML = html;
-    msg.textContent = streak === 0 ? 'Spin daily for rewards!' : '🔥 ' + streak + ' day streak!';
+    msg.textContent = streak === 0 ? 'Roz spin karo aur coins kamao!' : '🔥 ' + streak + ' din ka streak!';
+}
+
+// ===== WHEEL DRAWING (naya, saaf design) =====
+// rang ko halka karo (segment ke andar gradient ke liye)
+function shade(hex, amt) {
+    if (!hex || hex.charAt(0) !== '#') return hex;
+    let r = parseInt(hex.slice(1, 3), 16), g2 = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    r = Math.round(r + (255 - r) * amt);
+    g2 = Math.round(g2 + (255 - g2) * amt);
+    b = Math.round(b + (255 - b) * amt);
+    return '#' + [r, g2, b].map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('');
 }
 
 function drawWheel(angle) {
     const c = document.getElementById('wheelCanvas');
     if (!c) return;
-    const wctx = c.getContext('2d');
-    const cx = 110, cy = 110, r = 100;
-    wctx.clearRect(0, 0, 220, 220);
-    const segAngle = (Math.PI * 2) / WHEEL_SEGMENTS.length;
-    for (let i = 0; i < WHEEL_SEGMENTS.length; i++) {
-        const seg = WHEEL_SEGMENTS[i];
-        const start = angle + i * segAngle;
-        const end = start + segAngle;
-        wctx.beginPath();
-        wctx.moveTo(cx, cy);
-        wctx.arc(cx, cy, r, start, end);
-        wctx.closePath();
-        wctx.fillStyle = seg.color;
-        wctx.fill();
-        wctx.save();
-        wctx.translate(cx + Math.cos(start + segAngle / 2) * r * 0.65, cy + Math.sin(start + segAngle / 2) * r * 0.65);
-        wctx.fillStyle = '#fff';
-        wctx.font = 'bold 12px "Segoe UI"';
-        wctx.shadowBlur = 2;
-        wctx.shadowColor = 'black';
-        wctx.fillText(seg.emoji, -8, -8);
-        wctx.font = 'bold 10px "Segoe UI"';
-        wctx.fillStyle = '#FFD700';
-        wctx.fillText(seg.label, -12, 6);
-        wctx.restore();
+    const g = c.getContext('2d');
+    const cx = c.width / 2, cy = c.height / 2;
+    const R = Math.min(cx, cy) - 14;
+    const segs = WHEEL_SEGMENTS;
+    const segA = (Math.PI * 2) / segs.length;
+    g.clearRect(0, 0, c.width, c.height);
+
+    // bahar ka golden rim
+    g.beginPath(); g.arc(cx, cy, R + 8, 0, Math.PI * 2);
+    const rim = g.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
+    rim.addColorStop(0, '#FFF3B0');
+    rim.addColorStop(0.45, '#FFD700');
+    rim.addColorStop(1, '#B8860B');
+    g.fillStyle = rim; g.fill();
+
+    // segments (radial gradient + saaf labels)
+    for (let i = 0; i < segs.length; i++) {
+        const s = angle + i * segA, e = s + segA;
+        g.beginPath();
+        g.moveTo(cx, cy);
+        g.arc(cx, cy, R, s, e);
+        g.closePath();
+        const lg = g.createRadialGradient(cx, cy, R * 0.12, cx, cy, R);
+        lg.addColorStop(0, shade(segs[i].color, 0.45));
+        lg.addColorStop(1, segs[i].color);
+        g.fillStyle = lg;
+        g.fill();
+        g.strokeStyle = 'rgba(255,255,255,0.55)';
+        g.lineWidth = 1.5;
+        g.stroke();
+
+        const mid = s + segA / 2;
+        const lx = cx + Math.cos(mid) * R * 0.63;
+        const ly = cy + Math.sin(mid) * R * 0.63;
+        g.save();
+        g.translate(lx, ly);
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.shadowColor = 'rgba(0,0,0,0.6)';
+        g.shadowBlur = 4;
+        g.font = 'bold 16px "Segoe UI Emoji", sans-serif';
+        g.fillText(segs[i].emoji, 0, -9);
+        g.font = 'bold 11px "Segoe UI", sans-serif';
+        g.fillStyle = '#FFFFFF';
+        g.fillText(segs[i].label, 0, 9);
+        g.restore();
     }
-    wctx.beginPath();
-    wctx.arc(cx, cy, 18, 0, Math.PI * 2);
-    wctx.fillStyle = '#FFD700';
-    wctx.fill();
-    wctx.shadowBlur = 0;
+
+    // andar ka hub
+    const hub = g.createRadialGradient(cx - 6, cy - 6, 2, cx, cy, 21);
+    hub.addColorStop(0, '#FFFFFF');
+    hub.addColorStop(0.5, '#FFD700');
+    hub.addColorStop(1, '#B8860B');
+    g.beginPath(); g.arc(cx, cy, 20, 0, Math.PI * 2);
+    g.fillStyle = hub; g.fill();
+    g.strokeStyle = '#8A6508'; g.lineWidth = 2; g.stroke();
+    g.font = 'bold 17px "Segoe UI Emoji", sans-serif';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('🍬', cx, cy + 1);
+
+    // upar ka pointer — yahi batata hai kaun jeeta
+    g.beginPath();
+    g.moveTo(cx, cy - R + 4);
+    g.lineTo(cx - 12, cy - R - 16);
+    g.lineTo(cx + 12, cy - R - 16);
+    g.closePath();
+    g.fillStyle = '#FF3B6B';
+    g.shadowColor = '#FF3B6B'; g.shadowBlur = 12;
+    g.fill();
+    g.shadowBlur = 0;
+    g.strokeStyle = '#FFFFFF'; g.lineWidth = 2; g.stroke();
 }
 
 function spinWheel() {
     if (wheelSpinning || !canClaimToday()) return;
-    const winIdx = Math.floor(Math.random() * WHEEL_SEGMENTS.length);
-    const spins = 5 + Math.random() * 3;
-    const targetAngle = spins * Math.PI * 2 + (winIdx * (Math.PI * 2 / WHEEL_SEGMENTS.length));
-    const startAngle = wheelAngle;
-    const duration = 3000;
-    const startTime = performance.now();
+    const segs = WHEEL_SEGMENTS;
+    const segA = (Math.PI * 2) / segs.length;
+    const winIdx = Math.floor(Math.random() * segs.length);
+
+    // pointer upar (-90°) par hai; winner segment ko pointer ke neeche laao
+    const targetCenter = -Math.PI / 2;
+    const center = targetCenter - winIdx * segA;
+    const start = wheelAngle;
+    let delta = center - start;
+    delta = ((delta % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    const turns = 6 + Math.floor(Math.random() * 3);
+    const total = turns * Math.PI * 2 + delta;
+
+    const duration = 3800;
+    const t0 = performance.now();
     wheelSpinning = true;
+    const btn = document.getElementById('spinBtnEl');
+    if (btn) { btn.disabled = true; btn.textContent = '🎡 Ghum raha hai...'; }
+
+    let tick = 0;
     function animate(now) {
-        const t = Math.min((now - startTime) / duration, 1);
-        wheelAngle = startAngle + targetAngle * (1 - Math.pow(1 - t, 3));
+        const t = Math.min((now - t0) / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 3.2);
+        wheelAngle = start + total * eased;
         drawWheel(wheelAngle);
+        if (tick++ % 7 === 0) beep(1100 - Math.round(t * 450), 'square', 0.03, 0.05);
         if (t < 1) requestAnimationFrame(animate);
-        else { wheelSpinning = false; claimReward(WHEEL_SEGMENTS[winIdx]); }
+        else { wheelSpinning = false; claimReward(segs[winIdx]); }
     }
     requestAnimationFrame(animate);
 }
@@ -2053,27 +2450,61 @@ function claimReward(seg) {
     else if (sd.lastDate !== today) streak = 1;
     setStreak({ streak: streak, lastDate: today });
 
+    const r = seg.reward;
     let msg = '';
-    switch (seg.reward.type) {
-        case 'pts': st.score += seg.reward.val; updateHUD(); msg = '+' + seg.reward.val + ' Points!'; sfxCatch(); break;
-        case 'lives': st.lives = Math.min(st.lives + seg.reward.val, 5); updateHUD(); msg = '+' + seg.reward.val + ' Life!'; sfxLife(); break;
-        case 'shield': activateShield(); msg = 'Shield Activated!'; break;
-        case 'jackpot': st.score += seg.reward.val; st.lives = Math.min(st.lives + 2, 5); updateHUD(); msg = 'JACKPOT! +' + seg.reward.val + ' pts & +2❤️!'; sfxSurprise(); spawnConfetti(); break;
+    let color = '#FFD700';
+
+    if (r.type === 'pts') {
+        st.score += r.val; updateHUD();
+        msg = '+' + r.val.toLocaleString() + ' points'; color = '#00FFB0'; sfxCatch();
+    } else if (r.type === 'coins') {
+        addCoins(r.val);
+        msg = '+' + r.val.toLocaleString() + ' coins — Basket Shop me kharch karo!';
+        color = '#FFD700'; sfxShield();
+    } else if (r.type === 'lives') {
+        st.lives = Math.min(st.lives + r.val, 5); updateHUD();
+        msg = '+' + r.val + ' ❤️ lives (max 5)'; color = '#FF6EB4'; sfxLife();
+    } else if (r.type === 'shield') {
+        st.shieldActive = true;
+        st.shieldFrames = 60 * r.val;
+        st.shieldMaxFrames = 60 * r.val;
+        updatePowerupHud();
+        msg = '🛡️ Shield ' + r.val + ' second ke liye ready!'; color = '#A855F7'; sfxShield();
+    } else if (r.type === 'jackpot') {
+        st.score += r.val; addCoins(500);
+        st.lives = Math.min(st.lives + 2, 5); updateHUD();
+        msg = 'JACKPOT! +' + r.val.toLocaleString() + ' points, +500 🪙 aur +2 ❤️';
+        color = '#FF8C00'; sfxSurprise(); spawnConfetti(70);
     }
+
     saveProgress();
     saveLB();
+    updateCoinLabels();
+    checkDailyBadge();
+
+    const emojiEl = document.getElementById('rewardEmoji');
+    const textEl = document.getElementById('rewardText');
     const resultDiv = document.getElementById('rewardResult');
+    if (emojiEl) emojiEl.textContent = seg.emoji;
+    if (textEl) { textEl.textContent = msg; textEl.style.color = color; }
     if (resultDiv) {
-        resultDiv.textContent = seg.emoji + ' ' + msg;
         resultDiv.style.display = 'block';
-        setTimeout(() => { resultDiv.style.display = 'none'; }, 3000);
+        resultDiv.classList.remove('pop');
+        void resultDiv.offsetWidth;   // animation restart
+        resultDiv.classList.add('pop');
     }
-    showDailyReward();
+
+    const btn = document.getElementById('spinBtnEl');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.45'; btn.textContent = '✅ Aaj ka spin ho gaya'; }
+    const cd = document.getElementById('spinCooldown');
+    if (cd) cd.style.display = 'block';
+    updateCooldownTimer();
 }
 
 function closeDailyReward() {
     if (cooldownTimerInterval) { clearInterval(cooldownTimerInterval); cooldownTimerInterval = null; }
-    showHomePage();
+    if (isOnHomePage) showHomePage();
+    else showOv(null);
 }
 
 // ===== SETTINGS =====
@@ -2164,6 +2595,10 @@ window.showDailyReward = showDailyReward;
 window.closeDailyReward = closeDailyReward;
 window.spinWheel = spinWheel;
 window.cycleSkin = cycleSkin;
+window.showBasketShop = showBasketShop;
+window.closeBasketShop = closeBasketShop;
+window.selectBasket = selectBasket;
+window.renderBasketShop = renderBasketShop;
 window.showSettings = showSettings;
 window.closeSettings = closeSettings;
 window.showHelp = showHelp;
@@ -2213,6 +2648,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('roadmapBackBtn')?.addEventListener('click', closeRoadmap);
     document.getElementById('spinBtnEl')?.addEventListener('click', spinWheel);
     document.getElementById('dailyBackBtn')?.addEventListener('click', closeDailyReward);
+    document.getElementById('basketBackBtn')?.addEventListener('click', closeBasketShop);
+    document.getElementById('homeCoinBtn')?.addEventListener('click', showDailyReward);
+    document.getElementById('coinHud')?.addEventListener('click', showBasketShop);
     document.getElementById('goContinueBtn')?.addEventListener('click', () => startGame(true));
     document.getElementById('goRestartBtn')?.addEventListener('click', () => startGame(false));
     document.getElementById('settingsBtn')?.addEventListener('click', showSettings);
