@@ -16,7 +16,7 @@
 <meta name="description" content="Candy Mass - 10,000 levels ka candy catching game. Candy, fish aur coffee themes, bonus tasks aur bombs.">
 <link rel="icon" href="candymass_icon.png" type="image/png">
 <link rel="apple-touch-icon" href="candymass_icon.png">
-<link rel="stylesheet" href="style.css?v=4.1">
+<link rel="stylesheet" href="style.css?v=4.2">
 </head>
 <body>
 <div id="app">
@@ -56,6 +56,7 @@
       <div class="hb"><div class="hl">Score</div><div class="hv" id="sc">0</div></div>
       <div class="hb"><div class="hl">Level</div><div class="hv" id="lv">1</div></div>
       <div class="hb"><div class="hl">Lives</div><div id="li">❤️❤️❤️</div></div>
+      <div class="hb"><div class="hl">Coins</div><div class="hv" id="coinHud" style="font-size:14px;">🪙 0</div></div>
     </div>
     <div id="taskHud">🎯 <span id="taskHudText">-</span><div id="taskHudBar"><div id="taskHudFill"></div></div><span id="taskHudPct"></span> <span id="modeTag"></span></div>
     <div id="bombLegend" style="font-size:8.5px; font-weight:700; letter-spacing:0.2px; background:rgba(0,0,0,0.25); border-radius:8px; padding:2px 6px; margin-top:2px; text-align:center;">💣 -</div>
@@ -112,10 +113,11 @@
         <button class="icon-btn" id="homeMapBtn">🗺️ Map</button>
         <button class="icon-btn" id="homeDailyBtn">🎁 Daily</button>
         <button class="icon-btn" id="homeSettingsBtn">⚙️ Settings</button>
-        <button class="icon-btn" id="homeSkinBtn2">🎨 Skin</button>
+        <button class="icon-btn" id="homeSkinBtn2">🎨 Baskets</button>
         <button class="icon-btn" id="homeHelpBtn">❓ Help</button>
       </div>
-      <div class="version">v4.0 | Mass Interactive Games</div>
+      <button class="icon-btn" id="homeCoinBtn" style="width:100%; margin-bottom:6px; font-size:13px;">🪙 0</button>
+      <div class="version">v4.2 | Mass Interactive Games</div>
     </div>
   </div>
 
@@ -213,11 +215,26 @@
       <div class="ov-title">🎁 Daily Reward</div>
       <div id="streakRow"></div>
       <div id="streakMsg"></div>
-      <canvas id="wheelCanvas" width="220" height="220"></canvas>
-      <button class="gbtn gbtn-gold" id="spinBtnEl">Spin Now</button>
+      <canvas id="wheelCanvas" width="250" height="250"></canvas>
+      <div id="spinArrow">▼</div>
+      <button class="gbtn gbtn-gold" id="spinBtnEl">🎰 SPIN NOW</button>
       <div id="spinCooldown"></div>
-      <div id="rewardResult"></div>
+      <div id="rewardResult">
+        <span id="rewardEmoji" style="font-size:22px;"></span>
+        <span id="rewardText"></span>
+      </div>
       <button class="gbtn" id="dailyBackBtn">Back</button>
+    </div>
+  </div>
+
+  <!-- ===== BASKET SHOP ===== -->
+  <div class="overlay" id="basketOv">
+    <div class="ov-card" style="max-width:340px;">
+      <div class="ov-title">🎨 Basket Shop</div>
+      <div class="shop-coin-row">Aapke coins: <b id="shopCoinLabel">🪙 0</b></div>
+      <div class="shop-hint">Level badhne par naye basket apne aap unlock hote hain. Coins se pehle bhi unlock kar sakte ho (coins Daily Reward spin se milte hain).</div>
+      <div id="basketGrid"></div>
+      <button class="gbtn gbtn-gold" id="basketBackBtn">Close</button>
     </div>
   </div>
 
@@ -325,6 +342,6 @@
   console.log("Firebase Auth + Firestore ready!");
 </script>
 
-<script src="script.js?v=4.1"></script>
+<script src="script.js?v=4.2"></script>
 </body>
 </html>
