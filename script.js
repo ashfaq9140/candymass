@@ -2131,9 +2131,6 @@ function gameLoop(timestamp) {
     if (dtMs > 34) dtMs = 34;               // tab switch ke baad bada jump na ho
     const dtScale = dtMs / FRAME_INTERVAL;  // 1.0 = ek 60 FPS frame
 
-    // canvas ko DPR par scale karo (game ka code logical px me hi chalta hai)
-    if (dprScale !== 1) ctx.scale(dprScale, dprScale);
-
     st.frame += dtScale;
     autoSpinTimer += dtScale;
 
@@ -2141,7 +2138,15 @@ function gameLoop(timestamp) {
     animateScore();
     updateCoinDisplay();
 
+    // ------------------------------------------------------------
+    // ZARURI: transform reset karo — warna DPR scale har frame me
+    // multiply hota rehta hai (3, 9, 27 ... 1e62) aur saari drawing
+    // screen se bahut bahar chali jati hai (khali screen dikhti hai).
+    // `save()` SCALE SE PEHLE hona chahiye, tabhi `restore()` use reset karega.
+    // ------------------------------------------------------------
     ctx.save();
+    if (dprScale !== 1) ctx.scale(dprScale, dprScale);
+
     if (shakeFrames > 0) {
         const k = Math.min(1.5, dtScale);
         ctx.translate((Math.random() - 0.5) * shakeIntensity * k, (Math.random() - 0.5) * shakeIntensity * k);
