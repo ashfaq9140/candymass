@@ -11,12 +11,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Candy Mass">
 <meta name="application-name" content="Candy Mass">
-<link rel="stylesheet" href="style.css?v=4.5">
+<link rel="stylesheet" href="style.css?v=4.6">
 <link rel="icon" href="candymass_icon.png" type="image/png">
 <link rel="icon" sizes="192x192" href="candymass_icon.png">
 <link rel="apple-touch-icon" href="candymass_icon.png">
 </head>
 <body>
+<div id="toast"></div>
+<div id="rotateMsg">📱<br>Please rotate your device<br><span>back to portrait</span></div>
+
 <div id="app">
 
 <!-- ===== LOGIN SCREEN ===== -->
@@ -104,6 +107,7 @@
         <div class="game-title">Candy Mass</div>
         <div class="sub">10,000 LEVELS · PRO EDITION</div>
       </div>
+      <div id="bestLine" class="best-line">🏆 No record yet — play your first game!</div>
       <button class="primary-btn" id="homeNewGameBtn">🎮 New Game</button>
       <button class="secondary-btn" id="homeContinueBtn">💾 Continue</button>
       <div class="icon-grid">
@@ -112,10 +116,11 @@
         <button class="icon-btn" id="homeDailyBtn">🎁 Daily</button>
         <button class="icon-btn" id="homeSettingsBtn">⚙️ Settings</button>
         <button class="icon-btn" id="homeSkinBtn2">🎨 Baskets</button>
+        <button class="icon-btn" id="homeMissionBtn">🎯 Missions</button>
         <button class="icon-btn" id="homeHelpBtn">❓ Help</button>
       </div>
       <button class="icon-btn" id="homeCoinBtn" style="width:100%; margin-bottom:6px; font-size:13px;">🪙 0</button>
-      <div class="version" id="verTag">v4.5 | Mass Interactive Games</div>
+      <div class="version" id="verTag">v4.6 | Mass Interactive Games</div>
     </div>
   </div>
 
@@ -141,6 +146,8 @@
       <div class="faq-item"><b>💣 Bombs</b><br>Check the bomb list in the top bar. Red ring + 💥 = instant game over, 💔 = -1 life, 📉 = target +15, 💰 = -500 score. The 🛡️ Shield saves you from one bomb.</div>
       <div class="faq-item"><b>🌍 3 Themes</b><br>Levels 1-3500 Candy, 3501-7000 Fish, 7001-10000 Coffee. When the theme changes, the old candies stop falling completely.</div>
       <div class="faq-item"><b>🎨 Baskets</b><br>15 baskets in total - 5 per theme. They unlock automatically as you level up, or you can unlock them early with coins from the daily spin.</div>
+      <div class="faq-item"><b>🎯 Missions</b><br>Complete missions to earn coins. Open them from the 🎯 Missions button on the home screen.</div>
+      <div class="faq-item"><b>🪙 Coins</b><br>You earn coins by completing levels, keeping your daily spin streak, and finishing missions. Spend them in the Basket Shop.</div>
       <div class="faq-item"><b>❄️ Game freeze?</b><br>Restart the game from the menu.</div>
       <div class="faq-item"><b>💾 Progress lost?</b><br>Sign in with Google to save your progress across devices.</div>
       <div class="faq-item"><b>🔊 No sound?</b><br>Check the settings.</div>
@@ -151,8 +158,18 @@
   <!-- ===== PAUSE OVERLAY ===== -->
   <div class="overlay" id="pauseOv" style="display:none;">
     <div class="ov-card">
-      <div class="ov-title">⏸️ Game Paused</div>
+      <div class="ov-title">⏸️ Paused</div>
+      <div id="pauseStats" class="pause-stats">-</div>
       <button class="gbtn gbtn-gold" id="resumeBtn">▶️ Resume</button>
+      <div class="pause-row">
+        <button class="gbtn pause-mini" id="pauseSoundBtn">🔊 Sound</button>
+        <button class="gbtn pause-mini" id="pauseMusicBtn">🎵 Music</button>
+      </div>
+      <div class="pause-row">
+        <button class="gbtn pause-mini" id="pauseVibBtn">📳 Vibration</button>
+        <button class="gbtn pause-mini" id="pauseHomeBtn">🏠 Home</button>
+      </div>
+      <button class="gbtn gbtn-blue" id="pauseRestartBtn">🔄 Restart Level</button>
     </div>
   </div>
 
@@ -225,6 +242,17 @@
     </div>
   </div>
 
+  <!-- ===== MISSIONS ===== -->
+  <div class="overlay" id="missionOv">
+    <div class="ov-card" style="max-width:340px;">
+      <div class="ov-title">🎯 Missions</div>
+      <div class="shop-coin-row">Completed: <b id="missionHead">0 / 0</b></div>
+      <div class="shop-hint">Complete missions to earn coins. Coins unlock baskets early in the Basket Shop.</div>
+      <div id="missionList"></div>
+      <button class="gbtn gbtn-gold" id="missionBackBtn">Close</button>
+    </div>
+  </div>
+
   <!-- ===== BASKET SHOP ===== -->
   <div class="overlay" id="basketOv">
     <div class="ov-card" style="max-width:340px;">
@@ -243,6 +271,7 @@
       <div class="ov-title" id="goTitle">Game Over!</div>
       <div class="ov-stat" id="goScore"></div>
       <div class="ov-sub" id="goSub">-</div>
+      <div class="ov-sub" id="goBest" style="font-size:12px; color:#FFD700;"></div>
       <button class="gbtn gbtn-gold" id="goContinueBtn">Continue from Saved</button>
       <button class="gbtn gbtn-red" id="goRestartBtn">Restart</button>
     </div>
@@ -340,6 +369,6 @@
   console.log("Firebase Auth + Firestore ready!");
 </script>
 
-<script src="script.js?v=4.5"></script>
+<script src="script.js?v=4.6"></script>
 </body>
 </html>

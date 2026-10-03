@@ -8,7 +8,7 @@
 // ============================================================
 
 // v4.5: cache naam badla gaya hai taaki purana version kabhi na dikhe.
-const CACHE_NAME = 'candymass-v4-5';
+const CACHE_NAME = 'candymass-v4-6';
 
 // Ye files pehli baar install par cache ho jati hain.
 const CORE_ASSETS = [

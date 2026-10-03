@@ -600,3 +600,123 @@ body.game-active {
   .hv { font-size: 15px; }
   #coinHud { font-size: 12px !important; }
 }
+
+
+/* ============================================================
+   ===== v4.6 : TOAST, MISSIONS, PAUSE MENU, ROTATE ===========
+   ============================================================ */
+
+/* ---- toast (native alert ki jagah) ---- */
+#toast {
+  position: fixed;
+  left: 50%;
+  top: 14px;
+  transform: translateX(-50%) translateY(-18px);
+  z-index: 9999;
+  display: none;
+  max-width: 88%;
+  padding: 10px 18px;
+  border-radius: 30px;
+  background: linear-gradient(145deg, rgba(20, 10, 40, 0.97), rgba(40, 15, 60, 0.97));
+  border: 1.5px solid rgba(255, 215, 0, 0.55);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55);
+  color: #FFD700;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.45;
+  opacity: 0;
+  transition: opacity 0.25s, transform 0.25s;
+  pointer-events: none;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---- rotate prompt (portrait lock) ---- */
+#rotateMsg {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: #060012;
+  color: #FFD700;
+  font-size: 22px;
+  font-weight: 800;
+  text-align: center;
+  padding-top: 30vh;
+  line-height: 1.7;
+}
+#rotateMsg span { font-size: 14px; color: rgba(255,255,255,0.6); font-weight: 500; }
+@media (orientation: landscape) and (max-height: 520px) {
+  #rotateMsg { display: block; }
+}
+
+/* ---- best score line ---- */
+.best-line {
+  font-size: 12px;
+  font-weight: 700;
+  color: #FFD700;
+  background: rgba(255, 215, 0, 0.10);
+  border: 1px solid rgba(255, 215, 0, 0.25);
+  border-radius: 20px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+}
+.best-line b { color: #00FFB0; }
+
+/* ---- pause menu ---- */
+.pause-stats {
+  font-size: 13px;
+  color: #FFB8D0;
+  margin: 6px 0 12px;
+}
+.pause-stats b { color: #FFD700; }
+.pause-row { display: flex; gap: 8px; margin-top: 8px; }
+.pause-mini {
+  flex: 1;
+  margin-top: 0 !important;
+  font-size: 12px !important;
+  padding: 10px 6px !important;
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+}
+.pause-mini:active { background: rgba(255, 215, 0, 0.2); }
+
+/* ---- missions ---- */
+#missionList {
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+.mission {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid rgba(255, 255, 255, 0.10);
+  border-radius: 14px;
+  padding: 8px 10px;
+  margin-bottom: 7px;
+  text-align: left;
+}
+.mission.done {
+  border-color: rgba(0, 255, 176, 0.55);
+  background: rgba(0, 255, 176, 0.08);
+}
+.ms-top { display: flex; align-items: center; gap: 6px; }
+.ms-icon { font-size: 16px; }
+.ms-name { flex: 1; font-size: 12.5px; font-weight: 800; color: #fff; }
+.ms-reward { font-size: 11px; font-weight: 800; color: #FFD700; }
+.mission.done .ms-reward { color: #00FFB0; }
+.ms-text { font-size: 10.5px; color: rgba(255, 255, 255, 0.55); margin: 2px 0 5px; }
+.ms-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.ms-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #FFD700, #FF8C00);
+  transition: width 0.3s;
+}
+.mission.done .ms-fill { background: linear-gradient(90deg, #00FFB0, #10D4AA); }
+.ms-prog { font-size: 9.5px; color: rgba(255, 255, 255, 0.45); margin-top: 3px; text-align: right; }

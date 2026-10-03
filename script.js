@@ -362,16 +362,30 @@ const BASE_W = 400, BASE_H = 540;
 let gameW = BASE_W, gameH = BASE_H;
 let scaleX = 1, scaleY = 1;
 
+// Device pixel ratio: high-DPI phones par canvas ko uske asli pixels se back
+// karte hain, warna browser use stretch karta hai aur sprites blurry lagte hain.
+let dpr = 1;
+let dprScale = 1;
+
+function getDPR() {
+    return Math.min(3, Math.max(1, window.devicePixelRatio || 1));
+}
+
 function resizeCanvas() {
     const container = document.getElementById('cw');
     if (!container) return;
     const rect = container.getBoundingClientRect();
     if (rect.width > 4) gameW = rect.width;
     if (rect.height > 4) gameH = rect.height;
+    dpr = getDPR();
+    dprScale = dpr;
     const canvas = document.getElementById('canvas');
     if (canvas) {
-        canvas.width = gameW;
-        canvas.height = gameH;
+        // buffer = CSS size x DPR (sharp), CSS size wahi rehti hai
+        canvas.width = Math.round(gameW * dpr);
+        canvas.height = Math.round(gameH * dpr);
+        canvas.style.width = gameW + 'px';
+        canvas.style.height = gameH + 'px';
     }
     scaleX = gameW / BASE_W;
     scaleY = gameH / BASE_H;
@@ -448,8 +462,20 @@ function getSpeedForLevel(lvl) {
 
 // Spawn interval (frames @60fps): L1 ~ 1.53s ... L10000 ~ 0.75s
 const SPAWN_MIN = 45;
-const SPAWN_MAX = 92;
+const SPAWN_MAX = 62;    // 62 frames = 1.03s (L40 ke baad se shuru)
 function getSpawnIntervalForLevel(lvl) {
+    // Pehle 40 level = "tutorial rush": shuru me aaram (L1 par 2 candy/level
+    // type feel), phir tez hone lagta hai (L20 tak peak), phir normal curve
+    // me smoothly mil jata hai — koi jump nahi.
+    if (lvl <= 40) {
+        const peak = 26;                     // sabse tez spawn (frames)
+        if (lvl <= 20) {
+            // L1: 62 frames (aaram se pakadne do) -> L20: 26 frames (rush)
+            return Math.round(62 - (lvl - 1) * (62 - peak) / 19);
+        }
+        // L21 -> L40: 26 frames se wapas 62 frames (normal curve se milne ke liye)
+        return Math.round(peak + (lvl - 20) * (62 - peak) / 20);
+    }
     const t = Math.min(lvl, 10000) / 10000;
     return Math.round(SPAWN_MAX - (SPAWN_MAX - SPAWN_MIN) * Math.pow(t, 0.70));
 }
@@ -925,8 +951,15 @@ function getCoins() {
     return isNaN(v) ? 0 : v;
 }
 function setCoins(v) {
+    const old = getCoins();
     coins = Math.max(0, Math.floor(v || 0));
     localStorage.setItem('cm_coins', String(coins));
+    // total lifetime coins bhi track karo (missions ke liye)
+    if (coins > old) {
+        const life = getLifetime();
+        life.totalCoins = (life.totalCoins || 0) + (coins - old);
+        setLifetime(life);
+    }
     updateCoinLabels();
 }
 function addCoins(n) { setCoins(getCoins() + n); }
@@ -966,7 +999,16 @@ function isSkinUnlocked(i) {
     const s = BASKET_SKINS[i];
     if (!s) return false;
     if (ownedSkins[i]) return true;
-    return st.level >= s.unlockLevel;
+    // def.level use karo (st.level ke bajaye) taaki level init se pehle bhi
+    // sahi jawab mile — pehle basket shop galat lock dikhata tha.
+    const lvl = (typeof st.level === 'number' && st.level > 0) ? st.level : 1;
+    return lvl >= s.unlockLevel;
+}
+
+function countUnlockedBaskets() {
+    let n = 0;
+    for (let i = 0; i < BASKET_SKINS.length; i++) if (isSkinUnlocked(i)) n++;
+    return n;
 }
 
 function updateSkinButton() {
@@ -1006,12 +1048,8 @@ function selectBasket(i) {
         }
     } else {
         const need = s.cost - have;
-        alert('🔒 ' + s.emoji + ' ' + s.name + ' is locked.\n\n' +
-            'It unlocks automatically at Level ' + s.unlockLevel.toLocaleString() + '.\n' +
-            'Or unlock it now for ' + s.cost.toLocaleString() + ' 🪙 coins.\n\n' +
-            'Your coins: ' + have.toLocaleString() + ' 🪙\n' +
-            'You need: ' + need.toLocaleString() + ' more 🪙\n\n' +
-            '(Coins come from the daily reward spin)');
+        toast('🔒 <b>' + s.name + '</b> unlocks at Level ' + s.unlockLevel.toLocaleString() +
+            '<br>or now for ' + s.cost.toLocaleString() + ' 🪙 (need ' + need.toLocaleString() + ' more)', '#FFB8D0', 3200);
     }
 }
 
@@ -1353,6 +1391,26 @@ window.onUserLoggedIn = function (user) {
     showHomePage(name, email);
 };
 
+// Cloud se progress laao (agar local me kuch nahi hai to)
+async function syncCloudProgress() {
+    if (!currentUserEmail || currentUserEmail.indexOf('guest_') === 0) return;
+    try {
+        const cloud = await loadProgressFromCloud();
+        if (!cloud) return;
+        const local = loadProgress();
+        // cloud aage hai to cloud wala use karo
+        if (cloud.level > ((local && local.level) || 0)) {
+            localStorage.setItem(saveKey(currentUserEmail), JSON.stringify({
+                level: cloud.level, score: cloud.score || 0, lives: cloud.lives || 3
+            }));
+            toast('☁️ Cloud save mila: Level ' + cloud.level.toLocaleString(), '#00FFB0', 2600);
+        } else if (local && local.level > cloud.level) {
+            // local aage hai to cloud par bhej do
+            saveProgressToCloud();
+        }
+    } catch (e) {}
+}
+
 function showHomePage(name, email) {
     if (name) { currentUserName = name; currentUserEmail = email; }
     document.getElementById('gameWrap').style.display = 'flex';
@@ -1364,7 +1422,13 @@ function showHomePage(name, email) {
     updateSkinButton();
     initSoundBtn();
     initMusicBtn();
+    updateCoinLabels();
+    renderBestScore();
     resizeCanvas();
+    // cloud se progress sync (Google login wale ke liye)
+    if (currentUserEmail && currentUserEmail.indexOf('guest_') !== 0) {
+        syncCloudProgress();
+    }
 }
 
 function hideHomePage() {
@@ -1404,6 +1468,7 @@ function logout() {
 
 window.addEventListener('load', () => {
     loadSkin();
+    loadMissions();
     loadSpriteSheet();
     const sess = getSession();
     if (sess && sess.email && sess.email.indexOf('guest_') !== 0) {
@@ -1508,11 +1573,28 @@ async function loadProgressFromCloud() {
 // ===== 11. HUD / OVERLAYS ===================================
 // ============================================================
 function updateHUD() {
-    document.getElementById('sc').textContent = st.score.toLocaleString();
     document.getElementById('lv').textContent = st.level.toLocaleString();
     let h = '';
     for (let i = 0; i < st.lives; i++) h += '❤️';
     document.getElementById('li').innerHTML = h || '🖤';
+    // score animated counter se update hota hai (gameLoop me)
+}
+
+// Home screen par best score/level dikhao
+function renderBestScore() {
+    const life = getLifetime();
+    const el = document.getElementById('bestLine');
+    if (el) {
+        el.innerHTML = (life.bestScore > 0)
+            ? '🏆 Best: <b>' + life.bestScore.toLocaleString() + '</b> &nbsp;·&nbsp; Level <b>' + life.bestLevel.toLocaleString() + '</b>'
+            : '🏆 No record yet — play your first game!';
+    }
+    const g = document.getElementById('goBest');
+    if (g) {
+        g.innerHTML = (life.bestScore > 0)
+            ? 'Best: ' + life.bestScore.toLocaleString() + ' · Level ' + life.bestLevel.toLocaleString()
+            : '';
+    }
 }
 
 function updateTaskHud() {
@@ -1564,7 +1646,7 @@ let shakeFrames = 0, shakeIntensity = 0;
 function triggerShake(intensity, frames) { shakeFrames = frames || 18; shakeIntensity = intensity || 8; }
 
 function showOv(id) {
-    const overlays = ['homeOv', 'levelOv', 'taskOv', 'celebOv', 'lbOv', 'roadmapOv', 'dailyOv', 'basketOv', 'goOv', 'settingsOv', 'helpOv', 'pauseOv'];
+    const overlays = ['homeOv', 'levelOv', 'taskOv', 'celebOv', 'lbOv', 'roadmapOv', 'dailyOv', 'basketOv', 'missionOv', 'goOv', 'settingsOv', 'helpOv', 'pauseOv'];
     overlays.forEach(s => { const el = document.getElementById(s); if (el) el.style.display = 'none'; });
     const homePage = document.getElementById('homePageOv');
     if (homePage) homePage.style.display = 'none';
@@ -1579,6 +1661,7 @@ function handleBombEffect(bombType) {
     if (eff === 'game-over') {
         st.lives = 0;
         updateHUD();
+        haptic([80, 50, 120]);
         addRedParticles(gameW / 2, gameH * 0.8);
         endGame(true);
         return;
@@ -1587,6 +1670,7 @@ function handleBombEffect(bombType) {
         st.lives--;
         updateHUD();
         sfxWrong();
+        haptic([50, 40, 50]);
         triggerShake(6, 14);
         addFloat('💔 -1 Life!', '#FF4444', true);
         if (st.lives <= 0) endGame(false);
@@ -1614,6 +1698,8 @@ function handleBombEffect(bombType) {
 // ============================================================
 function initLevel(lvl, score, lives) {
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = 0; }
+    // save se aaya level? (basket unlock aur missions ke liye zaruri)
+    if (typeof lvl === 'number' && lvl > 0) st.level = lvl;
     const cfg = getLevelConfig(lvl);
     syncWorld(lvl);
 
@@ -1662,12 +1748,18 @@ function initLevel(lvl, score, lives) {
     st.basket.h = 26 * scaleY * scale;
     st.basket.y = gameH - 52 * scaleY;
 
+    // per-level flags
+    st.lostLifeThisLevel = false;
+    st.lastCoinReward = 0;
+
     applyTheme();
     updateHUD();
     updateTaskHud();
     updatePowerupHud();
     updateWorldTag();
     updateBombLegend();
+    updateCoinLabels();
+    renderBestScore();
 }
 
 function applyTheme() {
@@ -1721,11 +1813,8 @@ function checkBasketUnlocks(fromLvl, toLvl) {
     if (!unlocked.length) return;
     sfxSurprise();
     addFloat('🎨 New basket unlocked!', '#FFD700', true);
-    setTimeout(() => {
-        const names = unlocked.map(s => s.emoji + ' ' + s.name).join(', ');
-        alert('🎨 New basket unlocked!\n\n' + names +
-            '\n\nChange your basket from the 🎨 Baskets button on the home screen.');
-    }, 400);
+    const names = unlocked.map(s => s.emoji + ' ' + s.name).join(', ');
+    toast('🎨 New basket unlocked: <b>' + names + '</b>', '#FFD700', 3000);
 }
 
 // ============================================================
@@ -1733,6 +1822,21 @@ function checkBasketUnlocks(fromLvl, toLvl) {
 // ============================================================
 function onLevelComplete() {
     st.running = false;
+
+    // --- coins reward ---
+    const reward = getLevelCoinReward(st.level);
+    awardCoins(reward, gameW / 2, gameH * 0.62);
+    st.lastCoinReward = reward;
+
+    // --- missions ---
+    tickMission('levels', 1);
+    if (!st.lostLifeThisLevel) tickMission('nohit', 1);
+    tickMission('jars', countUnlockedBaskets(), 'abs');
+    tickMission('coins', getLifetime().totalCoins, 'abs');
+
+    // --- best score/level ---
+    const life = checkLifetimeRecords();
+
     saveProgress();
     saveProgressToCloud();
     saveLB();
@@ -1822,7 +1926,8 @@ function afterCeleb() {
 function showLevelComplete() {
     document.getElementById('lvEmoji').textContent = '🎉';
     document.getElementById('lvTitle').textContent = 'Level ' + st.level + ' Complete!';
-    document.getElementById('lvScore').textContent = 'Score: ' + st.score.toLocaleString();
+    document.getElementById('lvScore').innerHTML = 'Score: ' + st.score.toLocaleString() +
+        (st.lastCoinReward ? ' &nbsp; <span style="color:#FFD700;">+' + st.lastCoinReward + ' 🪙</span>' : '');
     const nl = Math.min(10000, st.level + 1);
     const nextTarget = getLevelTarget(nl);
     let sub = 'Next target: <b style="color:#FFD700;">' + nextTarget + '</b> candies';
@@ -1858,7 +1963,9 @@ function endGame(isBomb) {
         document.getElementById('goTitle').textContent = 'Game Over!';
         document.getElementById('goTitle').style.color = '#FF4466';
     }
+    checkLifetimeRecords();
     document.getElementById('goScore').textContent = 'Score: ' + st.score.toLocaleString();
+    renderBestScore();
     document.getElementById('goSub').innerHTML = 'You reached level ' + st.level + '.<br>Saved progress — you can continue!';
     saveProgress();
     saveProgressToCloud();
@@ -1922,6 +2029,8 @@ function onCatch(item) {
             st.taskCaught++;
             st.levelCaught++;
             st.score += 10;
+            haptic(14);
+            if (st.taskCaught >= st.taskDef.count) tickMission('tasks', 1);
             updateHUD();
             sfxCatch();
             addParticles(item.x, by, '#00FFB0', '#FFFFFF');
@@ -1932,6 +2041,7 @@ function onCatch(item) {
             st.lives--;
             updateHUD();
             sfxWrong();
+            haptic([40, 60, 40]);
             triggerShake(6, 12);
             addRedParticles(item.x, by);
             addFloat('❌ Wrong candy! -1 ❤️', '#FF4444', true);
@@ -1945,6 +2055,10 @@ function onCatch(item) {
     st.comboTimer = 90;
     const multi = Math.min(st.combo, 5);
     const pts = 10 * multi;
+    // haptics + missions
+    haptic(multi >= 3 ? [12, 30, 12] : 12);
+    tickMission('total', 1);
+    tickMission('combo', multi, 'max');
     st.score += pts;
     st.levelCaught++;
     if (multi > 1) sfxCombo(multi);
@@ -1978,10 +2092,13 @@ function onTaskProgress() {
 function onMiss() {
     // task level me galat candy chhod dena sahi baat hai -> koi penalty nahi
     if (st.inTask) return;
+    if (st.lives <= 1) return;          // aakhri life bacha lo (naya rule neeche)
     sfxMiss();
+    haptic([25, 35]);
     triggerShake(4, 10);
     st.combo = 0;
     st.comboTimer = 0;
+    st.lostLifeThisLevel = true;
     st.lives--;
     updateHUD();
     if (st.lives <= 0) endGame(false);
@@ -2014,8 +2131,15 @@ function gameLoop(timestamp) {
     if (dtMs > 34) dtMs = 34;               // tab switch ke baad bada jump na ho
     const dtScale = dtMs / FRAME_INTERVAL;  // 1.0 = ek 60 FPS frame
 
+    // canvas ko DPR par scale karo (game ka code logical px me hi chalta hai)
+    if (dprScale !== 1) ctx.scale(dprScale, dprScale);
+
     st.frame += dtScale;
     autoSpinTimer += dtScale;
+
+    // animated counters (score aur coins dheere-dheere badhte hain)
+    animateScore();
+    updateCoinDisplay();
 
     ctx.save();
     if (shakeFrames > 0) {
@@ -2082,6 +2206,8 @@ function gameLoop(timestamp) {
         }
 
         if (it.y - it.size > gameH) {
+            // bomb ko girne dena = achhi baat (dodge)
+            if (it.isBomb) tickMission('bombs', 1);
             if (!st.inTask) onMiss();
             if (!st.running) { ctx.restore(); animFrameId = 0; return; }
             continue;
@@ -2133,6 +2259,23 @@ function gameLoop(timestamp) {
         return c.life > 0 && c.y < gameH + 20;
     });
 
+    // coin fly animation ("+5 🪙" upar tairta hua)
+    if (coinFly.length) {
+        coinFly = coinFly.filter(c => {
+            c.y -= 1.4; c.life--;
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, Math.min(1, c.life / c.maxLife));
+            glow('#FFD700', 10);
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold ' + (15 * scaleX) + 'px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(c.text, c.x, c.y);
+            ng();
+            ctx.restore();
+            return c.life > 0;
+        });
+    }
+
     if (st.combo >= 2 && !st.inTask) {
         const multi = Math.min(st.combo, 5);
         const colors = ['', '', '#FFD700', '#FF8C00', '#FF4DA6', '#FF00FF'];
@@ -2180,6 +2323,197 @@ function gameLoop(timestamp) {
 }
 
 // ============================================================
+// ===== HAPTICS (vibration) ==================================
+// Settings me Vibration toggle pehle sirf save hota tha, kabhi use nahi hota tha.
+// ============================================================
+let hapticsOn = localStorage.getItem('game_vibration') === 'on';
+
+function haptic(pattern) {
+    if (!hapticsOn) return;
+    try {
+        if (navigator && typeof navigator.vibrate === 'function') navigator.vibrate(pattern);
+    } catch (e) {}
+}
+
+// ============================================================
+// ===== TOAST (native alert ki jagah) ========================
+// alert() blocking hota hai — usse sound aur animation ruk jati thi.
+// ============================================================
+let toastTimer = null;
+function toast(msg, color, ms) {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    el.innerHTML = msg;
+    el.style.color = color || '#FFD700';
+    el.style.display = 'block';
+    el.classList.remove('show');
+    void el.offsetWidth;
+    el.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.style.display = 'none'; }, ms || 2200);
+}
+
+// ============================================================
+// ===== LIFETIME STATS (best score / best level) =============
+// ============================================================
+function getLifetime() {
+    try {
+        const d = JSON.parse(localStorage.getItem('cm_lifetime') || 'null');
+        if (d) return { bestScore: d.bestScore || 0, bestLevel: d.bestLevel || 1, totalCoins: d.totalCoins || 0 };
+    } catch (e) {}
+    return { bestScore: 0, bestLevel: 1, totalCoins: 0 };
+}
+function setLifetime(d) { localStorage.setItem('cm_lifetime', JSON.stringify(d)); }
+
+// Naya record bana? Toast dikhao aur save karo.
+function checkLifetimeRecords() {
+    const life = getLifetime();
+    let changed = false;
+    if (st.score > (life.bestScore || 0)) { life.bestScore = st.score; changed = true; }
+    if (st.level > (life.bestLevel || 1)) { life.bestLevel = st.level; changed = true; }
+    if (changed) setLifetime(life);
+    return life;
+}
+
+// ============================================================
+// ===== SCORE / COIN ANIMATION ===============================
+// ============================================================
+let shownScore = 0;
+let shownCoins = 0;
+let coinFly = [];
+
+function animateScore() {
+    if (shownScore !== st.score) {
+        const diff = st.score - shownScore;
+        const step = Math.max(1, Math.ceil(Math.abs(diff) / 6));
+        shownScore += diff > 0 ? Math.min(step, diff) : Math.max(-step, diff);
+        const el = document.getElementById('sc');
+        if (el) el.textContent = shownScore.toLocaleString();
+    }
+}
+
+function updateCoinDisplay() {
+    const target = getCoins();
+    if (shownCoins !== target) {
+        const diff = target - shownCoins;
+        const step = Math.max(1, Math.ceil(Math.abs(diff) / 6));
+        shownCoins += diff > 0 ? Math.min(step, diff) : Math.max(-step, diff);
+    }
+    const str = '🪙 ' + shownCoins.toLocaleString();
+    const a = document.getElementById('coinHud');
+    if (a) a.textContent = str;
+    const b = document.getElementById('homeCoinBtn');
+    if (b) b.textContent = str;
+    const c = document.getElementById('shopCoinLabel');
+    if (c) c.textContent = str;
+}
+
+// Level complete par milne wale coins (level ke saath badhte hain)
+function getLevelCoinReward(lvl) {
+    const base = 1 + Math.floor(Math.min(lvl, 10000) / 400);
+    const isTask = (lvl % 5 === 0);
+    return Math.min(25, base + (isTask ? 3 : 0));
+}
+
+// Coins do + screen par "+N" dikhao
+// NOTE: totalCoins ka hisaab setCoins() khud rakhta hai, isliye yahan dobara
+// nahi jodte (warna double count ho jata).
+function awardCoins(n, x, y) {
+    if (!n) return;
+    addCoins(n);
+    coinFly.push({ x: (x === undefined ? gameW / 2 : x), y: (y === undefined ? gameH * 0.6 : y), text: '+' + n + ' 🪙', life: 70, maxLife: 70 });
+    sfxCoin();
+}
+
+function sfxCoin() { beep(1200, 'sine', 0.07, 0.22); beep(1600, 'sine', 0.06, 0.18, 0.06); }
+function sfxUnlock() { [660, 880, 1100, 1320].forEach((f, i) => beep(f, 'triangle', 0.12, 0.26, i * 0.09)); }
+
+// ============================================================
+// ===== MISSIONS / ACHIEVEMENTS ==============================
+// Har mission ka apna progress hota hai, aur poora hone par coins milte hain.
+// ============================================================
+const MISSIONS = [
+    { id: 'total', def: 500, reward: 20, icon: '🍬', name: 'Candy Collector', text: 'Catch {n} candies (total)' },
+    { id: 'combo', def: 15, reward: 30, icon: '🔥', name: 'Combo Master', text: 'Reach a {n}x combo' },
+    { id: 'levels', def: 25, reward: 40, icon: '📈', name: 'Level Climber', text: 'Complete {n} levels' },
+    { id: 'tasks', def: 5, reward: 50, icon: '🎯', name: 'Task Hero', text: 'Complete {n} bonus tasks' },
+    { id: 'bombs', def: 10, reward: 35, icon: '💣', name: 'Bomb Dodger', text: 'Dodge {n} bombs (let them fall)' },
+    { id: 'nohit', def: 5, reward: 45, icon: '🛡️', name: 'Untouchable', text: 'Complete {n} levels without losing a life' },
+    { id: 'jars', def: 5, reward: 60, icon: '🎨', name: 'Basket Fan', text: 'Unlock {n} baskets' },
+    { id: 'coins', def: 1000, reward: 50, icon: '🪙', name: 'Coin Saver', text: 'Earn {n} coins (total)' }
+];
+
+let missions = {};
+
+function loadMissions() {
+    try { missions = JSON.parse(localStorage.getItem('cm_missions') || '{}') || {}; } catch (e) { missions = {}; }
+    if (typeof missions !== 'object' || !missions) missions = {};
+    MISSIONS.forEach(m => {
+        if (!missions[m.id]) missions[m.id] = { v: 0, done: false };
+        if (typeof missions[m.id].v !== 'number') missions[m.id].v = 0;
+    });
+}
+function saveMissions() { localStorage.setItem('cm_missions', JSON.stringify(missions)); }
+
+// Mission progress badhao. Agar poora ho gaya to coins + toast.
+// mode: 'add' (default) | 'max' | 'abs'
+function tickMission(id, amount, mode) {
+    const m = missions[id];
+    if (!m) return;
+    const def = MISSIONS.filter(x => x.id === id)[0];
+    if (!def) return;
+    if (m.done) return;                    // ek baar poora hone ke baad dobara nahi
+    if (mode === 'max') m.v = Math.max(m.v, amount);
+    else if (mode === 'abs') m.v = amount;
+    else m.v += amount;
+    const justDone = m.v >= def.def;
+    if (justDone) {
+        m.done = true;
+        m.v = def.def;
+        addCoins(def.reward);       // totalCoins setCoins() khud track karta hai
+        sfxUnlock();
+        toast(def.icon + ' <b>' + def.name + '</b> complete!  +' + def.reward + ' 🪙', '#00FFB0', 3000);
+    }
+    saveMissions();
+}
+
+function missionProgressText(def, m) {
+    const v = Math.min(m.v, def.def);
+    return v.toLocaleString() + ' / ' + def.def.toLocaleString();
+}
+
+function renderMissions() {
+    const wrap = document.getElementById('missionList');
+    if (!wrap) return;
+    const done = MISSIONS.filter(m => missions[m.id] && missions[m.id].done).length;
+    const head = document.getElementById('missionHead');
+    if (head) head.textContent = done + ' / ' + MISSIONS.length + ' complete';
+    let html = '';
+    MISSIONS.forEach(def => {
+        const m = missions[def.id] || { v: 0, done: false };
+        const pct = Math.min(100, Math.round(Math.min(m.v, def.def) / def.def * 100));
+        html += '<div class="mission ' + (m.done ? 'done' : '') + '">' +
+            '<div class="ms-top"><span class="ms-icon">' + def.icon + '</span>' +
+            '<span class="ms-name">' + def.name + '</span>' +
+            '<span class="ms-reward">' + (m.done ? '✅' : '+' + def.reward + ' 🪙') + '</span></div>' +
+            '<div class="ms-text">' + def.text.replace('{n}', def.def.toLocaleString()) + '</div>' +
+            '<div class="ms-bar"><div class="ms-fill" style="width:' + pct + '%"></div></div>' +
+            '<div class="ms-prog">' + missionProgressText(def, m) + '</div></div>';
+    });
+    wrap.innerHTML = html;
+}
+
+function showMissions() {
+    showOv('missionOv');
+    renderMissions();
+}
+
+function closeMissions() {
+    if (isOnHomePage) showHomePage();
+    else showOv(null);
+}
+
+// ============================================================
 // ===== 17. PAUSE / ROADMAP / DAILY / SETTINGS ===============
 // ============================================================
 function togglePause() {
@@ -2189,11 +2523,54 @@ function togglePause() {
         isGamePaused = true;
         if (pauseOv) pauseOv.style.display = 'flex';
         stopMusic();
+        renderPauseStats();
     } else {
         isGamePaused = false;
         if (pauseOv) pauseOv.style.display = 'none';
         if (musicEnabled) startMusic(st.inTask ? -1 : 0);
     }
+}
+
+// Pause menu me current stats + toggle states dikhao
+function renderPauseStats() {
+    const el = document.getElementById('pauseStats');
+    if (el) {
+        el.innerHTML = 'Level <b>' + st.level.toLocaleString() + '</b> &nbsp;·&nbsp; Score <b>' +
+            st.score.toLocaleString() + '</b> &nbsp;·&nbsp; ' + '❤️'.repeat(Math.max(0, st.lives));
+    }
+    const sBtn = document.getElementById('pauseSoundBtn');
+    if (sBtn) sBtn.textContent = soundEnabled ? '🔊 Sound ON' : '🔇 Sound OFF';
+    const mBtn = document.getElementById('pauseMusicBtn');
+    if (mBtn) mBtn.textContent = musicEnabled ? '🎵 Music ON' : '🔇 Music OFF';
+    const vBtn = document.getElementById('pauseVibBtn');
+    if (vBtn) vBtn.textContent = hapticsOn ? '📳 Vibration ON' : '📴 Vibration OFF';
+}
+
+// Restart current level (lives 3 se, score same)
+function restartLevel() {
+    isGamePaused = false;
+    const pauseOv = document.getElementById('pauseOv');
+    if (pauseOv) pauseOv.style.display = 'none';
+    const lvl = st.level;
+    const score = st.score;
+    initLevel(lvl, score, 3);
+    showOv(null);
+    st.running = true;
+    lastFrameTime = 0;
+    startMusic(st.inTask ? -1 : 0);
+    requestAnimationFrame(gameLoop);
+}
+
+// Pause se home jao
+function pauseGoHome() {
+    isGamePaused = false;
+    const pauseOv = document.getElementById('pauseOv');
+    if (pauseOv) pauseOv.style.display = 'none';
+    st.running = false;
+    saveProgress();
+    saveProgressToCloud();
+    stopMusic();
+    showHomePage(currentUserName, currentUserEmail);
 }
 
 function showRoadmap() {
@@ -2457,6 +2834,16 @@ function claimReward(seg) {
         color = '#FF8C00'; sfxSurprise(); spawnConfetti(70);
     }
 
+    // ---- streak bonus: day 3 par 100 coins, day 7 par 300 coins ----
+    let streakBonus = 0;
+    if (streak > 0 && streak % 7 === 0) streakBonus = 300;
+    else if (streak > 0 && streak % 3 === 0) streakBonus = 100;
+    if (streakBonus > 0) {
+        addCoins(streakBonus);
+        msg += '  |  🔥 ' + streak + '-day streak bonus: +' + streakBonus + ' 🪙';
+        sfxUnlock();
+    }
+
     saveProgress();
     saveLB();
     updateCoinLabels();
@@ -2502,6 +2889,7 @@ function loadSettings() {
     if (elPocket) elPocket.checked = pocket !== 'off';
     soundEnabled = elSound ? elSound.checked : true;
     musicEnabled = elMusic ? elMusic.checked : true;
+    hapticsOn = elVib ? elVib.checked : false;
     initSoundBtn();
     if (musicEnabled && st && st.running) startMusic(st.inTask ? -1 : 0);
     else stopMusic();
@@ -2518,6 +2906,7 @@ function saveSettings() {
     localStorage.setItem('game_pocket', elPocket.checked ? 'on' : 'off');
     soundEnabled = elSound.checked;
     musicEnabled = elMusic.checked;
+    hapticsOn = elVib.checked;
     if (musicEnabled && st && st.running) startMusic(st.inTask ? -1 : 0);
     else stopMusic();
 }
@@ -2578,6 +2967,11 @@ window.showBasketShop = showBasketShop;
 window.closeBasketShop = closeBasketShop;
 window.selectBasket = selectBasket;
 window.renderBasketShop = renderBasketShop;
+window.showMissions = showMissions;
+window.closeMissions = closeMissions;
+window.restartLevel = restartLevel;
+window.pauseGoHome = pauseGoHome;
+window.toast = toast;
 window.showSettings = showSettings;
 window.closeSettings = closeSettings;
 window.showHelp = showHelp;
@@ -2587,7 +2981,7 @@ window.toggleSound = toggleSound;
 window.exitGame = exitGame;
 window.getLevelTarget = getLevelTarget;
 window.CandyMassDebug = {
-    VERSION: 'v4.5',
+    VERSION: 'v4.6',
     st: st,
     worldReady: worldReady,
     worldImages: worldImages,
@@ -2600,6 +2994,14 @@ window.CandyMassDebug = {
     setCoins: setCoins,
     addCoins: addCoins,
     getWaveConfig: getWaveConfig,
+    getLevelCoinReward: getLevelCoinReward,
+    countUnlockedBaskets: countUnlockedBaskets,
+    getLifetime: getLifetime,
+    MISSIONS: MISSIONS,
+    missions: missions,
+    tickMission: tickMission,
+    toast: toast,
+    awardCoins: awardCoins,
     BASKET_SKINS: BASKET_SKINS,
     getLevelTarget: getLevelTarget,
     getBombChance: getBombChance,
@@ -2618,7 +3020,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'homeMusicBtn': toggleMusic, 'homeSoundBtn': toggleSound, 'homeSkinBtn': cycleSkin,
         'homeLogoutBtn': logout, 'homeNewGameBtn': () => startGame(false), 'homeContinueBtn': () => startGame(true),
         'homeLbBtn': showLeaderboard, 'homeMapBtn': showRoadmap, 'homeDailyBtn': showDailyReward,
-        'homeSettingsBtn': showSettings, 'homeSkinBtn2': cycleSkin, 'homeHelpBtn': showHelp
+        'homeSettingsBtn': showSettings, 'homeSkinBtn2': cycleSkin, 'homeHelpBtn': showHelp,
+        'homeMissionBtn': showMissions
     };
     Object.keys(homeBtns).forEach(id => {
         const el = document.getElementById(id);
@@ -2631,6 +3034,20 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('closeSettingsBtn')?.addEventListener('click', closeSettings);
     document.getElementById('helpBackBtn')?.addEventListener('click', () => { if (isOnHomePage) showHomePage(); else showOv(null); });
     document.getElementById('resumeBtn')?.addEventListener('click', togglePause);
+    document.getElementById('pauseRestartBtn')?.addEventListener('click', restartLevel);
+    document.getElementById('pauseHomeBtn')?.addEventListener('click', pauseGoHome);
+    document.getElementById('pauseSoundBtn')?.addEventListener('click', () => { toggleSound(); renderPauseStats(); });
+    document.getElementById('pauseMusicBtn')?.addEventListener('click', () => { toggleMusic(); renderPauseStats(); });
+    document.getElementById('pauseVibBtn')?.addEventListener('click', () => {
+        hapticsOn = !hapticsOn;
+        localStorage.setItem('game_vibration', hapticsOn ? 'on' : 'off');
+        const el = document.getElementById('setVibration');
+        if (el) el.checked = hapticsOn;
+        haptic(30);
+        renderPauseStats();
+    });
+    document.getElementById('homeMissionBtn')?.addEventListener('click', showMissions);
+    document.getElementById('missionBackBtn')?.addEventListener('click', closeMissions);
     document.getElementById('nextLevelBtn')?.addEventListener('click', nextLevel);
     document.getElementById('startTaskBtn')?.addEventListener('click', startTaskPlay);
     document.getElementById('celebContinueBtn')?.addEventListener('click', afterCeleb);
@@ -2657,6 +3074,35 @@ document.addEventListener('DOMContentLoaded', () => {
 // ===== 20. DEBUG TABLE (level curve check) ==================
 // ============================================================
 // ============================================================
+// ===== AUDIO LIFECYCLE ======================================
+// Tab background me jaane par music band, wapas aane par chalu.
+// iOS par AudioContext background se aane ke baad suspend reh jata hai.
+// ============================================================
+let musicWasPlayingBeforeHide = false;
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        musicWasPlayingBeforeHide = musicPlaying;
+        if (musicPlaying) stopMusic();
+        if (st && st.running) isGamePaused = true;
+    } else {
+        try { if (AC && AC.state === 'suspended') AC.resume(); } catch (e) {}
+        if (st && st.running) isGamePaused = false;
+        if (musicWasPlayingBeforeHide && musicEnabled && st && st.running) startMusic(st.inTask ? -1 : 0);
+        musicWasPlayingBeforeHide = false;
+    }
+});
+
+window.addEventListener('blur', () => {
+    if (musicPlaying) stopMusic();
+    if (st && st.running) isGamePaused = true;
+});
+window.addEventListener('focus', () => {
+    try { if (AC && AC.state === 'suspended') AC.resume(); } catch (e) {}
+    if (st && st.running && !document.getElementById('pauseOv')) isGamePaused = false;
+});
+
+// ============================================================
 // ===== SERVICE WORKER (offline + Play Store TWA ke liye) =====
 // ============================================================
 if ('serviceWorker' in navigator) {
@@ -2665,8 +3111,8 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-console.log('✅ Candy Mass v4.5 loaded — 10,000 level engine');
-console.log('   (if this does not say v4.5, an old cached version is loading — press Ctrl+Shift+R)');
+console.log('✅ Candy Mass v4.6 loaded — 10,000 level engine');
+console.log('   (if this does not say v4.6, an old cached version is loading — press Ctrl+Shift+R)');
 console.log('🎯 Target curve:', [1, 2, 3, 5, 10, 20, 50, 100, 500, 1000, 2000, 3500, 5000, 7000, 9000, 9999, 10000]
     .map(l => 'L' + l + '=' + getLevelTarget(l)).join('  '));
 console.log('💣 Worlds:', Object.keys(WORLD_SHEETS).map(k => k + ' bombs[' + Object.keys(WORLD_SHEETS[k].bombs).join(',') + ']').join(' | '));
