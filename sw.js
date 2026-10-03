@@ -7,8 +7,8 @@
 // deploy turant dikhe (cache me purana index.html atka na rahe).
 // ============================================================
 
-// v4.2: cache naam badla gaya hai taaki purana version kabhi na dikhe.
-const CACHE_NAME = 'candymass-v4-2';
+// v4.4: cache naam badla gaya hai taaki purana version kabhi na dikhe.
+const CACHE_NAME = 'candymass-v4-4';
 
 // Ye files pehli baar install par cache ho jati hain.
 const CORE_ASSETS = [

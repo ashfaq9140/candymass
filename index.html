@@ -3,9 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Candy Mass - 10,000 Levels</title>
-
-<!-- ===== PWA / PLAY STORE ===== -->
+<title>Candy Mass</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0A001E">
 <meta name="mobile-web-app-capable" content="yes">
@@ -13,10 +11,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Candy Mass">
 <meta name="application-name" content="Candy Mass">
-<meta name="description" content="Candy Mass - 10,000 levels ka candy catching game. Candy, fish aur coffee themes, bonus tasks aur bombs.">
+<link rel="stylesheet" href="style.css?v=4.4">
 <link rel="icon" href="candymass_icon.png" type="image/png">
 <link rel="apple-touch-icon" href="candymass_icon.png">
-<link rel="stylesheet" href="style.css?v=4.3">
 </head>
 <body>
 <div id="app">
@@ -117,7 +114,7 @@
         <button class="icon-btn" id="homeHelpBtn">❓ Help</button>
       </div>
       <button class="icon-btn" id="homeCoinBtn" style="width:100%; margin-bottom:6px; font-size:13px;">🪙 0</button>
-      <div class="version" id="verTag">v4.3 | Mass Interactive Games</div>
+      <div class="version" id="verTag">v4.4 | Mass Interactive Games</div>
     </div>
   </div>
 
@@ -131,7 +128,6 @@
       <div class="setting-item"><span>✨ Pocket Effects</span><label class="switch"><input type="checkbox" id="setPocket"><span class="slider"></span></label></div>
       <div class="setting-item"><span>🚪 Logout</span><button id="settingsLogoutBtn" style="background:#FF4466; border:none; border-radius:20px; padding:5px 12px; color:white;">Logout</button></div>
       <div class="setting-item"><span>❌ Exit Game</span><button id="exitGameBtn" style="background:#444; border:none; border-radius:20px; padding:5px 12px; color:white;">Exit</button></div>
-      <div class="setting-item"><span>📄 Privacy Policy</span><a href="privacy.html" style="color:#FFD700; font-size:12px; text-decoration:underline;">Open</a></div>
       <button class="gbtn gbtn-gold" id="closeSettingsBtn">Save & Close</button>
     </div>
   </div>
@@ -342,6 +338,6 @@
   console.log("Firebase Auth + Firestore ready!");
 </script>
 
-<script src="script.js?v=4.3"></script>
+<script src="script.js?v=4.4"></script>
 </body>
 </html>

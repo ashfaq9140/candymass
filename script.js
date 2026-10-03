@@ -1,24 +1,23 @@
 // ============================================================
-// ===== CANDY MASS - 10,000 LEVEL ENGINE (v4.1 GITHUB) =======
+// ===== CANDY MASS - 10,000 LEVEL ENGINE (v4.0 FIXED) =========
 // ------------------------------------------------------------
-//  NAYA IS VERSION ME (v4.1):
-//   * Sprite sheet ka naam kuch bhi ho - candy-sheet.png,
-//     candysheet.png, .jpeg, .jpg - code khud har naam try
-//     karta hai. Isliye repo me rename karne ki zarurat nahi.
-//   * Sheet load na ho to console me saaf warning aati hai.
-//   * Play Store / PWA ke liye service worker register hota hai.
-//   * orientationchange par canvas resize (mobile fix).
-//
-//  PEHLE SE THEEK KIYE GAYE (v4.0):
-//   1. TASK LEVEL (har 5th level) me SPECIAL CANDY ab SACH ME
-//      generate hoti hai (pehle spawning poori band thi).
-//   2. Level target progressive curve: L1 = 10 ... L10000 = 120.
-//      9999 tak 120 NAHI hota (sirf level 10000 par 120).
-//   3. Har level ke saath SPEED aur BOMB CHANCE badhta hai.
-//   4. 3 themes ek-ek karke: 1-3500 Candy, 3501-7000 Fish,
-//      7001-10000 Coffee. Theme badalte hi purani candy ruk jati hai.
-//   5. Har theme ke apne bomb / shield / 10X IDs.
-//   6. Purana duplicate code aur undefined arrays hata diye.
+//  FIXES / CHANGES IN THIS VERSION
+//  1. TASK LEVEL (har 5th level) me SPECIAL CANDY ab SACH ME
+//     generate hoti hai (pehle sirf normal candy aati thi).
+//  2. Level target ab progressive curve par chalta hai:
+//     L1 = 10 candies ... L10000 = 120 candies. 9999 tak 120
+//     NAHI hota (sirf level 10000 par 120).
+//  3. Har level ke saath SPEED aur BOMB CHANCE badhta hai.
+//  4. 3 themes ek-ek karke chalti hain, purani puri ruk jati hai:
+//     1-3500 = Candy, 3501-7000 = Fish, 7001-10000 = Coffee.
+//     Har theme ka apna sprite sheet, apne bomb IDs aur apne
+//     shield / 10X power-up IDs hain (neeche WORLD_SHEETS dekho).
+//  5. Bomb ID mapping sheet ke hisaab se define ki gayi hai
+//     (fish / coffee sheets me bomb sprite par koi label nahi tha).
+//     Bomb, Shield aur 10X items ke upar colour ring + label
+//     draw hota hai, isliye turant pehchane jaate hain.
+//  6. Purana duplicate code (do startGame, do renderGame,
+//     undefined st.items / st.particles / st.confetti) hata diya.
 // ============================================================
 
 // ============================================================
@@ -28,9 +27,6 @@ const COLS = 8;          // har sheet me 8 columns
 const ROWS = 5;          // default rows (fish sheet 4 use karti hai)
 const MAX_TARGET = 120;  // level 10000 ka target
 
-// Har world ke liye possible file naam. Loader in sab ko ek-ek karke try
-// karta hai, jo pehla chale wahi use hota hai. Repo me file ka naam
-// candy-sheet.png / candysheet.png / candy-sheet.jpeg jo bhi ho, chalega.
 const WORLD_SHEETS = {
     candy: {
         urls: ['candy-sheet.png', 'candysheet.png', 'candy sheet.png', 'candy-sheet.jpeg', 'candy-sheet.jpg', 'candy.png'],
@@ -48,7 +44,7 @@ const WORLD_SHEETS = {
     fish: {
         urls: ['fish-sheet.png', 'fishsheet.png', 'fish sheet.png', 'fish-sheet.jpeg', 'fish-sheet.jpg', 'fish.png'],
         cols: 8, rows: 4,
-        empty: [],                       // fish sheet ke saare 32 tiles bhare hain
+        empty: [],                       // fish sheet me saare 32 tiles bhare hue hain
         bombs: {
             8: 'game-over',      // X-marked fish  -> instant Game Over
             13: 'life-reduce',   // seahorse       -> -1 Life
@@ -56,7 +52,7 @@ const WORLD_SHEETS = {
             6: 'score-reduce'    // gold sparkles  -> -500 score
         },
         shieldId: 5,    // rainbow fish
-        multiId: 7      // rainbow swirl (bomb ID 6 se alag)
+        multiId: 7      // rainbow spiral bean (bomb ID 6 se alag rakha gaya hai)
     },
     coffee: {
         urls: ['coffee-sheet.png', 'coffeesheet.png', 'coffee sheet.png', 'coffee-sheet.jpeg', 'coffee-sheet.jpg', 'coffee.png'],
@@ -164,11 +160,11 @@ function computeCellBounds(key, img) {
         try {
             data = c2.getImageData(sx, sy, sw, sh).data;
         } catch (e) {
-            // canvas tainted (cross-origin sheet) -> poora cell hi use karo
             cells[idx] = { sx: sx, sy: sy, sw: sw, sh: sh };
             continue;
         }
 
+        // mask + row/column content profiles
         const colSum = new Int32Array(sw);
         const rowSum = new Int32Array(sh);
         let content = 0;
@@ -239,7 +235,7 @@ function computeCellBounds(key, img) {
         }
         const runH = y1 - y0 + 1;
 
-        // cell ke 96% se bada crop nahi (border bleed rokne ke liye), center rakho
+        // cell ke 96% se bada crop nahi (border bleed rokne ke liye), aur center rakho
         const maxW = Math.floor(sw * 0.96), maxH = Math.floor(sh * 0.96);
         let fx0 = x0, fx1 = x1, fy0 = y0, fy1 = y1;
         if (runW > maxW) {
@@ -264,16 +260,14 @@ function computeCellBounds(key, img) {
     return cells;
 }
 
-// Filename dhoondhne wala loader: candidate list me se jo pehla load ho jaye use
-// le lo. Kuch bhi na mile to fallback drawing chalti rehti hai.
 function loadSheet(key) {
     const candidates = WORLD_SHEETS[key].urls.slice();
     let i = 0;
     const tryNext = () => {
         if (i >= candidates.length) {
             worldReady[key] = false;
-            console.warn('⚠️ Sheet nahi mili (' + key + '). Tried: ' + candidates.join(', ') +
-                ' — game fallback shapes se chalega. Sheet files repo ke root me rakho.');
+            console.warn('Sheet nahi mili (' + key + '). Tried: ' + candidates.join(', ') +
+                ' - game fallback shapes se chalega. Sheet files repo ke root me rakho.');
             return;
         }
         const name = candidates[i++];
@@ -415,6 +409,7 @@ function moveB(cx) {
 //  L7000   = 91  (Fish theme khatam)
 //  L9999   = 119
 //  L10000  = 120 (yahi ek level hai jahan 120 chahiye)
+// Value kabhi ghataati nahi, aur 120 se upar nahi jaati.
 const TARGET_ANCHORS = [
     [1, 10], [2, 11], [4, 12], [8, 14], [15, 17], [30, 20], [60, 24], [100, 28],
     [250, 34], [500, 40], [1000, 48], [2000, 57], [3000, 64], [3500, 67], [5000, 78],
@@ -442,9 +437,8 @@ function getLevelTarget(lvl) {
     return Math.min(MAX_TARGET - 1, Math.max(10, Math.round(raw)));
 }
 
-// Speed: L1 ~2.7 px/frame se L10000 tak ~6.0 px/frame.
-// Pehle ye 8.6 tak jaati thi jo bahut tez thi, isliye cap laga diya.
-// Power < 1 hone se shuru me speed jaldi badhti hai, phir ruk jati hai.
+// Speed: L1 ~2.7 px/frame se L10000 tak ~6.0 px/frame (cap).
+// Pehle ye 8.6 tak jaati thi jo bahut tez thi.
 const SPEED_MIN = 2.7;
 const SPEED_MAX = 6.0;
 function getSpeedForLevel(lvl) {
@@ -452,10 +446,9 @@ function getSpeedForLevel(lvl) {
     return SPEED_MIN + Math.pow(t, 0.62) * (SPEED_MAX - SPEED_MIN);
 }
 
-// Spawn interval (frames @60fps): L1 ~ 1.5s ... L10000 ~ 0.75s
-// Yaani candy level ke saath "jaldi jaldi" girti hai, par ek limit tak.
-const SPAWN_MIN = 45;    // 0.75 s
-const SPAWN_MAX = 92;    // 1.53 s
+// Spawn interval (frames @60fps): L1 ~ 1.53s ... L10000 ~ 0.75s
+const SPAWN_MIN = 45;
+const SPAWN_MAX = 92;
 function getSpawnIntervalForLevel(lvl) {
     const t = Math.min(lvl, 10000) / 10000;
     return Math.round(SPAWN_MAX - (SPAWN_MAX - SPAWN_MIN) * Math.pow(t, 0.70));
@@ -465,28 +458,32 @@ function getSpawnIntervalForLevel(lvl) {
 // Candy upar se niche girti hai aur us dauran left-right lehar banati rehti hai.
 //   amp  = kitna left-right jhoola (gameW ka hissa)
 //   freq = per frame phase step. Ek pura jhoola = (2*PI / freq) frames.
-// Pehle amp 10% aur freq 0.011 thi -> jhoola 4-6 second me pura hota tha,
-// isliye nazar hi nahi aata tha. Ab 22-32% aur 3x tez frequency hai.
+//
+// Do cheezon ka balance zaruri hai:
+//   - period bahut lamba (3s+) ho to candy ek jhoola pura na kare aur
+//     ruk-ruk kar chalti lage.
+//   - freq bahut tez ho to sideways speed falling speed se zyada ho jaye
+//     aur motion jerky lage.
+// Isliye period ~2.3s (L1) se ~1.45s (L10000) rakha hai.
 function getWaveConfig(lvl) {
     const t = Math.min(lvl, 10000) / 10000;
     return {
-        ampMin: 0.22,                                    // gameW ka 22%
-        ampMax: 0.22 + Math.pow(t, 0.5) * 0.10,          // level 10000 tak 32%
-        freqMin: 0.032,                                  // ~3.3 s me ek jhoola
-        freqMax: 0.032 + Math.pow(t, 0.6) * 0.020        // level 10000 par ~1.9 s
+        ampMin: 0.20,                                    // gameW ka 20%
+        ampMax: 0.20 + Math.pow(t, 0.5) * 0.05,          // level 10000 tak 25%
+        freqMin: 0.045,                                  // ~2.3 s me ek jhoola (L1)
+        freqMax: 0.045 + Math.pow(t, 0.6) * 0.027        // level 10000 par ~1.45 s
     };
 }
 
 function makeWave(lvl) {
     const cfg = getWaveConfig(lvl);
     const direction = Math.random() < 0.5 ? -1 : 1;
-    // direction = -1 -> pehle LEFT jaayegi, +1 -> pehle RIGHT jaayegi
-    const phase = direction < 0 ? (1.25 + Math.random() * 0.5) * Math.PI
-                                : (0.25 + Math.random() * 0.5) * Math.PI;
     return {
         amp: gameW * (cfg.ampMin + Math.random() * (cfg.ampMax - cfg.ampMin)),
         freq: cfg.freqMin + Math.random() * (cfg.freqMax - cfg.freqMin),
-        phase: phase,
+        // phase 0 se shuru: spawn par candy apni jagah par hi rehti hai,
+        // phir smoothly ek taraf jhoolna shuru karti hai (koi jump nahi).
+        phase: 0,
         direction: direction
     };
 }
@@ -518,12 +515,13 @@ function getLevelConfig(lvl) {
 // milti thi) jo bahut aasan tha. Ab level ke saath 5 se 22 tak badhti hai.
 function taskTargetCount(lvl) {
     const t = Math.min(lvl, 10000) / 10000;
-    return 5 + Math.round(Math.pow(t, 0.85) * 17);   // L<=5 : 5  ...  L10000 : 22
+    return 5 + Math.round(Math.pow(t, 0.85) * 17);
 }
 
 function isTaskLevel(lvl) { return lvl % 5 === 0 && lvl > 0; }
 
 // Task ke liye special candy: aate-aate poori candy pool unlock hoti hai.
+// Isse guarantee hai ki task wali candy sheet me maujood hai (bomb nahi).
 function pickTaskTargetId() {
     const ids = getValidIds(currentWorldKey).filter(id => !isBombId(id));
     const lvl = st.level;
@@ -608,17 +606,18 @@ function makeFallingItem(candyId, opts) {
     return {
         candyId: candyId,
         x: initialX,
-        startX: initialX,          // wave isi center ke around hilta hai
         y: -40 * scaleY,
         w: size,
         h: size,
         r: size / 2,
         size: size,
         speed: (st.speed + (1.0 + Math.random() * 0.9)) * (1 + Math.min(st.level, 10000) * 0.0004),
+        startX: initialX,          // wave isi center ke around hilta hai
         // ---- lehar (wave) parameters ----
         waveAmp: wave.amp,
         waveFreq: wave.freq,
-        wavePhase: wave.phase,
+        wavePhase: 0,        // spawn par offset 0 -> koi jump nahi
+        waveAge: 0,          // ease-in ke liye (pehle 0.25s me amplitude badhti hai)
         waveDirection: wave.direction,
         rot: Math.random() * Math.PI * 2,
         rotationSpeed: (Math.random() * 0.04 + 0.01) * drift,
@@ -636,7 +635,7 @@ function pushItem(item) { if (st.items.length < 28) st.items.push(item); }
 
 function decideSpawn() {
     // --- TASK LEVEL: task ke alawa candies kabhi bomb nahi hoti ---
-    if (st.inTask && st.taskDef) {
+    if (st.inTask) {
         const key = taskSpawnKey();
         if (key === 'TARGET') {
             pushItem(makeFallingItem(st.taskDef.targetId, { isTarget: true }));
@@ -703,7 +702,8 @@ function drawItemSprite(item) {
     const cells = currentSheetCells;
     const cell = cells ? cells[item.candyId] : null;
     if (currentSheetReady && currentSheet && cell) {
-        // Aspect ratio bachao (lambi fish stretch na ho), par hitbox se bahut bada bhi na ho
+        // Aspect ratio bachao (fish ya seahorse jaise lambe sprite stretch na ho),
+        // par hitbox se bahut bada bhi na ho.
         const fit = Math.min(item.w / cell.sw, item.h / cell.sh);
         const maxScale = (item.w / Math.max(1, cell.sw)) * 1.75;
         const scale = Math.min(maxScale, fit);
@@ -813,10 +813,10 @@ function drawItem(item) {
         return;
     }
 
-    // Decoy (task me aam candy) bilkul normal candy jaisi dikhni chahiye —
-    // pehle ye 50% transparent thi, isliye door se pata chal jata tha ki
-    // "ye galat wali hai" aur log galti nahi karte the. Ab same rakhi hai,
-    // taaki galti se pakadne par sach me -1 life lage.
+    // Decoy (task me aam candy) bilkul normal candy jaisi dikhni chahiye.
+    // Pehle ye 50% transparent thi, isliye door se pata chal jata tha ki ye
+    // galat wali hai aur log galti nahi karte the. Ab same hai, taaki galti
+    // se pakadne par sach me -1 life lage.
     if (item.isDecoy) {
         ctx.save();
         ctx.rotate(item.rot);
@@ -874,12 +874,11 @@ function drawProgressBar() {
     ctx.fillText(st.levelCaught + '/' + st.levelTarget, gameW - 12 * scaleX, 11 * scaleY);
 }
 
-// ===== BASKET SKINS =====
-// Har theme me 5 basket: pehla default (level 1 se free), baaki 4 level se
-// unlock hote hain. Coins se bhi pehle unlock kar sakte ho (daily spin se milte hain).
+// Har theme me 5 basket: pehla default (us theme ke pehle level se free),
+// baaki 4 level se unlock hote hain. Coins se bhi pehle unlock kar sakte ho.
 // unlockLevel = is level par apne aap unlock. cost = coins se jaldi unlock ka daam.
 const BASKET_SKINS = [
-    // ---------- 🍬 CANDY THEME ----------
+    // ---------- CANDY THEME ----------
     { name: 'Wooden',      emoji: '🪣', theme: 'candy',  tier: 1, unlockLevel: 1,    cost: 0,
       b1: '#F0A060', b2: '#C8752A', b3: '#7A3A08', bt: '#FFD090', bm: '#E08830', pattern: 'weave' },
     { name: 'Candy Pink',  emoji: '🍬', theme: 'candy',  tier: 2, unlockLevel: 700,  cost: 800,
@@ -891,7 +890,7 @@ const BASKET_SKINS = [
     { name: 'Rainbow',     emoji: '🌈', theme: 'candy',  tier: 5, unlockLevel: 2800, cost: 4500,
       b1: '#FF6B6B', b2: '#FFD93D', b3: '#845EF7', bt: '#FFFFFF', bm: '#FF9E44', pattern: 'rainbow' },
 
-    // ---------- 🐟 FISH THEME ----------
+    // ---------- FISH THEME ----------
     { name: 'Wooden',      emoji: '🪣', theme: 'fish',   tier: 1, unlockLevel: 3501, cost: 0,
       b1: '#F0A060', b2: '#C8752A', b3: '#7A3A08', bt: '#FFD090', bm: '#E08830', pattern: 'weave' },
     { name: 'Coral',       emoji: '🪸', theme: 'fish',   tier: 2, unlockLevel: 4200, cost: 1200,
@@ -903,7 +902,7 @@ const BASKET_SKINS = [
     { name: 'Pearl Gold',  emoji: '🫧', theme: 'fish',   tier: 5, unlockLevel: 6300, cost: 5500,
       b1: '#FFE9A8', b2: '#E8C158', b3: '#9A7614', bt: '#FFFBEF', bm: '#F2D479', pattern: 'rainbow' },
 
-    // ---------- ☕ COFFEE THEME ----------
+    // ---------- COFFEE THEME ----------
     { name: 'Wooden',      emoji: '🪣', theme: 'coffee', tier: 1, unlockLevel: 7001, cost: 0,
       b1: '#F0A060', b2: '#C8752A', b3: '#7A3A08', bt: '#FFD090', bm: '#E08830', pattern: 'weave' },
     { name: 'Latte',       emoji: '🥛', theme: 'coffee', tier: 2, unlockLevel: 7650, cost: 1500,
@@ -917,10 +916,10 @@ const BASKET_SKINS = [
 ];
 
 let currentSkinIndex = 0;
-let ownedSkins = {};       // { index: true } - coins se kharide gaye
+let ownedSkins = {};
 let coins = 0;
 
-// ===== COINS (daily reward se milte hain) =====
+// ===== COINS (daily reward se milte hain, basket unlock me lagte hain) =====
 function getCoins() {
     const v = parseInt(localStorage.getItem('cm_coins') || '0', 10);
     return isNaN(v) ? 0 : v;
@@ -950,7 +949,6 @@ function loadSkin() {
     }
     try { ownedSkins = JSON.parse(localStorage.getItem('cm_owned_skins') || '{}') || {}; } catch (e) { ownedSkins = {}; }
     coins = getCoins();
-    // agar saved basket lock ho gaya ho (jaise data reset) to default par aa jao
     if (!isSkinUnlocked(currentSkinIndex)) currentSkinIndex = 0;
     updateSkinButton();
     updateCoinLabels();
@@ -963,18 +961,12 @@ function saveSkin() {
 
 function saveOwnedSkins() { localStorage.setItem('cm_owned_skins', JSON.stringify(ownedSkins)); }
 
-// Basket unlocked hai? Level ya coins se.
+// Basket unlocked hai? Level se ya coins se kharida hua.
 function isSkinUnlocked(i) {
     const s = BASKET_SKINS[i];
     if (!s) return false;
     if (ownedSkins[i]) return true;
     return st.level >= s.unlockLevel;
-}
-
-function getUnlockText(i) {
-    const s = BASKET_SKINS[i];
-    if (isSkinUnlocked(i)) return '';
-    return 'Level ' + s.unlockLevel.toLocaleString() + ' par unlock';
 }
 
 function updateSkinButton() {
@@ -986,10 +978,10 @@ function updateSkinButton() {
     if (btn2) btn2.textContent = skinText;
 }
 
-// Purana cycleSkin (home par) - ab basket shop kholta hai
+// Home ka basket button ab shop kholta hai
 function cycleSkin() { showBasketShop(); }
 
-// Basket select karo (locked ho to coins se unlock poocho)
+// Basket select / coins se unlock
 function selectBasket(i) {
     const s = BASKET_SKINS[i];
     if (!s) return;
@@ -1000,7 +992,6 @@ function selectBasket(i) {
         beep(880, 'sine', 0.08, 0.22);
         return;
     }
-    // coins se unlock
     const have = getCoins();
     if (have >= s.cost) {
         if (confirm(s.emoji + ' ' + s.name + ' ko ' + s.cost.toLocaleString() +
@@ -1038,7 +1029,6 @@ function renderBasketShop() {
     const wrap = document.getElementById('basketGrid');
     if (!wrap) return;
     updateCoinLabels();
-    const lvl = st.level;
     let html = '';
     let lastTheme = '';
     BASKET_SKINS.forEach((s, i) => {
@@ -1055,18 +1045,13 @@ function renderBasketShop() {
         else if (getCoins() >= s.cost) status = '<span style="color:#FFD700;">🪙 ' + s.cost.toLocaleString() + ' — tap to unlock</span>';
         else status = '<span style="color:#9a9ab0;">🔒 Level ' + s.unlockLevel.toLocaleString() + '<br>🪙 ' + s.cost.toLocaleString() + '</span>';
 
-        // mini basket preview canvas
-        const cid = 'bkCanvas' + i;
         html += '<div class="basket-item ' + (equipped ? 'equipped' : '') + (unlocked ? '' : ' locked') + '" data-idx="' + i + '">' +
-            '<canvas id="' + cid + '" width="76" height="52"></canvas>' +
+            '<canvas id="bkCanvas' + i + '" width="76" height="52"></canvas>' +
             '<div class="bk-name">' + s.emoji + ' ' + s.name + '</div>' +
             '<div class="bk-status">' + status + '</div></div>';
     });
     wrap.innerHTML = html;
-    // preview draw karo + click handler lagao
-    BASKET_SKINS.forEach((s, i) => {
-        drawBasketPreview(i);
-    });
+    BASKET_SKINS.forEach((s, i) => { drawBasketPreview(i); });
     Array.prototype.forEach.call(wrap.querySelectorAll('.basket-item'), (el) => {
         el.addEventListener('click', () => selectBasket(parseInt(el.getAttribute('data-idx'), 10)));
     });
@@ -1084,12 +1069,11 @@ function drawBasketPreview(i) {
     g.restore();
 }
 
-// Basket ka asli drawing (game + preview dono isi se bante hain)
+// Basket ka asli drawing (game + shop preview dono isi se)
 function paintBasket(g, bx, by, bw, bh, skin, dim) {
     g.save();
     if (dim) g.globalAlpha = 0.4;
 
-    // body
     const grad = g.createLinearGradient(bx - bw / 2, by, bx + bw / 2, by + bh * 2);
     grad.addColorStop(0, skin.b1);
     grad.addColorStop(0.45, skin.b2);
@@ -1106,8 +1090,12 @@ function paintBasket(g, bx, by, bw, bh, skin, dim) {
     g.fill();
     g.stroke();
 
-    // pattern
     const p = skin.pattern || 'weave';
+    g.save();
+    g.beginPath();
+    g.moveTo(bx - bw / 2, by); g.lineTo(bx - bw / 2 + 8, by + bh);
+    g.lineTo(bx + bw / 2 - 8, by + bh); g.lineTo(bx + bw / 2, by);
+    g.closePath(); g.clip();
     if (p === 'weave') {
         g.strokeStyle = 'rgba(0,0,0,0.18)';
         g.lineWidth = 1.2;
@@ -1120,11 +1108,6 @@ function paintBasket(g, bx, by, bw, bh, skin, dim) {
             g.beginPath(); g.moveTo(bx - bw / 2 + 4, py); g.lineTo(bx + bw / 2 - 4, py); g.stroke();
         }
     } else if (p === 'stripes') {
-        g.save();
-        g.beginPath();
-        g.moveTo(bx - bw / 2, by); g.lineTo(bx - bw / 2 + 8, by + bh);
-        g.lineTo(bx + bw / 2 - 8, by + bh); g.lineTo(bx + bw / 2, by);
-        g.closePath(); g.clip();
         g.fillStyle = 'rgba(255,255,255,0.28)';
         for (let sx = bx - bw / 2; sx < bx + bw / 2; sx += 10) {
             g.beginPath();
@@ -1132,13 +1115,7 @@ function paintBasket(g, bx, by, bw, bh, skin, dim) {
             g.lineTo(sx + 8, by + bh); g.lineTo(sx + 4, by);
             g.closePath(); g.fill();
         }
-        g.restore();
     } else if (p === 'dots') {
-        g.save();
-        g.beginPath();
-        g.moveTo(bx - bw / 2, by); g.lineTo(bx - bw / 2 + 8, by + bh);
-        g.lineTo(bx + bw / 2 - 8, by + bh); g.lineTo(bx + bw / 2, by);
-        g.closePath(); g.clip();
         g.fillStyle = 'rgba(255,255,255,0.35)';
         for (let ry = 0; ry < 3; ry++) {
             for (let rx = 0; rx < 4; rx++) {
@@ -1147,9 +1124,7 @@ function paintBasket(g, bx, by, bw, bh, skin, dim) {
                 g.beginPath(); g.arc(cx2, cy2, 1.8, 0, Math.PI * 2); g.fill();
             }
         }
-        g.restore();
     } else if (p === 'bolts') {
-        g.save();
         g.strokeStyle = 'rgba(255,255,255,0.4)';
         g.lineWidth = 2;
         for (let ry = 1; ry < 3; ry++) {
@@ -1159,13 +1134,7 @@ function paintBasket(g, bx, by, bw, bh, skin, dim) {
         g.fillStyle = 'rgba(255,255,255,0.5)';
         [[-bw / 2 + 8, by + 4], [bw / 2 - 8, by + 4], [-bw / 2 + 10, by + bh - 3], [bw / 2 - 10, by + bh - 3]]
             .forEach(pt => { g.beginPath(); g.arc(bx + pt[0], pt[1], 1.9, 0, Math.PI * 2); g.fill(); });
-        g.restore();
     } else if (p === 'rainbow') {
-        g.save();
-        g.beginPath();
-        g.moveTo(bx - bw / 2, by); g.lineTo(bx - bw / 2 + 8, by + bh);
-        g.lineTo(bx + bw / 2 - 8, by + bh); g.lineTo(bx + bw / 2, by);
-        g.closePath(); g.clip();
         const rg = g.createLinearGradient(bx - bw / 2, by, bx + bw / 2, by + bh);
         rg.addColorStop(0, 'rgba(255,80,80,0.55)');
         rg.addColorStop(0.25, 'rgba(255,210,60,0.55)');
@@ -1174,10 +1143,9 @@ function paintBasket(g, bx, by, bw, bh, skin, dim) {
         rg.addColorStop(1, 'rgba(180,90,255,0.55)');
         g.fillStyle = rg;
         g.fillRect(bx - bw / 2, by, bw, bh + 2);
-        g.restore();
     }
+    g.restore();
 
-    // rim
     const rg2 = g.createLinearGradient(bx - bw / 2, by, bx + bw / 2, by);
     rg2.addColorStop(0, skin.bt);
     rg2.addColorStop(0.5, skin.bm);
@@ -1190,7 +1158,6 @@ function paintBasket(g, bx, by, bw, bh, skin, dim) {
     g.fill();
     g.stroke();
 
-    // tier 5 baskets par halka glow
     if (skin.tier >= 5 && !dim) {
         g.strokeStyle = 'rgba(255,255,255,0.5)';
         g.lineWidth = 1.5;
@@ -1204,7 +1171,6 @@ function paintBasket(g, bx, by, bw, bh, skin, dim) {
 function drawBasketWithSkin(bx, by, bw, bh) {
     const skin = BASKET_SKINS[currentSkinIndex] || BASKET_SKINS[0];
     ctx.save();
-    // zameen par halki roshni
     glow('#FF88AA', 14);
     ctx.fillStyle = 'rgba(255,100,150,0.05)';
     ctx.beginPath();
@@ -1214,7 +1180,6 @@ function drawBasketWithSkin(bx, by, bw, bh) {
     paintBasket(ctx, bx, by, bw, bh, skin, false);
     ctx.restore();
 }
-
 // ============================================================
 // ===== 8. PARTICLES / FLOATS / CONFETTI =====================
 // ============================================================
@@ -1734,10 +1699,10 @@ function advanceLevel() {
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = 0; }
     const carriedScore = st.score;
     const carriedLives = st.lives;
+    const fromLvl = st.level;
     const next = Math.min(10000, st.level + 1);
-    const before = st.level;
     initLevel(next, carriedScore, carriedLives);
-    checkBasketUnlocks(before, next);
+    checkBasketUnlocks(fromLvl, next);
     showOv(null);
     st.running = true;
     isGamePaused = false;
@@ -1750,10 +1715,8 @@ function advanceLevel() {
 function checkBasketUnlocks(fromLvl, toLvl) {
     const unlocked = [];
     BASKET_SKINS.forEach((s, i) => {
-        if (s.cost === 0) return;                       // default basket chhod do
-        if (s.unlockLevel > fromLvl && s.unlockLevel <= toLvl && !ownedSkins[i]) {
-            unlocked.push(s);
-        }
+        if (s.cost === 0) return;
+        if (s.unlockLevel > fromLvl && s.unlockLevel <= toLvl && !ownedSkins[i]) unlocked.push(s);
     });
     if (!unlocked.length) return;
     sfxSurprise();
@@ -1761,7 +1724,7 @@ function checkBasketUnlocks(fromLvl, toLvl) {
     setTimeout(() => {
         const names = unlocked.map(s => s.emoji + ' ' + s.name).join(', ');
         alert('🎨 Naya basket unlock ho gaya!\n\n' + names +
-            '\n\nHome par 🎨 button se basket badal sakte ho.');
+            '\n\nHome par 🎨 Baskets button se basket badal sakte ho.');
     }, 400);
 }
 
@@ -1958,7 +1921,7 @@ function onCatch(item) {
         if (wantThis) {
             st.taskCaught++;
             st.levelCaught++;
-            st.score += 10;                    // aam candy jitne hi points (uniform)
+            st.score += 10;
             updateHUD();
             sfxCatch();
             addParticles(item.x, by, '#00FFB0', '#FFFFFF');
@@ -2034,18 +1997,32 @@ let animFrameId = 0;
 let isGamePaused = false;
 let autoSpinTimer = 0;
 
+// SMOOTHNESS (v4.4): pehle loop har frame par 60 FPS ka check lagata tha.
+// 90Hz / 120Hz screen par isse movement har doosre frame par hi badalti thi ->
+// candy ruk-ruk kar chalti dikhti thi. Ab movement asli beetey hue time (dt)
+// par based hai, isliye kisi bhi refresh rate par bilkul smooth chalti hai.
 function gameLoop(timestamp) {
     if (!st.running) { animFrameId = 0; return; }
-    if (timestamp - lastFrameTime < FRAME_INTERVAL) { animFrameId = requestAnimationFrame(gameLoop); return; }
+    if (isGamePaused) { lastFrameTime = timestamp; animFrameId = requestAnimationFrame(gameLoop); return; }
+
+    // Pehla frame: lastFrameTime reset. Warna pehle frame me dt bahut bada
+    // aata hai aur candy ek hi frame me ~37px aage chali jaati hai.
+    if (!lastFrameTime) lastFrameTime = timestamp;
+    let dtMs = timestamp - lastFrameTime;
     lastFrameTime = timestamp;
-    st.frame++;
-    if (isGamePaused) { animFrameId = requestAnimationFrame(gameLoop); return; }
+    if (!(dtMs > 0)) dtMs = FRAME_INTERVAL;
+    if (dtMs > 34) dtMs = 34;               // tab switch ke baad bada jump na ho
+    const dtScale = dtMs / FRAME_INTERVAL;  // 1.0 = ek 60 FPS frame
+
+    st.frame += dtScale;
+    autoSpinTimer += dtScale;
 
     ctx.save();
     if (shakeFrames > 0) {
-        ctx.translate((Math.random() - 0.5) * shakeIntensity, (Math.random() - 0.5) * shakeIntensity);
-        shakeFrames--;
-        shakeIntensity *= 0.88;
+        const k = Math.min(1.5, dtScale);
+        ctx.translate((Math.random() - 0.5) * shakeIntensity * k, (Math.random() - 0.5) * shakeIntensity * k);
+        shakeFrames -= k;
+        shakeIntensity *= Math.pow(0.88, k);
     } else {
         shakeIntensity = 0;
     }
@@ -2053,22 +2030,21 @@ function gameLoop(timestamp) {
     drawBg();
 
     if (st.shieldActive) {
-        st.shieldFrames--;
+        st.shieldFrames -= dtScale;
         if (st.shieldFrames <= 0) { st.shieldActive = false; updatePowerupHud(); }
     }
 
     if (st.comboTimer > 0) {
-        st.comboTimer--;
+        st.comboTimer -= dtScale;
         if (st.comboTimer === 0) st.combo = 0;
     }
 
-    st.spawnTimer++;
+    st.spawnTimer += dtScale;
     if (st.spawnTimer >= st.spawnInterval) {
         st.spawnTimer = 0;
         spawnBurst();
     }
 
-    autoSpinTimer++;
     if (autoSpinTimer > 90) { autoSpinTimer = 0; refreshSpinIfNeeded(); }
 
     const bx = st.basket.x, by = st.basket.y, bw = st.basket.w, bh = st.basket.h;
@@ -2076,16 +2052,22 @@ function gameLoop(timestamp) {
 
     for (let i = 0; i < st.items.length; i++) {
         const it = st.items[i];
-        it.y += it.speed;
+        it.y += it.speed * dtScale;
 
         // ---- LEHAR (WAVE) MOVEMENT: girte-girte left-right ----
-        // waveAmp/waveFreq numbers hain? (guard: purane cached item me na ho)
+        // Time-based, isliye 60/90/120 Hz har screen par smooth.
+        // Spawn par offset 0 aur amplitude pehle 0.25s me dheere se poori hoti
+        // hai, isliye entry bhi smooth lagti hai (koi jump nahi).
         if (typeof it.waveAmp === 'number' && typeof it.waveFreq === 'number') {
             if (typeof it.startX !== 'number') it.startX = it.x;
-            it.wavePhase += it.waveFreq;
-            it.x = it.startX + Math.sin(it.wavePhase) * it.waveAmp;
+            if (typeof it.waveAge !== 'number') it.waveAge = 0;
+            it.waveAge += dtScale;
+            it.wavePhase += it.waveFreq * dtScale;
+            let ease = it.waveAge / 15;                       // 15 frames = 0.25 s
+            if (ease > 1) ease = 1;
+            ease = ease * ease * (3 - 2 * ease);              // smoothstep
+            it.x = it.startX + Math.sin(it.wavePhase) * it.waveAmp * ease;
         }
-
         it.rot += it.rotationSpeed;
         it.x = Math.max(it.size * 0.5, Math.min(gameW - it.size * 0.5, it.x));
 
@@ -2243,9 +2225,6 @@ function closeRoadmap() { showHomePage(); }
 // ===== DAILY REWARD =====
 const DAILY_KEY = 'cm_daily_v1';
 const STREAK_KEY = 'cm_streak_v1';
-
-// Naya wheel: 8 segments, alternating rang, aur rewards jo GAME ME kaam aate hain —
-// coins (basket unlock ke liye), lives, shield (agle level me), points aur jackpot.
 const WHEEL_SEGMENTS = [
     { label: '+500',    emoji: '⭐', color: '#E23E7A', reward: { type: 'pts', val: 500 } },
     { label: '+50 🪙',  emoji: '🪙', color: '#3D8BFD', reward: { type: 'coins', val: 50 } },
@@ -2299,8 +2278,7 @@ function updateCooldownTimer() {
     if (diff <= 0) {
         if (cooldownTimerInterval) { clearInterval(cooldownTimerInterval); cooldownTimerInterval = null; }
         if (cd) cd.style.display = 'none';
-        if (spinBtn) { spinBtn.disabled = false; spinBtn.style.opacity = '1'; spinBtn.textContent = '🎰 SPIN NOW'; }
-        checkDailyBadge();
+        if (spinBtn) { spinBtn.disabled = false; spinBtn.style.opacity = '1'; spinBtn.textContent = 'Spin Now'; }
         return;
     }
     const h = Math.floor(diff / 3600000);
@@ -2328,8 +2306,6 @@ function renderStreak() {
     msg.textContent = streak === 0 ? 'Roz spin karo aur coins kamao!' : '🔥 ' + streak + ' din ka streak!';
 }
 
-// ===== WHEEL DRAWING (naya, saaf design) =====
-// rang ko halka karo (segment ke andar gradient ke liye)
 function shade(hex, amt) {
     if (!hex || hex.charAt(0) !== '#') return hex;
     let r = parseInt(hex.slice(1, 3), 16), g2 = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
@@ -2349,7 +2325,6 @@ function drawWheel(angle) {
     const segA = (Math.PI * 2) / segs.length;
     g.clearRect(0, 0, c.width, c.height);
 
-    // bahar ka golden rim
     g.beginPath(); g.arc(cx, cy, R + 8, 0, Math.PI * 2);
     const rim = g.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
     rim.addColorStop(0, '#FFF3B0');
@@ -2357,12 +2332,11 @@ function drawWheel(angle) {
     rim.addColorStop(1, '#B8860B');
     g.fillStyle = rim; g.fill();
 
-    // segments (radial gradient + saaf labels)
     for (let i = 0; i < segs.length; i++) {
-        const s = angle + i * segA, e = s + segA;
+        const sA = angle + i * segA, eA = sA + segA;
         g.beginPath();
         g.moveTo(cx, cy);
-        g.arc(cx, cy, R, s, e);
+        g.arc(cx, cy, R, sA, eA);
         g.closePath();
         const lg = g.createRadialGradient(cx, cy, R * 0.12, cx, cy, R);
         lg.addColorStop(0, shade(segs[i].color, 0.45));
@@ -2373,7 +2347,7 @@ function drawWheel(angle) {
         g.lineWidth = 1.5;
         g.stroke();
 
-        const mid = s + segA / 2;
+        const mid = sA + segA / 2;
         const lx = cx + Math.cos(mid) * R * 0.63;
         const ly = cy + Math.sin(mid) * R * 0.63;
         g.save();
@@ -2390,7 +2364,6 @@ function drawWheel(angle) {
         g.restore();
     }
 
-    // andar ka hub
     const hub = g.createRadialGradient(cx - 6, cy - 6, 2, cx, cy, 21);
     hub.addColorStop(0, '#FFFFFF');
     hub.addColorStop(0.5, '#FFD700');
@@ -2402,7 +2375,6 @@ function drawWheel(angle) {
     g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillText('🍬', cx, cy + 1);
 
-    // upar ka pointer — yahi batata hai kaun jeeta
     g.beginPath();
     g.moveTo(cx, cy - R + 4);
     g.lineTo(cx - 12, cy - R - 16);
@@ -2414,14 +2386,13 @@ function drawWheel(angle) {
     g.shadowBlur = 0;
     g.strokeStyle = '#FFFFFF'; g.lineWidth = 2; g.stroke();
 }
-
 function spinWheel() {
     if (wheelSpinning || !canClaimToday()) return;
     const segs = WHEEL_SEGMENTS;
     const segA = (Math.PI * 2) / segs.length;
     const winIdx = Math.floor(Math.random() * segs.length);
 
-    // pointer upar (-90°) par hai; winner segment ko pointer ke neeche laao
+    // pointer upar (-90 deg) par hai; winner segment ko pointer ke neeche laao
     const targetCenter = -Math.PI / 2;
     const center = targetCenter - winIdx * segA;
     const start = wheelAngle;
@@ -2499,7 +2470,7 @@ function claimReward(seg) {
     if (resultDiv) {
         resultDiv.style.display = 'block';
         resultDiv.classList.remove('pop');
-        void resultDiv.offsetWidth;   // animation restart
+        void resultDiv.offsetWidth;
         resultDiv.classList.add('pop');
     }
 
@@ -2512,8 +2483,7 @@ function claimReward(seg) {
 
 function closeDailyReward() {
     if (cooldownTimerInterval) { clearInterval(cooldownTimerInterval); cooldownTimerInterval = null; }
-    if (isOnHomePage) showHomePage();
-    else showOv(null);
+    showHomePage();
 }
 
 // ===== SETTINGS =====
@@ -2617,16 +2587,26 @@ window.toggleSound = toggleSound;
 window.exitGame = exitGame;
 window.getLevelTarget = getLevelTarget;
 window.CandyMassDebug = {
-    VERSION: 'v4.3',
+    VERSION: 'v4.4',
     st: st,
+    worldReady: worldReady,
+    worldImages: worldImages,
+    worldCells: worldCells,
+    getValidIds: getValidIds,
+    taskTargetCount: taskTargetCount,
+    isTaskLevel: isTaskLevel,
+    isSkinUnlocked: isSkinUnlocked,
+    getCoins: getCoins,
+    setCoins: setCoins,
+    addCoins: addCoins,
+    getWaveConfig: getWaveConfig,
+    BASKET_SKINS: BASKET_SKINS,
     getLevelTarget: getLevelTarget,
     getBombChance: getBombChance,
     getSpeedForLevel: getSpeedForLevel,
     getSpawnIntervalForLevel: getSpawnIntervalForLevel,
     getWorldKey: getWorldKey,
     WORLD_SHEETS: WORLD_SHEETS,
-    worldReady: worldReady,
-    worldImages: worldImages,
     computeCellBounds: computeCellBounds
 };
 
@@ -2674,7 +2654,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============================================================
-// ===== 20. SERVICE WORKER (Play Store / offline ke liye) ====
+// ===== 20. DEBUG TABLE (level curve check) ==================
+// ============================================================
+// ============================================================
+// ===== SERVICE WORKER (offline + Play Store TWA ke liye) =====
 // ============================================================
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -2682,11 +2665,8 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// ============================================================
-// ===== 21. DEBUG TABLE (level curve check) ==================
-// ============================================================
-console.log('✅ Candy Mass v4.3 loaded — 10,000 level engine');
-console.log('   (agar yahan v4.3 nahi dikh raha to purana cached version chal raha hai — Ctrl+Shift+R dabao)');
+console.log('✅ Candy Mass v4.4 loaded — 10,000 level engine');
+console.log('   (agar yahan v4.4 nahi dikh raha to purana cached version chal raha hai — Ctrl+Shift+R dabao)');
 console.log('🎯 Target curve:', [1, 2, 3, 5, 10, 20, 50, 100, 500, 1000, 2000, 3500, 5000, 7000, 9000, 9999, 10000]
     .map(l => 'L' + l + '=' + getLevelTarget(l)).join('  '));
 console.log('💣 Worlds:', Object.keys(WORLD_SHEETS).map(k => k + ' bombs[' + Object.keys(WORLD_SHEETS[k].bombs).join(',') + ']').join(' | '));
