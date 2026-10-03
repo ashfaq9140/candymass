@@ -463,14 +463,17 @@ function getSpawnIntervalForLevel(lvl) {
 
 // ===== WAVE (lehar) MOVEMENT SETTINGS =====
 // Candy upar se niche girti hai aur us dauran left-right lehar banati rehti hai.
-// Amplitude = kitna left-right (gameW ka hissa), Frequency = ek second me kitni baar.
+//   amp  = kitna left-right jhoola (gameW ka hissa)
+//   freq = per frame phase step. Ek pura jhoola = (2*PI / freq) frames.
+// Pehle amp 10% aur freq 0.011 thi -> jhoola 4-6 second me pura hota tha,
+// isliye nazar hi nahi aata tha. Ab 22-32% aur 3x tez frequency hai.
 function getWaveConfig(lvl) {
     const t = Math.min(lvl, 10000) / 10000;
     return {
-        ampMin: 0.10,                                   // gameW ka 10%
-        ampMax: 0.10 + Math.pow(t, 0.5) * 0.06,         // level 10000 tak 16%
-        freqMin: 0.011,
-        freqMax: 0.011 + Math.pow(t, 0.6) * 0.009
+        ampMin: 0.22,                                    // gameW ka 22%
+        ampMax: 0.22 + Math.pow(t, 0.5) * 0.10,          // level 10000 tak 32%
+        freqMin: 0.032,                                  // ~3.3 s me ek jhoola
+        freqMax: 0.032 + Math.pow(t, 0.6) * 0.020        // level 10000 par ~1.9 s
     };
 }
 
@@ -511,9 +514,11 @@ function getLevelConfig(lvl) {
 }
 
 // ===== TASK (har 5th level) =====
+// Task me kitni special candy chahiye. Pehle sirf 3 thi (aur uske baad life
+// milti thi) jo bahut aasan tha. Ab level ke saath 5 se 22 tak badhti hai.
 function taskTargetCount(lvl) {
     const t = Math.min(lvl, 10000) / 10000;
-    return Math.min(15, 3 + Math.round(t * 12));
+    return 5 + Math.round(Math.pow(t, 0.85) * 17);   // L<=5 : 5  ...  L10000 : 22
 }
 
 function isTaskLevel(lvl) { return lvl % 5 === 0 && lvl > 0; }
@@ -808,13 +813,15 @@ function drawItem(item) {
         return;
     }
 
+    // Decoy (task me aam candy) bilkul normal candy jaisi dikhni chahiye —
+    // pehle ye 50% transparent thi, isliye door se pata chal jata tha ki
+    // "ye galat wali hai" aur log galti nahi karte the. Ab same rakhi hai,
+    // taaki galti se pakadne par sach me -1 life lage.
     if (item.isDecoy) {
         ctx.save();
-        ctx.globalAlpha = 0.5;
         ctx.rotate(item.rot);
         drawItemSprite(item);
         ctx.restore();
-        ctx.globalAlpha = 1;
         ctx.restore();
         return;
     }
@@ -1951,11 +1958,11 @@ function onCatch(item) {
         if (wantThis) {
             st.taskCaught++;
             st.levelCaught++;
-            st.score += 20;
+            st.score += 10;                    // aam candy jitne hi points (uniform)
             updateHUD();
             sfxCatch();
             addParticles(item.x, by, '#00FFB0', '#FFFFFF');
-            addFloat('+20 🎯', '#00FFB0', true);
+            addFloat('+10 🎯', '#00FFB0', true);
             onTaskProgress();
         } else {
             // GALAT candy -> life kam
@@ -2072,7 +2079,9 @@ function gameLoop(timestamp) {
         it.y += it.speed;
 
         // ---- LEHAR (WAVE) MOVEMENT: girte-girte left-right ----
-        if (it.waveAmp) {
+        // waveAmp/waveFreq numbers hain? (guard: purane cached item me na ho)
+        if (typeof it.waveAmp === 'number' && typeof it.waveFreq === 'number') {
+            if (typeof it.startX !== 'number') it.startX = it.x;
             it.wavePhase += it.waveFreq;
             it.x = it.startX + Math.sin(it.wavePhase) * it.waveAmp;
         }
@@ -2608,6 +2617,7 @@ window.toggleSound = toggleSound;
 window.exitGame = exitGame;
 window.getLevelTarget = getLevelTarget;
 window.CandyMassDebug = {
+    VERSION: 'v4.3',
     st: st,
     getLevelTarget: getLevelTarget,
     getBombChance: getBombChance,
@@ -2675,7 +2685,8 @@ if ('serviceWorker' in navigator) {
 // ============================================================
 // ===== 21. DEBUG TABLE (level curve check) ==================
 // ============================================================
-console.log('✅ Candy Mass v4.1 loaded — 10,000 level engine');
+console.log('✅ Candy Mass v4.3 loaded — 10,000 level engine');
+console.log('   (agar yahan v4.3 nahi dikh raha to purana cached version chal raha hai — Ctrl+Shift+R dabao)');
 console.log('🎯 Target curve:', [1, 2, 3, 5, 10, 20, 50, 100, 500, 1000, 2000, 3500, 5000, 7000, 9000, 9999, 10000]
     .map(l => 'L' + l + '=' + getLevelTarget(l)).join('  '));
 console.log('💣 Worlds:', Object.keys(WORLD_SHEETS).map(k => k + ' bombs[' + Object.keys(WORLD_SHEETS[k].bombs).join(',') + ']').join(' | '));
