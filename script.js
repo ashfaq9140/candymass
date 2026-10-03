@@ -2090,16 +2090,20 @@ function onTaskProgress() {
 }
 
 function onMiss() {
+    // game ruk chuka hai to kuch na karo (warna lives negative chali jayegi)
+    if (!st.running) return;
     // task level me galat candy chhod dena sahi baat hai -> koi penalty nahi
     if (st.inTask) return;
-    if (st.lives <= 1) return;          // aakhri life bacha lo (naya rule neeche)
+    // Har miss par life jaati hai - aakhri life bhi.
+    // (Pehle yahan ek early-return tha, jisse 1 life par game kabhi khatam
+    //  hi nahi hota tha.)
+    st.lostLifeThisLevel = true;
+    st.lives--;
     sfxMiss();
     haptic([25, 35]);
     triggerShake(4, 10);
     st.combo = 0;
     st.comboTimer = 0;
-    st.lostLifeThisLevel = true;
-    st.lives--;
     updateHUD();
     if (st.lives <= 0) endGame(false);
 }
@@ -3116,7 +3120,7 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-console.log('✅ Candy Mass v4.6 loaded — 10,000 level engine');
+console.log('✅ Candy Mass v4.6 loaded');
 console.log('   (if this does not say v4.6, an old cached version is loading — press Ctrl+Shift+R)');
 console.log('🎯 Target curve:', [1, 2, 3, 5, 10, 20, 50, 100, 500, 1000, 2000, 3500, 5000, 7000, 9000, 9999, 10000]
     .map(l => 'L' + l + '=' + getLevelTarget(l)).join('  '));

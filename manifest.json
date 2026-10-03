@@ -1,7 +1,7 @@
 {
-  "name": "Candy Mass - 10,000 Levels",
+  "name": "Candy Mass",
   "short_name": "Candy Mass",
-  "description": "Catch the falling candy wave! 10,000 levels across 3 themes - Candy Kingdom, Deep Sea Fish and Premium Coffee. Beat bonus task levels, dodge bombs, unlock 15 baskets and complete missions.",
+  "description": "Catch the falling candy wave! Travel through the Candy Kingdom, dive into the Deep Sea and finish with Premium Coffee. Beat bonus task levels, dodge bombs, unlock baskets and complete missions.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "fullscreen",
