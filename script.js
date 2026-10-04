@@ -481,36 +481,71 @@ function getSpawnIntervalForLevel(lvl) {
 }
 
 // ===== WAVE (lehar) MOVEMENT SETTINGS =====
-// Candy upar se niche girti hai aur us dauran left-right lehar banati rehti hai.
-//   amp  = kitna left-right jhoola (gameW ka hissa)
-//   freq = per frame phase step. Ek pura jhoola = (2*PI / freq) frames.
+// Candy girte hue left-right lehar banati hai.
 //
-// Do cheezon ka balance zaruri hai:
-//   - period bahut lamba (3s+) ho to candy ek jhoola pura na kare aur
-//     ruk-ruk kar chalti lage.
-//   - freq bahut tez ho to sideways speed falling speed se zyada ho jaye
-//     aur motion jerky lage.
-// Isliye period ~2.3s (L1) se ~1.45s (L10000) rakha hai.
-function getWaveConfig(lvl) {
+// TEEN alag "feels" mix hote hain — isse har candy alag behave karti hai,
+// game repetitive nahi lagta (yahi addiction ka asli reason hai):
+//
+//   EASY        - lamba dheema jhoola (drift jaisa), pakadna aasan
+//   BALANCED    - beech ka, default feel
+//   CHALLENGING - tez chhota jhoola, dhyan se khelna padta hai
+//
+// Level badhne par CHALLENGING candy ka chance badhta hai (0% -> 20%) aur
+// EASY ka ghatta hai — isliye game dheere-dheere mushkil hota jaata hai.
+const WAVE_EASY = { amp: 0.28, period: 4.5 };   // bada dheema jhoola
+const WAVE_BAL  = { amp: 0.20, period: 2.3 };   // balanced (default)
+const WAVE_HARD = { amp: 0.16, period: 1.4 };   // tez chhota jhoola
+
+// period (seconds) -> per frame phase step (60 FPS par)
+function periodToFreq(periodSec) {
+    return (Math.PI * 2) / (periodSec * 60);
+}
+
+// Level ke hisaab se teeno ka weight (total = 1)
+function getWaveWeights(lvl) {
     const t = Math.min(lvl, 10000) / 10000;
+    const hard = Math.pow(t, 0.45) * 0.20;          // L1: 0%   -> L10000: 20%
+    let easy = 0.58 - Math.pow(t, 0.55) * 0.38;     // L1: 58%  -> L10000: 20%
+    if (easy < 0.20) easy = 0.20;
+    const bal = Math.max(0, 1 - easy - hard);
+    return { easy: easy, bal: bal, hard: hard };
+}
+
+// Envelope (purane API/tests ke liye)
+function getWaveConfig(lvl) {
+    const w = getWaveWeights(lvl);
     return {
-        ampMin: 0.20,                                    // gameW ka 20%
-        ampMax: 0.20 + Math.pow(t, 0.5) * 0.05,          // level 10000 tak 25%
-        freqMin: 0.045,                                  // ~2.3 s me ek jhoola (L1)
-        freqMax: 0.045 + Math.pow(t, 0.6) * 0.027        // level 10000 par ~1.45 s
+        ampMin: WAVE_HARD.amp,
+        ampMax: WAVE_EASY.amp,
+        freqMin: periodToFreq(WAVE_EASY.period),
+        freqMax: periodToFreq(WAVE_HARD.period),
+        weights: w
     };
 }
 
 function makeWave(lvl) {
     const cfg = getWaveConfig(lvl);
+    const w = cfg.weights;
+    // teeno me se ek chuno (weighted random)
+    const r = Math.random();
+    let preset;
+    if (r < w.easy) preset = WAVE_EASY;
+    else if (r < w.easy + w.bal) preset = WAVE_BAL;
+    else preset = WAVE_HARD;
+
+    // halka variation, taaki do candy bilkul same na lagein
+    const ampJitter = 0.88 + Math.random() * 0.24;   // +/-12%
+    const perJitter = 0.90 + Math.random() * 0.20;   // +/-10%
+
     const direction = Math.random() < 0.5 ? -1 : 1;
     return {
-        amp: gameW * (cfg.ampMin + Math.random() * (cfg.ampMax - cfg.ampMin)),
-        freq: cfg.freqMin + Math.random() * (cfg.freqMax - cfg.freqMin),
+        amp: gameW * preset.amp * ampJitter,
+        freq: periodToFreq(preset.period) * perJitter,
         // phase 0 se shuru: spawn par candy apni jagah par hi rehti hai,
         // phir smoothly ek taraf jhoolna shuru karti hai (koi jump nahi).
         phase: 0,
-        direction: direction
+        direction: direction,
+        waveKind: preset === WAVE_EASY ? 'easy' : (preset === WAVE_BAL ? 'balanced' : 'hard')
     };
 }
 
@@ -534,6 +569,36 @@ function getLevelConfig(lvl) {
         target: getLevelTarget(lvl),
         bombChance: getBombChance(lvl)
     };
+}
+
+// ============================================================
+// ===== GIFT BOX (rare, level 100 ke baad) ===================
+// Bahut kam milta hai, par pakadne par +2 se +5 lives deta hai.
+// (Purane CandyRainPro me tha, wapas add kiya.)
+// ============================================================
+const GIFT_TYPES = [
+    { lives: 2, pts: 50,  color: '#FF4DA6', color2: '#FF85C8', stroke: '#CC0066', label: '+2' },
+    { lives: 3, pts: 80,  color: '#FFD700', color2: '#FFF066', stroke: '#CC9900', label: '+3' },
+    { lives: 4, pts: 120, color: '#00E0FF', color2: '#AAFFFF', stroke: '#0088CC', label: '+4' },
+    { lives: 5, pts: 150, color: '#A855F7', color2: '#D09BFF', stroke: '#7C3AED', label: '+5' }
+];
+
+// Level 100 se pehle gift nahi. Baad me bahut halka badhta hai.
+function getGiftChance(lvl) {
+    if (lvl < 100) return 0;
+    if (lvl < 300) return 0.008;
+    if (lvl < 1000) return 0.012;
+    if (lvl < 3000) return 0.016;
+    return 0.02;                       // max 2%
+}
+
+// Bade gift (zyada lives) high level par
+function pickGiftType(lvl) {
+    const r = Math.random();
+    if (lvl >= 5000 && r < 0.25) return GIFT_TYPES[3];   // +5
+    if (lvl >= 2000 && r < 0.35) return GIFT_TYPES[2];   // +4
+    if (lvl >= 500 && r < 0.5) return GIFT_TYPES[1];     // +3
+    return GIFT_TYPES[0];                                // +2
 }
 
 // ===== TASK (har 5th level) =====
@@ -642,6 +707,7 @@ function makeFallingItem(candyId, opts) {
         // ---- lehar (wave) parameters ----
         waveAmp: wave.amp,
         waveFreq: wave.freq,
+        waveKind: wave.waveKind,
         wavePhase: 0,        // spawn par offset 0 -> koi jump nahi
         waveAge: 0,          // ease-in ke liye (pehle 0.25s me amplitude badhti hai)
         waveDirection: wave.direction,
@@ -677,6 +743,24 @@ function decideSpawn() {
     }
 
     // --- NORMAL LEVEL ---
+    // gift box sirf level 100+, normal level me (task me nahi)
+    if (Math.random() < getGiftChance(st.level)) {
+        const gift = pickGiftType(st.level);
+        const item = makeFallingItem(buildNormalCandy());
+        item.isGift = true;
+        item.gift = gift;
+        item.isBomb = false;
+        item.bombType = null;
+        item.isShield = false;
+        item.isMulti = false;
+        item.waveAmp = 0;                 // gift seedha girta hai, aasan pakadna
+        item.waveFreq = 0;
+        item.speed = Math.max(1.6, st.speed * 0.62);   // dheema — pakadne do
+        item.size = item.size * 1.15;
+        item.r = item.size / 2;
+        pushItem(item);
+        return;
+    }
     if (Math.random() < st.bombChance) {
         const bombIds = Object.keys(st.cfg.bombs).map(Number);
         pushItem(makeFallingItem(bombIds[Math.floor(Math.random() * bombIds.length)]));
@@ -795,6 +879,56 @@ function drawItem(item) {
         glow(bt.color, 8);
         ctx.fillStyle = bt.color;
         ctx.fillText(bt.label, 0, -item.r * 1.45);
+        ng();
+        ctx.restore();
+        return;
+    }
+
+    if (item.isGift) {
+        const g = item.gift || GIFT_TYPES[0];
+        const s = item.size * 0.55;
+        const p = Math.sin(st.frame * 0.18 + item.pulse) * 0.5 + 0.5;
+        ctx.save();
+        // chamakta glow
+        glow(g.color, 16 + p * 16);
+        // box ka body
+        ctx.fillStyle = g.color;
+        ctx.strokeStyle = g.stroke;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.roundRect(-s * 0.9, -s * 0.5, s * 1.8, s * 1.4, s * 0.18);
+        ctx.fill();
+        ctx.stroke();
+        ng();
+        // ribbon (vertical)
+        ctx.fillStyle = g.color2;
+        ctx.fillRect(-s * 0.14, -s * 0.5, s * 0.28, s * 1.4);
+        // ribbon (horizontal)
+        ctx.fillRect(-s * 0.9, s * 0.05, s * 1.8, s * 0.24);
+        // dhaakkan (lid)
+        ctx.fillStyle = g.color2;
+        ctx.strokeStyle = g.stroke;
+        ctx.beginPath();
+        ctx.roundRect(-s * 1.02, -s * 0.78, s * 2.04, s * 0.42, s * 0.12);
+        ctx.fill();
+        ctx.stroke();
+        // upar ka bow
+        glow(g.color2, 10);
+        ctx.fillStyle = g.color2;
+        ctx.beginPath();
+        ctx.ellipse(-s * 0.3, -s * 0.95, s * 0.34, s * 0.2, -0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(s * 0.3, -s * 0.95, s * 0.34, s * 0.2, 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ng();
+        // label
+        ctx.font = 'bold ' + Math.round(11 * scaleX) + 'px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        glow('#FFFFFF', 8);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText('❤️' + g.label, 0, -s * 1.5);
         ng();
         ctx.restore();
         return;
@@ -1519,24 +1653,182 @@ function saveLB() {
     } catch (e) {}
 }
 
-function showLeaderboard() {
+async function showLeaderboard() {
     showOv('lbOv');
     const content = document.getElementById('lbContent');
+    if (!content) return;
+    content.innerHTML = '<div style="text-align:center; padding:16px; color:#FFD700;">⏳ Loading…</div>' +
+        '<div style="text-align:center; font-size:11px; color:rgba(255,255,255,0.4);">' + lbSourceTag() + '</div>';
+
+    if (lbCloudBusy) return;
+    lbCloudBusy = true;
+
+    let rows = [];
     try {
-        const lb = JSON.parse(localStorage.getItem('cr_lb_v4') || '[]');
-        if (!lb.length) { content.innerHTML = '<div style="text-align:center;">No scores yet.</div>'; return; }
-        const medals = ['🥇', '🥈', '🥉'];
-        let html = '<div>';
-        lb.slice(0, 20).forEach((r, i) => {
-            const isMe = r.email === currentUserEmail;
-            html += '<div class="lb-row"><span class="lb-rank">' + (i < 3 ? medals[i] : i + 1) + '</span><span class="lb-name">' + r.name + (isMe ? ' ★' : '') + '</span><span class="lb-score">' + r.score.toLocaleString() + '</span><span class="lb-lv">L' + r.level + '</span></div>';
-        });
-        html += '</div>';
-        content.innerHTML = html;
-    } catch (e) { content.innerHTML = '<div>Error</div>'; }
+        rows = await buildLeaderboard();
+    } catch (e) {
+        rows = [];
+    }
+    lbCloudBusy = false;
+
+    if (!rows.length) {
+        content.innerHTML = '<div style="text-align:center; padding:14px;">No scores yet.<br>' +
+            '<span style="font-size:11px; color:rgba(255,255,255,0.45);">Play a game to get on the board!</span></div>' +
+            '<div style="text-align:center; font-size:11px; color:rgba(255,255,255,0.4); margin-top:6px;">' + lbSourceTag() + '</div>';
+        return;
+    }
+
+    const medals = ['🥇', '🥈', '🥉'];
+    let html = '<div style="text-align:center; font-size:10.5px; color:rgba(255,255,255,0.45); margin-bottom:6px;">' + lbSourceTag() + '</div>';
+
+    // apni rank dhoondho
+    const meIdx = rows.findIndex(r => r.email === currentUserEmail);
+    if (meIdx >= 0) {
+        const me = rows[meIdx];
+        html += '<div class="lb-row me" style="border-left-color:#00FFB0; background:rgba(0,255,176,0.10);">' +
+            '<span class="lb-rank">#' + (meIdx + 1) + '</span>' +
+            '<span class="lb-name">' + me.name + ' ★ you</span>' +
+            '<span class="lb-score">' + (me.score || 0).toLocaleString() + '</span>' +
+            '<span class="lb-lv">L' + (me.level || 1).toLocaleString() + '</span></div>' +
+            '<div style="height:1px; background:rgba(255,255,255,0.14); margin:6px 2px;"></div>';
+    }
+
+    rows.slice(0, 30).forEach((r, i) => {
+        const isMe = r.email === currentUserEmail;
+        html += '<div class="lb-row"' + (isMe ? ' style="border-left-color:#00FFB0;"' : '') + '>' +
+            '<span class="lb-rank">' + (i < 3 ? medals[i] : (i + 1)) + '</span>' +
+            '<span class="lb-name">' + (r.name || 'Player') + (isMe ? ' ★' : '') + (r.cloud ? '' : '') + '</span>' +
+            '<span class="lb-score">' + (r.score || 0).toLocaleString() + '</span>' +
+            '<span class="lb-lv">L' + (r.level || 1).toLocaleString() + '</span></div>';
+    });
+    content.innerHTML = html;
 }
 
 function closeLB() { showHomePage(); }
+
+// ============================================================
+// ===== CLOUD LEADERBOARD (Firestore) ========================
+// Firestore me 'scores' collection hai. Har player ka ek document (uid/email)
+// hota hai. Sirf apna hi score bhej sakta hai aur sirf behtar score hi
+// likha jaa sakta hai — isliye fake scores nahi ho sakte.
+// Net na ho ya Firebase load na ho to local leaderboard dikhta hai.
+// ============================================================
+const LB_CLOUD_LIMIT = 50;          // top 50 cloud se
+const LB_CACHE_KEY = 'cm_lb_cloud_cache';
+let lbCloudBusy = false;
+
+function lbDocId() {
+    // Cloud me unique id: email (guest_ wale cloud par nahi jaate)
+    const e = currentUserEmail || 'guest';
+    return e.replace(/[^a-zA-Z0-9_.@-]/g, '_').slice(0, 120);
+}
+
+function canUseCloudLB() {
+    return !!(currentUserEmail && currentUserEmail.indexOf('guest_') !== 0 &&
+        window.firebaseDb && window.firebaseDoc && window.firebaseSetDoc &&
+        window.firebaseGetDoc && window.firebaseCollection && window.firebaseGetDocs);
+}
+
+function getLBCache() {
+    try { return JSON.parse(localStorage.getItem(LB_CACHE_KEY) || '[]') || []; } catch (e) { return []; }
+}
+function setLBCache(rows) {
+    try { localStorage.setItem(LB_CACHE_KEY, JSON.stringify((rows || []).slice(0, LB_CLOUD_LIMIT))); } catch (e) {}
+}
+
+// Apna best score cloud par bhejo (sirf behtar score hi jaata hai)
+async function submitScoreToCloud() {
+    if (!canUseCloudLB() || !st) return;
+    if (st.score <= 0) return;
+    // pehle local best check — bekaar ka write na ho
+    const life = getLifetime();
+    const best = Math.max(life.bestScore || 0, st.score);
+    if (st.score < best) return;
+
+    try {
+        const db = window.firebaseDb;
+        const ref = window.firebaseDoc(db, 'scores', lbDocId());
+        await window.firebaseSetDoc(ref, {
+            name: (currentUserName || 'Player').slice(0, 20),
+            score: st.score,
+            level: st.level || 1,
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
+        console.log('☁️ Score cloud par bheja:', st.score);
+    } catch (e) {
+        console.warn('Cloud score submit fail:', e && e.message);
+    }
+}
+
+// Top scores cloud se laao (cache me bhi rakh lo — offline ke liye)
+async function fetchCloudScores() {
+    if (!canUseCloudLB()) return null;
+    try {
+        const db = window.firebaseDb;
+        const col = window.firebaseCollection(db, 'scores');
+        const q = window.firebaseQuery
+            ? window.firebaseQuery(col, window.firebaseOrderBy('score', 'desc'), window.firebaseLimit(LB_CLOUD_LIMIT))
+            : col;
+        const snap = await window.firebaseGetDocs(q);
+        const rows = [];
+        snap.forEach(d => {
+            const v = d.data() || {};
+            rows.push({
+                name: v.name || 'Player',
+                email: d.id,
+                score: v.score || 0,
+                level: v.level || 1,
+                cloud: true
+            });
+        });
+        rows.sort((a, b) => b.score - a.score);
+        setLBCache(rows);
+        return rows;
+    } catch (e) {
+        console.warn('Cloud leaderboard fetch fail:', e && e.message);
+        return null;
+    }
+}
+
+// Leaderboard rows taiyaar karo: cloud + local ko mila kar
+async function buildLeaderboard() {
+    const local = (function () {
+        try { return JSON.parse(localStorage.getItem('cr_lb_v4') || '[]'); } catch (e) { return []; }
+    })();
+
+    let cloud = null;
+    if (canUseCloudLB()) cloud = await fetchCloudScores();
+    if (!cloud || !cloud.length) cloud = getLBCache();
+
+    // dono ko jodo (email ke hisaab se unique), best score rakho
+    const map = {};
+    function add(r) {
+        if (!r || !r.email) return;
+        const key = r.email;
+        const ex = map[key];
+        if (!ex || (r.score || 0) > (ex.score || 0)) {
+            map[key] = {
+                name: r.name || 'Player',
+                email: key,
+                score: r.score || 0,
+                level: r.level || 1,
+                cloud: !!r.cloud
+            };
+        }
+    }
+    (cloud || []).forEach(add);
+    local.forEach(add);
+
+    const rows = Object.keys(map).map(k => map[k]);
+    rows.sort((a, b) => b.score - a.score);
+    return rows.slice(0, LB_CLOUD_LIMIT);
+}
+
+function lbSourceTag() {
+    if (canUseCloudLB()) return '<span style="color:#00FFB0;">🌍 Global (cloud)</span>';
+    if (currentUserEmail && currentUserEmail.indexOf('guest_') === 0) return '<span style="color:#FFB8D0;">📱 This device (sign in for global)</span>';
+    return '<span style="color:#FFB8D0;">📱 This device (offline)</span>';
+}
 
 // ===== CLOUD SAVE =====
 async function saveProgressToCloud() {
@@ -1840,6 +2132,7 @@ function onLevelComplete() {
     saveProgress();
     saveProgressToCloud();
     saveLB();
+    submitScoreToCloud();     // global leaderboard par bhejo
     sfxLevelUp();
 
     if (isTaskLevel(st.level) && !st.taskDone) {
@@ -1970,6 +2263,7 @@ function endGame(isBomb) {
     saveProgress();
     saveProgressToCloud();
     saveLB();
+    submitScoreToCloud();     // global leaderboard par bhejo
     showOv('goOv');
 }
 
@@ -1993,6 +2287,32 @@ function onCatch(item) {
         }
         handleBombEffect(item.bombType);
         addRedParticles(item.x, by);
+        return;
+    }
+
+    // ---------- GIFT BOX ----------
+    if (item.isGift) {
+        const g = item.gift || GIFT_TYPES[0];
+        const prev = st.lives;
+        st.lives = Math.min(st.lives + g.lives, 5);
+        const gained = st.lives - prev;
+        st.score += g.pts;
+        updateHUD();
+        sfxSurprise();
+        haptic([15, 25, 15, 25, 15]);
+        spawnConfetti(24);
+        // golden burst
+        for (let i = 0; i < 22; i++) {
+            const a = Math.random() * Math.PI * 2, spd = 3 + Math.random() * 6;
+            st.particles.push({
+                x: item.x, y: by, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd - 4,
+                life: 50, maxLife: 50, color: i % 2 === 0 ? g.color : g.color2, r: 4 + Math.random() * 6
+            });
+        }
+        const txt = gained > 0
+            ? '🎁 SURPRISE!  +' + gained + ' ❤️  +' + g.pts
+            : '🎁 SURPRISE!  +' + g.pts + ' (lives full)';
+        addFloat(txt, '#FFD700', true);
         return;
     }
 
@@ -2217,6 +2537,8 @@ function gameLoop(timestamp) {
         if (it.y - it.size > gameH) {
             // bomb ko girne dena = achhi baat (dodge)
             if (it.isBomb) tickMission('bombs', 1);
+            // gift box chhod dena = koi penalty nahi (wo bonus tha)
+            if (it.isGift) continue;
             if (!st.inTask) onMiss();
             if (!st.running) { ctx.restore(); animFrameId = 0; return; }
             continue;
@@ -2965,6 +3287,8 @@ window.afterCeleb = afterCeleb;
 window.logout = logout;
 window.guestLogin = guestLogin;
 window.showLeaderboard = showLeaderboard;
+window.submitScoreToCloud = submitScoreToCloud;
+window.buildLeaderboard = buildLeaderboard;
 window.closeLB = closeLB;
 window.showRoadmap = showRoadmap;
 window.closeRoadmap = closeRoadmap;
@@ -2990,7 +3314,7 @@ window.toggleSound = toggleSound;
 window.exitGame = exitGame;
 window.getLevelTarget = getLevelTarget;
 window.CandyMassDebug = {
-    VERSION: 'v4.6',
+    VERSION: 'v4.7',
     st: st,
     worldReady: worldReady,
     worldImages: worldImages,
@@ -3003,9 +3327,17 @@ window.CandyMassDebug = {
     setCoins: setCoins,
     addCoins: addCoins,
     getWaveConfig: getWaveConfig,
+    getWaveWeights: getWaveWeights,
+    getGiftChance: getGiftChance,
+    pickGiftType: pickGiftType,
+    GIFT_TYPES: GIFT_TYPES,
+    WAVE_EASY: WAVE_EASY, WAVE_BAL: WAVE_BAL, WAVE_HARD: WAVE_HARD,
     getLevelCoinReward: getLevelCoinReward,
     countUnlockedBaskets: countUnlockedBaskets,
     getLifetime: getLifetime,
+    buildLeaderboard: buildLeaderboard,
+    canUseCloudLB: canUseCloudLB,
+    lbDocId: lbDocId,
     MISSIONS: MISSIONS,
     missions: missions,
     tickMission: tickMission,
@@ -3120,8 +3452,8 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-console.log('✅ Candy Mass v4.6 loaded');
-console.log('   (if this does not say v4.6, an old cached version is loading — press Ctrl+Shift+R)');
+console.log('✅ Candy Mass v4.7 loaded');
+console.log('   (if this does not say v4.7, an old cached version is loading — press Ctrl+Shift+R)');
 console.log('🎯 Target curve:', [1, 2, 3, 5, 10, 20, 50, 100, 500, 1000, 2000, 3500, 5000, 7000, 9000, 9999, 10000]
     .map(l => 'L' + l + '=' + getLevelTarget(l)).join('  '));
 console.log('💣 Worlds:', Object.keys(WORLD_SHEETS).map(k => k + ' bombs[' + Object.keys(WORLD_SHEETS[k].bombs).join(',') + ']').join(' | '));

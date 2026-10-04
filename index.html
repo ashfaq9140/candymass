@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Candy Mass">
 <meta name="application-name" content="Candy Mass">
-<link rel="stylesheet" href="style.css?v=4.6">
+<link rel="stylesheet" href="style.css?v=4.7">
 <link rel="icon" href="candymass_icon.png" type="image/png">
 <link rel="icon" sizes="192x192" href="candymass_icon.png">
 <link rel="apple-touch-icon" href="candymass_icon.png">
@@ -123,7 +123,7 @@
         <button class="icon-btn" id="homeHelpBtn">❓ Help</button>
       </div>
       <button class="icon-btn" id="homeCoinBtn" style="width:100%; margin-bottom:6px; font-size:13px;">🪙 0</button>
-      <div class="version" id="verTag">v4.6 | Mass Interactive Games</div>
+      <div class="version" id="verTag">v4.7 | Mass Interactive Games</div>
     </div>
   </div>
 
@@ -214,6 +214,7 @@
     <div class="ov-card">
       <div class="ov-title">🏆 Leaderboard</div>
       <div id="lbContent"></div>
+      <div class="shop-hint" style="margin-top:8px;">Global ranking needs Google sign-in. Playing as a Guest shows your device's scores.</div>
       <button class="gbtn" id="lbBackBtn">Back</button>
     </div>
   </div>
@@ -287,7 +288,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
   import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSYAISLDYHY59ULcHeWtPIrExEvWE18C-7ds",
@@ -309,6 +310,11 @@
   window.firebaseDoc = doc;
   window.firebaseSetDoc = setDoc;
   window.firebaseGetDoc = getDoc;
+  window.firebaseCollection = collection;
+  window.firebaseGetDocs = getDocs;
+  window.firebaseQuery = query;
+  window.firebaseOrderBy = orderBy;
+  window.firebaseLimit = limit;
 
   window.handleFirebaseLogin = async function() {
     try {
@@ -425,6 +431,6 @@
   console.log("Firebase Auth + Firestore ready!");
 </script>
 
-<script src="script.js?v=4.6"></script>
+<script src="script.js?v=4.7"></script>
 </body>
 </html>
