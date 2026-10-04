@@ -1268,7 +1268,7 @@ function selectBasket(i) {
         }
     } else {
         const need = s.cost - have;
-        toast('🔒 <b>' + s.name + '</b> unlocks as you play more' +
+        toast('🔒 <b>' + s.name + '</b> — keep playing to unlock it' +
             '<br>or unlock now for ' + s.cost.toLocaleString() + ' 🪙 (need ' + need.toLocaleString() + ' more)', '#FFB8D0', 3200);
     }
 }
@@ -1301,7 +1301,9 @@ function renderBasketShop() {
         if (equipped) status = '<span style="color:#00FFB0;">✓ Equipped</span>';
         else if (unlocked) status = '<span style="color:#FFD700;">Tap to equip</span>';
         else if (getCoins() >= s.cost) status = '<span style="color:#FFD700;">🪙 ' + s.cost.toLocaleString() + ' — tap to unlock</span>';
-        else status = '<span style="color:#9a9ab0;">🔒 Play more to unlock<br>🪙 ' + s.cost.toLocaleString() + '</span>';
+        // Sirf coins se unlock ka option — level ka NAAM bhi nahi.
+        // Basket apne aap (chupchap) unlock ho jata hai jab level aa jaye.
+        else status = '<span style="color:#9a9ab0;">🔒 Unlock now with<br>🪙 ' + s.cost.toLocaleString() + '</span>';
 
         html += '<div class="basket-item ' + (equipped ? 'equipped' : '') + (unlocked ? '' : ' locked') + '" data-idx="' + i + '">' +
             '<canvas id="bkCanvas' + i + '" width="76" height="52"></canvas>' +
@@ -1623,7 +1625,7 @@ async function syncCloudProgress() {
             localStorage.setItem(saveKey(currentUserEmail), JSON.stringify({
                 level: cloud.level, score: cloud.score || 0, lives: cloud.lives || 3
             }));
-            toast('☁️ Cloud save mila: Level ' + cloud.level.toLocaleString(), '#00FFB0', 2600);
+            toast('☁️ Cloud save mila — progress sync ho gaya!', '#00FFB0', 2600);
         } else if (local && local.level > cloud.level) {
             // local aage hai to cloud par bhej do
             saveProgressToCloud();
@@ -1950,15 +1952,16 @@ async function loadProgressFromCloud() {
 // ============================================================
 // ===== 11. HUD / OVERLAYS ===================================
 // ============================================================
-// Player ko exact level number nahi dikhate (usse bore hota hai).
-// Uski jagah progress % dikhate hain — "kitna aage badhe ho".
+// Level number dikhta hai (player ko pata chale kaunsa level chal raha hai),
+// par KUL KITNE LEVEL HAIN ye kabhi nahi dikhta — na percentage, na "X / Y" .
+// getProgressPct() rakha hai sirf internal use ke liye (missions/stats).
 function getProgressPct(lvl) {
     const p = Math.round(Math.min(1, Math.max(0, (lvl - 1) / 9999)) * 100);
     return p + '%';
 }
 
 function updateHUD() {
-    document.getElementById('lv').textContent = getProgressPct(st.level);
+    document.getElementById('lv').textContent = st.level.toLocaleString();
     let h = '';
     for (let i = 0; i < st.lives; i++) h += '❤️';
     document.getElementById('li').innerHTML = h || '🖤';
@@ -1971,13 +1974,13 @@ function renderBestScore() {
     const el = document.getElementById('bestLine');
     if (el) {
         el.innerHTML = (life.bestScore > 0)
-            ? '🏆 Best score: <b>' + life.bestScore.toLocaleString() + '</b>'
+            ? '🏆 Best: <b>' + life.bestScore.toLocaleString() + '</b> &nbsp;·&nbsp; Level <b>' + life.bestLevel.toLocaleString() + '</b>'
             : '🏆 No record yet — play your first game!';
     }
     const g = document.getElementById('goBest');
     if (g) {
         g.innerHTML = (life.bestScore > 0)
-            ? 'Best score: ' + life.bestScore.toLocaleString()
+            ? 'Best: ' + life.bestScore.toLocaleString() + ' · Level ' + life.bestLevel.toLocaleString()
             : '';
     }
 }
@@ -2196,6 +2199,8 @@ function checkBasketUnlocks(fromLvl, toLvl) {
     sfxSurprise();
     addFloat('🎨 New basket unlocked!', '#FFD700', true);
     const names = unlocked.map(s => s.emoji + ' ' + s.name).join(', ');
+    // Chupchap unlock — koi "level X par mila" jaisa message nahi,
+    // warna player andaza laga lega ki kitne level hain.
     toast('🎨 New basket unlocked: <b>' + names + '</b>', '#FFD700', 3000);
 }
 
@@ -2245,7 +2250,7 @@ function showTask() {
     const emoji = document.querySelector('#taskOv .ov-emoji');
     if (emoji) emoji.textContent = '🎯';
     const title = document.querySelector('#taskOv .ov-title');
-    if (title) title.textContent = (st.theme.taskTitle || 'Bonus Task!');
+    if (title) title.textContent = (st.theme.taskTitle || 'Bonus Task!') + ' — Level ' + st.level;
 
     let desc;
     if (def.kind === 'target') {
@@ -2308,7 +2313,7 @@ function afterCeleb() {
 
 function showLevelComplete() {
     document.getElementById('lvEmoji').textContent = '🎉';
-    document.getElementById('lvTitle').textContent = 'Level Complete!';
+    document.getElementById('lvTitle').textContent = 'Level ' + st.level + ' Complete!';
     document.getElementById('lvScore').innerHTML = 'Score: ' + st.score.toLocaleString() +
         (st.lastCoinReward ? ' &nbsp; <span style="color:#FFD700;">+' + st.lastCoinReward + ' 🪙</span>' : '');
     const nl = Math.min(10000, st.level + 1);
@@ -2326,7 +2331,7 @@ function showCelebration() {
     spawnConfetti(70);
     saveLB();
     document.getElementById('celebEmoji').textContent = '🏆';
-    document.getElementById('celebTitle').textContent = 'Milestone!';
+    document.getElementById('celebTitle').textContent = 'Level ' + st.level.toLocaleString() + '!';
     document.getElementById('celebSub').innerHTML = 'Amazing progress!<br>Score: ' + st.score.toLocaleString() + '<br>💾 Progress Saved!';
     showOv('celebOv');
 }
@@ -2349,7 +2354,7 @@ function endGame(isBomb) {
     checkLifetimeRecords();
     document.getElementById('goScore').textContent = 'Score: ' + st.score.toLocaleString();
     renderBestScore();
-    document.getElementById('goSub').innerHTML = 'Progress saved — you can continue anytime!';
+    document.getElementById('goSub').innerHTML = 'You reached level ' + st.level + '.<br>Progress saved — you can continue!';
     saveProgress();
     saveProgressToCloud();
     saveLB();
@@ -2961,7 +2966,7 @@ function togglePause() {
 function renderPauseStats() {
     const el = document.getElementById('pauseStats');
     if (el) {
-        el.innerHTML = 'Progress <b>' + getProgressPct(st.level) + '</b> &nbsp;·&nbsp; Score <b>' +
+        el.innerHTML = 'Level <b>' + st.level.toLocaleString() + '</b> &nbsp;·&nbsp; Score <b>' +
             st.score.toLocaleString() + '</b> &nbsp;·&nbsp; ' + '❤️'.repeat(Math.max(0, st.lives));
     }
     const sBtn = document.getElementById('pauseSoundBtn');
@@ -3006,6 +3011,7 @@ function showRoadmap() {
     const el = document.getElementById('roadmapContent');
     if (!el) return;
     const themes = [
+        // Koi level range nahi likhna — usse total level count pata chal jata hai.
         { key: 'candy', emoji: '🍬', name: 'Candy Kingdom', desc: 'Where your journey begins' },
         { key: 'fish', emoji: '🐟', name: 'Deep Sea Fish', desc: 'A whole new ocean of candy' },
         { key: 'coffee', emoji: '☕', name: 'Premium Coffee', desc: 'The final grind' }
@@ -3410,7 +3416,7 @@ window.toggleSound = toggleSound;
 window.exitGame = exitGame;
 window.getLevelTarget = getLevelTarget;
 window.CandyMassDebug = {
-    VERSION: 'v4.8',
+    VERSION: 'v4.9',
     st: st,
     worldReady: worldReady,
     worldImages: worldImages,
@@ -3548,7 +3554,7 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-console.log('✅ Candy Mass v4.8 loaded');
+console.log('✅ Candy Mass v4.9 loaded');
 console.log('   (if this does not say v4.7, an old cached version is loading — press Ctrl+Shift+R)');
 console.log('🎯 Target curve:', [1, 2, 3, 5, 10, 20, 50, 100, 500, 1000, 2000, 3500, 5000, 7000, 9000, 9999, 10000]
     .map(l => 'L' + l + '=' + getLevelTarget(l)).join('  '));

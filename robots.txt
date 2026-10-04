@@ -1,0 +1,7 @@
+# Candy Mass — robots.txt
+# GitHub Pages ke root me daalo (index.html ke saath).
+User-agent: *
+Allow: /
+Disallow: /firestore.rules
+
+Sitemap: https://massgms.com/sitemap.xml
