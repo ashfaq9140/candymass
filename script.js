@@ -377,6 +377,33 @@ function resizeCanvas() {
     const rect = container.getBoundingClientRect();
     if (rect.width > 4) gameW = rect.width;
     if (rect.height > 4) gameH = rect.height;
+
+    // ------------------------------------------------------------
+    // LAPTOP/DESKTOP FIX
+    // Wide screen par #app ki height 85vh hoti hai, aur top bar + HUD
+    // + task bar ka space nikaal ke #cw bahut patla reh jata hai
+    // (jaise 450x260). Tab basket screen ke bilkul kinare par chala
+    // jata tha ya bahar — "basket dikh hi nahi rahi" bug.
+    //
+    // Isliye kam se kam 540px ki khelne ki height zaruri hai. Screen
+    // patli ho to app ko utna lamba kar do (page thoda scroll karega,
+    // par game poora dikhega).
+    // ------------------------------------------------------------
+    const MIN_PLAY_H = 540;
+    if (gameH < MIN_PLAY_H) {
+        const app = document.getElementById('app');
+        if (app && app.style) {
+            const need = Math.ceil(MIN_PLAY_H - gameH + 4);
+            app.style.height = Math.round(window.innerHeight * 0.85 + need) + 'px';
+            app.style.maxHeight = 'none';
+            const r2 = container.getBoundingClientRect();
+            if (r2.height > 4) gameH = Math.max(r2.height, MIN_PLAY_H);
+            if (r2.width > 4) gameW = r2.width;
+        } else {
+            gameH = MIN_PLAY_H;
+        }
+    }
+
     dpr = getDPR();
     dprScale = dpr;
     const canvas = document.getElementById('canvas');
@@ -389,13 +416,19 @@ function resizeCanvas() {
     }
     scaleX = gameW / BASE_W;
     scaleY = gameH / BASE_H;
-    if (st && st.basket) {
-        const scale = getBasketScale(st.level);
-        st.basket.w = 86 * scaleX * scale;
-        st.basket.h = 26 * scaleY * scale;
-        st.basket.y = gameH - 52 * scaleY;
-        st.basket.x = Math.min(Math.max(st.basket.x, st.basket.w / 2), gameW - st.basket.w / 2);
-    }
+    layoutBasket();
+}
+
+// Basket ka size aur jagah — ek hi jagah se, taaki sab consistent rahe.
+// Patli screen (laptop) par basket 2px ki patti ban jati thi, isliye
+// minimum height bhi lagayi hai.
+function layoutBasket() {
+    if (!st || !st.basket) return;
+    const scale = getBasketScale(st.level || 1);
+    st.basket.w = 86 * scaleX * scale;
+    st.basket.h = Math.max(14, 26 * scaleY * scale);
+    st.basket.y = gameH - Math.max(52 * scaleY, 34);
+    st.basket.x = Math.min(Math.max(st.basket.x, st.basket.w / 2), gameW - st.basket.w / 2);
 }
 
 function getScaledX(clientX) {
@@ -486,19 +519,48 @@ function getSpawnIntervalForLevel(lvl) {
 // TEEN alag "feels" mix hote hain — isse har candy alag behave karti hai,
 // game repetitive nahi lagta (yahi addiction ka asli reason hai):
 //
-//   EASY        - lamba dheema jhoola (drift jaisa), pakadna aasan
+//   EASY        - bada, aaram se jhoolne wala
 //   BALANCED    - beech ka, default feel
 //   CHALLENGING - tez chhota jhoola, dhyan se khelna padta hai
 //
 // Level badhne par CHALLENGING candy ka chance badhta hai (0% -> 20%) aur
 // EASY ka ghatta hai — isliye game dheere-dheere mushkil hota jaata hai.
-const WAVE_EASY = { amp: 0.28, period: 4.5 };   // bada dheema jhoola
-const WAVE_BAL  = { amp: 0.20, period: 2.3 };   // balanced (default)
-const WAVE_HARD = { amp: 0.16, period: 1.4 };   // tez chhota jhoola
+const WAVE_EASY = { amp: 0.28, period: 4.5, ampBias: 0.95, safety: 0.90 };
+const WAVE_BAL  = { amp: 0.20, period: 2.3, ampBias: 0.50, safety: 0.85 };
+const WAVE_HARD = { amp: 0.16, period: 1.4, ampBias: 0.20, safety: 0.80 };
+// Koi bhi candy itni chhoti lehar na kare ki dikhe hi na
+const WAVE_MIN_AMP = 42;
 
 // period (seconds) -> per frame phase step (60 FPS par)
 function periodToFreq(periodSec) {
     return (Math.PI * 2) / (periodSec * 60);
+}
+
+// Ek candy kitna left-right ja sakti hai — screen ke andar rehne ke liye.
+// (amp * 1.12 = jitter ka hisaab, 1.52 = dono taraf + margin)
+function maxAmpForScreen() {
+    return (gameW * 0.94) / (2 * 1.12 * 1.52);
+}
+
+// ------------------------------------------------------------
+// ZARURI: sideways speed falling speed se tez nahi honi chahiye.
+//   peakSideways (px/frame) = amp * freq
+// Isliye amplitude ki limit falling speed se nikalte hain:
+//   ampMax = safety * fallingSpeed / freq
+// Isse low level par jhoola chhota (aasan) aur high level par bada hota hai.
+// ------------------------------------------------------------
+function ampCapFor(preset, fallingSpeed) {
+    return (preset.safety * fallingSpeed) / periodToFreq(preset.period);
+}
+
+// Jab amplitude ka floor lagta hai (low level par), to frequency ko itna
+// dheema kar do ki peak sideways speed phir bhi falling speed ke andar rahe:
+//   peak = amp * freq  =>  freqMax = safety * fallingSpeed / amp
+// Isse dono cheezein ek saath poori hoti hain — candy dikhti bhi hai aur
+// sideways motion falling se tez bhi nahi hoti.
+function ampSpeedCapFreq(amp, safety, fallingSpeed) {
+    if (amp <= 0) return Infinity;
+    return (safety * fallingSpeed) / amp;
 }
 
 // Level ke hisaab se teeno ka weight (total = 1)
@@ -515,8 +577,8 @@ function getWaveWeights(lvl) {
 function getWaveConfig(lvl) {
     const w = getWaveWeights(lvl);
     return {
-        ampMin: WAVE_HARD.amp,
-        ampMax: WAVE_EASY.amp,
+        ampMin: 0.14,
+        ampMax: 0.28,
         freqMin: periodToFreq(WAVE_EASY.period),
         freqMax: periodToFreq(WAVE_HARD.period),
         weights: w
@@ -533,14 +595,38 @@ function makeWave(lvl) {
     else if (r < w.easy + w.bal) preset = WAVE_BAL;
     else preset = WAVE_HARD;
 
+    const freq = periodToFreq(preset.period);
+    const fallSpeed = getSpeedForLevel(lvl);
+
+    // amplitude: preset ka hissa + level ke saath bias, phir safety cap
+    const lvlT = Math.min(1, Math.max(0, (lvl - 1) / 9999));
+    const frac = preset.ampBias + (1 - preset.ampBias) * Math.pow(lvlT, 0.7);
+    let amp = gameW * preset.amp * frac;
     // halka variation, taaki do candy bilkul same na lagein
-    const ampJitter = 0.88 + Math.random() * 0.24;   // +/-12%
-    const perJitter = 0.90 + Math.random() * 0.20;   // +/-10%
+    amp *= 0.92 + Math.random() * 0.16;                 // +/-8%
+
+    // speed cap + screen cap
+    amp = Math.min(amp, ampCapFor(preset, fallSpeed), maxAmpForScreen());
+
+    // ------------------------------------------------------------
+    // MINIMUM floor: low level par speed cap bahut tight ho jata hai
+    // (L1 par hard candy ka amp sirf ~12px reh jata tha — wo dikhta hi
+    // nahi tha, "candy gayab" jaisa lagta tha). Isliye kam se kam itna
+    // jhoola zaruri hai.
+    // ------------------------------------------------------------
+    const ampFloor = Math.min(WAVE_MIN_AMP, maxAmpForScreen());
+    if (amp < ampFloor) amp = ampFloor;
+
+    // floor lagne ke baad frequency ko bhi cap karo, taaki peak sideways
+    // speed abhi bhi falling speed ke andar rahe
+    let outFreq = freq * (0.94 + Math.random() * 0.12);     // +/-6% variation
+    const fCap = ampSpeedCapFreq(amp, preset.safety, fallSpeed);
+    if (outFreq > fCap) outFreq = fCap;
 
     const direction = Math.random() < 0.5 ? -1 : 1;
     return {
-        amp: gameW * preset.amp * ampJitter,
-        freq: periodToFreq(preset.period) * perJitter,
+        amp: amp,
+        freq: outFreq,
         // phase 0 se shuru: spawn par candy apni jagah par hi rehti hai,
         // phir smoothly ek taraf jhoolna shuru karti hai (koi jump nahi).
         phase: 0,
@@ -1182,8 +1268,8 @@ function selectBasket(i) {
         }
     } else {
         const need = s.cost - have;
-        toast('🔒 <b>' + s.name + '</b> unlocks at Level ' + s.unlockLevel.toLocaleString() +
-            '<br>or now for ' + s.cost.toLocaleString() + ' 🪙 (need ' + need.toLocaleString() + ' more)', '#FFB8D0', 3200);
+        toast('🔒 <b>' + s.name + '</b> unlocks as you play more' +
+            '<br>or unlock now for ' + s.cost.toLocaleString() + ' 🪙 (need ' + need.toLocaleString() + ' more)', '#FFB8D0', 3200);
     }
 }
 
@@ -1215,7 +1301,7 @@ function renderBasketShop() {
         if (equipped) status = '<span style="color:#00FFB0;">✓ Equipped</span>';
         else if (unlocked) status = '<span style="color:#FFD700;">Tap to equip</span>';
         else if (getCoins() >= s.cost) status = '<span style="color:#FFD700;">🪙 ' + s.cost.toLocaleString() + ' — tap to unlock</span>';
-        else status = '<span style="color:#9a9ab0;">🔒 Level ' + s.unlockLevel.toLocaleString() + '<br>🪙 ' + s.cost.toLocaleString() + '</span>';
+        else status = '<span style="color:#9a9ab0;">🔒 Play more to unlock<br>🪙 ' + s.cost.toLocaleString() + '</span>';
 
         html += '<div class="basket-item ' + (equipped ? 'equipped' : '') + (unlocked ? '' : ' locked') + '" data-idx="' + i + '">' +
             '<canvas id="bkCanvas' + i + '" width="76" height="52"></canvas>' +
@@ -1864,8 +1950,15 @@ async function loadProgressFromCloud() {
 // ============================================================
 // ===== 11. HUD / OVERLAYS ===================================
 // ============================================================
+// Player ko exact level number nahi dikhate (usse bore hota hai).
+// Uski jagah progress % dikhate hain — "kitna aage badhe ho".
+function getProgressPct(lvl) {
+    const p = Math.round(Math.min(1, Math.max(0, (lvl - 1) / 9999)) * 100);
+    return p + '%';
+}
+
 function updateHUD() {
-    document.getElementById('lv').textContent = st.level.toLocaleString();
+    document.getElementById('lv').textContent = getProgressPct(st.level);
     let h = '';
     for (let i = 0; i < st.lives; i++) h += '❤️';
     document.getElementById('li').innerHTML = h || '🖤';
@@ -1878,13 +1971,13 @@ function renderBestScore() {
     const el = document.getElementById('bestLine');
     if (el) {
         el.innerHTML = (life.bestScore > 0)
-            ? '🏆 Best: <b>' + life.bestScore.toLocaleString() + '</b> &nbsp;·&nbsp; Level <b>' + life.bestLevel.toLocaleString() + '</b>'
+            ? '🏆 Best score: <b>' + life.bestScore.toLocaleString() + '</b>'
             : '🏆 No record yet — play your first game!';
     }
     const g = document.getElementById('goBest');
     if (g) {
         g.innerHTML = (life.bestScore > 0)
-            ? 'Best: ' + life.bestScore.toLocaleString() + ' · Level ' + life.bestLevel.toLocaleString()
+            ? 'Best score: ' + life.bestScore.toLocaleString()
             : '';
     }
 }
@@ -2034,11 +2127,8 @@ function initLevel(lvl, score, lives) {
     shakeFrames = 0;
     shakeIntensity = 0;
 
-    const scale = getBasketScale(lvl);
     st.basket.x = gameW / 2;
-    st.basket.w = 86 * scaleX * scale;
-    st.basket.h = 26 * scaleY * scale;
-    st.basket.y = gameH - 52 * scaleY;
+    layoutBasket();
 
     // per-level flags
     st.lostLifeThisLevel = false;
@@ -2155,7 +2245,7 @@ function showTask() {
     const emoji = document.querySelector('#taskOv .ov-emoji');
     if (emoji) emoji.textContent = '🎯';
     const title = document.querySelector('#taskOv .ov-title');
-    if (title) title.textContent = (st.theme.taskTitle || 'Bonus Task!') + ' — Level ' + st.level;
+    if (title) title.textContent = (st.theme.taskTitle || 'Bonus Task!');
 
     let desc;
     if (def.kind === 'target') {
@@ -2218,7 +2308,7 @@ function afterCeleb() {
 
 function showLevelComplete() {
     document.getElementById('lvEmoji').textContent = '🎉';
-    document.getElementById('lvTitle').textContent = 'Level ' + st.level + ' Complete!';
+    document.getElementById('lvTitle').textContent = 'Level Complete!';
     document.getElementById('lvScore').innerHTML = 'Score: ' + st.score.toLocaleString() +
         (st.lastCoinReward ? ' &nbsp; <span style="color:#FFD700;">+' + st.lastCoinReward + ' 🪙</span>' : '');
     const nl = Math.min(10000, st.level + 1);
@@ -2236,7 +2326,7 @@ function showCelebration() {
     spawnConfetti(70);
     saveLB();
     document.getElementById('celebEmoji').textContent = '🏆';
-    document.getElementById('celebTitle').textContent = 'Level ' + st.level.toLocaleString() + '!';
+    document.getElementById('celebTitle').textContent = 'Milestone!';
     document.getElementById('celebSub').innerHTML = 'Amazing progress!<br>Score: ' + st.score.toLocaleString() + '<br>💾 Progress Saved!';
     showOv('celebOv');
 }
@@ -2259,7 +2349,7 @@ function endGame(isBomb) {
     checkLifetimeRecords();
     document.getElementById('goScore').textContent = 'Score: ' + st.score.toLocaleString();
     renderBestScore();
-    document.getElementById('goSub').innerHTML = 'You reached level ' + st.level + '.<br>Saved progress — you can continue!';
+    document.getElementById('goSub').innerHTML = 'Progress saved — you can continue anytime!';
     saveProgress();
     saveProgressToCloud();
     saveLB();
@@ -2535,8 +2625,13 @@ function gameLoop(timestamp) {
         }
 
         if (it.y - it.size > gameH) {
-            // bomb ko girne dena = achhi baat (dodge)
-            if (it.isBomb) tickMission('bombs', 1);
+            // bomb ko girne dena = sahi khel (dodge). Isliye bomb chhodne par
+            // koi life nahi girti — pehle yahan onMiss() bhi chal raha tha,
+            // jisse bomb bachane par bhi life kam hoti thi (bug).
+            if (it.isBomb) {
+                tickMission('bombs', 1);
+                continue;
+            }
             // gift box chhod dena = koi penalty nahi (wo bonus tha)
             if (it.isGift) continue;
             if (!st.inTask) onMiss();
@@ -2766,10 +2861,10 @@ function sfxUnlock() { [660, 880, 1100, 1320].forEach((f, i) => beep(f, 'triangl
 const MISSIONS = [
     { id: 'total', def: 500, reward: 20, icon: '🍬', name: 'Candy Collector', text: 'Catch {n} candies (total)' },
     { id: 'combo', def: 15, reward: 30, icon: '🔥', name: 'Combo Master', text: 'Reach a {n}x combo' },
-    { id: 'levels', def: 25, reward: 40, icon: '📈', name: 'Level Climber', text: 'Complete {n} levels' },
+    { id: 'levels', def: 25, reward: 40, icon: '📈', name: 'High Climber', text: 'Clear {n} rounds' },
     { id: 'tasks', def: 5, reward: 50, icon: '🎯', name: 'Task Hero', text: 'Complete {n} bonus tasks' },
     { id: 'bombs', def: 10, reward: 35, icon: '💣', name: 'Bomb Dodger', text: 'Dodge {n} bombs (let them fall)' },
-    { id: 'nohit', def: 5, reward: 45, icon: '🛡️', name: 'Untouchable', text: 'Complete {n} levels without losing a life' },
+    { id: 'nohit', def: 5, reward: 45, icon: '🛡️', name: 'Untouchable', text: 'Clear {n} rounds without losing a life' },
     { id: 'jars', def: 5, reward: 60, icon: '🎨', name: 'Basket Fan', text: 'Unlock {n} baskets' },
     { id: 'coins', def: 1000, reward: 50, icon: '🪙', name: 'Coin Saver', text: 'Earn {n} coins (total)' }
 ];
@@ -2866,7 +2961,7 @@ function togglePause() {
 function renderPauseStats() {
     const el = document.getElementById('pauseStats');
     if (el) {
-        el.innerHTML = 'Level <b>' + st.level.toLocaleString() + '</b> &nbsp;·&nbsp; Score <b>' +
+        el.innerHTML = 'Progress <b>' + getProgressPct(st.level) + '</b> &nbsp;·&nbsp; Score <b>' +
             st.score.toLocaleString() + '</b> &nbsp;·&nbsp; ' + '❤️'.repeat(Math.max(0, st.lives));
     }
     const sBtn = document.getElementById('pauseSoundBtn');
@@ -2904,28 +2999,29 @@ function pauseGoHome() {
     showHomePage(currentUserName, currentUserEmail);
 }
 
+// Roadmap ab sirf 3 themes dikhata hai — koi level number nahi,
+// aur "you are here" bhi nahi (usse pata chal jata ki kitne level hain).
 function showRoadmap() {
     showOv('roadmapOv');
-    const saved = loadProgress();
-    const curLevel = saved ? saved.level : 1;
-    const pct = Math.round((curLevel / 10000) * 100);
-    function world(key, from, to) {
-        const meta = WORLD_META[key];
-        const active = curLevel >= from && curLevel <= to;
-        const emoji = meta.name.split(' ')[0];
-        const label = meta.name.replace(/^\S+\s/, '');
-        return '<div class="roadmap-world" style="border-left-color:' + meta.bar1 + ';' + (active ? '' : 'opacity:0.55;') + '">' +
-            '<div class="roadmap-header"><span class="roadmap-emoji">' + emoji + '</span>' +
-            '<div class="roadmap-name">' + label + (active ? ' ▶ Current' : '') + '</div>' +
-            '<div class="roadmap-range">' + from.toLocaleString() + '-' + to.toLocaleString() + '</div></div>' +
-            (active ? '<div class="roadmap-current">📍 You are here: Level ' + curLevel + '</div>' : '') +
+    const el = document.getElementById('roadmapContent');
+    if (!el) return;
+    const themes = [
+        { key: 'candy', emoji: '🍬', name: 'Candy Kingdom', desc: 'Where your journey begins' },
+        { key: 'fish', emoji: '🐟', name: 'Deep Sea Fish', desc: 'A whole new ocean of candy' },
+        { key: 'coffee', emoji: '☕', name: 'Premium Coffee', desc: 'The final grind' }
+    ];
+    let html = '';
+    themes.forEach(t => {
+        const meta = WORLD_META[t.key];
+        html += '<div class="roadmap-world" style="border-left-color:' + meta.bar1 + ';">' +
+            '<div class="roadmap-header"><span class="roadmap-emoji">' + t.emoji + '</span>' +
+            '<div class="roadmap-name">' + t.name + '</div></div>' +
+            '<div class="roadmap-current" style="color:rgba(255,255,255,0.6);">' + t.desc + '</div>' +
             '</div>';
-    }
-    let html = world('candy', 1, 3500) + world('fish', 3501, 7000) + world('coffee', 7001, 10000);
-    html += '<div style="height:6px;background:rgba(255,255,255,0.1);border-radius:3px;margin:8px 4px;">' +
-        '<div style="width:' + pct + '%;height:100%;background:#FF4DA6;border-radius:3px;"></div></div>' +
-        '<div style="font-size:12px;color:#FFD700;text-align:center;">' + curLevel.toLocaleString() + ' / 10,000 (' + pct + '%)</div>';
-    document.getElementById('roadmapContent').innerHTML = html;
+    });
+    html += '<div style="font-size:12px; color:#FFD700; text-align:center; margin-top:10px;">' +
+        'Keep playing — the themes change as you go! 🌍</div>';
+    el.innerHTML = html;
 }
 
 function closeRoadmap() { showHomePage(); }
@@ -3314,7 +3410,7 @@ window.toggleSound = toggleSound;
 window.exitGame = exitGame;
 window.getLevelTarget = getLevelTarget;
 window.CandyMassDebug = {
-    VERSION: 'v4.7',
+    VERSION: 'v4.8',
     st: st,
     worldReady: worldReady,
     worldImages: worldImages,
@@ -3452,7 +3548,7 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-console.log('✅ Candy Mass v4.7 loaded');
+console.log('✅ Candy Mass v4.8 loaded');
 console.log('   (if this does not say v4.7, an old cached version is loading — press Ctrl+Shift+R)');
 console.log('🎯 Target curve:', [1, 2, 3, 5, 10, 20, 50, 100, 500, 1000, 2000, 3500, 5000, 7000, 9000, 9999, 10000]
     .map(l => 'L' + l + '=' + getLevelTarget(l)).join('  '));
