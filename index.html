@@ -287,7 +287,7 @@
 <!-- ===== FIREBASE MODULAR SDK ===== -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-  import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+  import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -316,36 +316,72 @@
   window.firebaseOrderBy = orderBy;
   window.firebaseLimit = limit;
 
-  window.handleFirebaseLogin = async function() {
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      console.log("User signed in:", user.displayName);
+  // ------------------------------------------------------------
+  // LOGIN: popup ki jagah REDIRECT
+  // ------------------------------------------------------------
+  // Kyun: mobile Chrome me popup aksar BLOCK ho jata hai, isliye player
+  // login hi nahi kar paata. Redirect (poora page Google par jaata hai aur
+  // wapas aata hai) mobile par hamesha chalta hai — aur app jaisa feel deta hai.
+  //
+  // Session ko localStorage me rakhte hain, taaki redirect ke baad player
+  // logged-in rahe.
+  try {
+    setPersistence(auth, browserLocalPersistence).catch(function () {});
+  } catch (e) {}
 
-      const users = JSON.parse(localStorage.getItem('cr_users_v2') || '[]');
-      if (!users.find(u => u.email === user.email)) {
-        users.push({ name: user.displayName, email: user.email, via: 'google', id: user.uid });
-      }
-      localStorage.setItem('cr_users_v2', JSON.stringify(users));
+  // Login ke baad ka common kaam — popup aur redirect dono yahi use karte hain
+  function finishLogin(user) {
+    if (!user) return;
+    console.log("User signed in:", user.displayName);
 
-      const SESSION_KEY = 'cr_session_v4';
-      localStorage.setItem(SESSION_KEY, JSON.stringify({
-        email: user.email,
-        name: user.displayName,
-        via: 'google'
-      }));
-
-      document.getElementById('loginScreen').style.display = 'none';
-      if (typeof window.enterGame === 'function') {
-        window.enterGame(user.displayName, user.email);
-      } else {
-        console.error("enterGame function not found.");
-      }
-    } catch (error) {
-      console.error("Google login error:", error);
-      showLoginError(error);
+    const users = JSON.parse(localStorage.getItem('cr_users_v2') || '[]');
+    if (!users.find(u => u.email === user.email)) {
+      users.push({ name: user.displayName, email: user.email, via: 'google', id: user.uid });
     }
+    localStorage.setItem('cr_users_v2', JSON.stringify(users));
+
+    const SESSION_KEY = 'cr_session_v4';
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      email: user.email,
+      name: user.displayName,
+      via: 'google'
+    }));
+
+    // login screen hatao aur game me le jao
+    const ls = document.getElementById('loginScreen');
+    if (ls) ls.style.display = 'none';
+    if (typeof window.enterGame === 'function') {
+      window.enterGame(user.displayName, user.email);
+    } else {
+      console.error("enterGame function not found.");
+    }
+  }
+  window.finishLogin = finishLogin;
+
+  window.handleFirebaseLogin = function() {
+    // button ko thoda disable karo taaki double click na ho
+    const btn = document.getElementById('googleLoginBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Redirecting to Google…'; }
+    const box = document.getElementById('loginErr');
+    if (box) { box.style.display = 'none'; box.innerHTML = ''; }
+
+    // poora page Google par jaata hai, phir wapas aata hai
+    signInWithRedirect(auth, provider).catch(function (error) {
+      console.error("Google login error:", error);
+      if (btn) { btn.disabled = false; btn.textContent = '🔐 Sign in with Google'; }
+      showLoginError(error);
+    });
   };
+
+  // Redirect se wapas aane par result pakdo (error bhi yahin milta hai)
+  getRedirectResult(auth).then(function (result) {
+    if (result && result.user) {
+      finishLogin(result.user);
+    }
+  }).catch(function (error) {
+    console.error("Redirect login error:", error);
+    showLoginError(error);
+  });
 
   // Firebase ke technical error ko player-friendly message me badlo
   function showLoginError(error) {
