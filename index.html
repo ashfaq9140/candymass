@@ -284,6 +284,13 @@
 </div>
 </div>
 
+<!-- ===== GAME ENGINE ===== -->
+<!-- script.js PEHLE load hota hai, kyunki Firebase wala module
+     window.enterGame() use karta hai. Pehle module load hota tha,
+     isliye login ke baad enterGame "not found" ho jata tha aur
+     player wapas login screen par chala jata tha. -->
+<script src="script.js?v=4.9"></script>
+
 <!-- ===== FIREBASE MODULAR SDK ===== -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
@@ -467,7 +474,5 @@
 
   console.log("Firebase Auth + Firestore ready!");
 </script>
-
-<script src="script.js?v=4.9"></script>
 </body>
 </html>
