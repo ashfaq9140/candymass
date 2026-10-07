@@ -1588,15 +1588,19 @@ function clearSession() { localStorage.removeItem(SESSION_KEY); }
 
 let currentUserEmail = 'guest';
 let currentUserName = 'Guest';
+// Firebase UID — cloud doc id isi se banta hai (email se nahi, kyunki email me
+// aise characters ho sakte hain jo Firestore doc id me allowed nahi hote).
+let currentUserUid = '';
 let gameStarted = false;
 let isOnHomePage = false;
 let wasGamePausedBeforeSettings = false;
 
 function getAuth() { return window.firebaseAuth || null; }
 
-function enterGame(name, email) {
+function enterGame(name, email, uid) {
     currentUserEmail = email;
     currentUserName = name;
+    if (uid) currentUserUid = uid;
     showHomePage(name, email);
 }
 
@@ -1605,6 +1609,7 @@ window.onUserLoggedIn = function (user) {
     gameStarted = true;
     const name = user.displayName;
     const email = user.email;
+    if (user.uid) currentUserUid = user.uid;
     const users = JSON.parse(localStorage.getItem('cr_users_v2') || '[]');
     if (!users.find(u => u.email === email)) users.push({ name: name, email: email, via: 'google', id: user.uid });
     localStorage.setItem('cr_users_v2', JSON.stringify(users));
@@ -1732,8 +1737,15 @@ function loadProgress() {
 function saveLB() {
     try {
         const lb = JSON.parse(localStorage.getItem('cr_lb_v4') || '[]');
-        const idx = lb.findIndex(r => r.email === currentUserEmail);
-        const entry = { name: currentUserName, email: currentUserEmail, score: st.score, level: st.level };
+        const idx = lb.findIndex(r => r.email === currentUserEmail ||
+            (currentUserUid && r.uid && r.uid === currentUserUid));
+        const entry = {
+            uid: currentUserUid || '',
+            name: currentUserName,
+            email: currentUserEmail,
+            score: st.score,
+            level: st.level
+        };
         if (idx >= 0) { if (st.score > lb[idx].score) lb[idx] = entry; }
         else lb.push(entry);
         lb.sort((a, b) => b.score - a.score);
@@ -1770,7 +1782,7 @@ async function showLeaderboard() {
     let html = '<div style="text-align:center; font-size:10.5px; color:rgba(255,255,255,0.45); margin-bottom:6px;">' + lbSourceTag() + '</div>';
 
     // apni rank dhoondho
-    const meIdx = rows.findIndex(r => r.email === currentUserEmail);
+    const meIdx = rows.findIndex(isMeRow);
     if (meIdx >= 0) {
         const me = rows[meIdx];
         html += '<div class="lb-row me" style="border-left-color:#00FFB0; background:rgba(0,255,176,0.10);">' +
@@ -1782,7 +1794,7 @@ async function showLeaderboard() {
     }
 
     rows.slice(0, 30).forEach((r, i) => {
-        const isMe = r.email === currentUserEmail;
+        const isMe = isMeRow(r);
         html += '<div class="lb-row"' + (isMe ? ' style="border-left-color:#00FFB0;"' : '') + '>' +
             '<span class="lb-rank">' + (i < 3 ? medals[i] : (i + 1)) + '</span>' +
             '<span class="lb-name">' + (r.name || 'Player') + (isMe ? ' ★' : '') + (r.cloud ? '' : '') + '</span>' +
@@ -1805,10 +1817,25 @@ const LB_CLOUD_LIMIT = 50;          // top 50 cloud se
 const LB_CACHE_KEY = 'cm_lb_cloud_cache';
 let lbCloudBusy = false;
 
+// ------------------------------------------------------------
+// Cloud doc id = Firebase UID
+// ------------------------------------------------------------
+// Pehle email use kar rahe the, par email me aise characters ho sakte hain
+// jo Firestore doc id me allowed nahi (+ / space etc). Us case me code
+// characters hata deta tha aur rules se match fail ho jata tha -> leaderboard
+// chupchap toot jata tha. UID hamesha safe hota hai aur rules me
+// request.auth.uid se exact match karta hai.
 function lbDocId() {
-    // Cloud me unique id: email (guest_ wale cloud par nahi jaate)
+    if (currentUserUid) return currentUserUid;
+    // fallback (agar uid na mile) — safe email
     const e = currentUserEmail || 'guest';
     return e.replace(/[^a-zA-Z0-9_.@-]/g, '_').slice(0, 120);
+}
+
+// Leaderboard row apna hai ya nahi
+function isMeRow(r) {
+    if (currentUserUid && r.uid) return r.uid === currentUserUid;
+    return r.email === currentUserEmail;
 }
 
 function canUseCloudLB() {
@@ -1837,7 +1864,9 @@ async function submitScoreToCloud() {
         const db = window.firebaseDb;
         const ref = window.firebaseDoc(db, 'scores', lbDocId());
         await window.firebaseSetDoc(ref, {
+            uid: lbDocId(),
             name: (currentUserName || 'Player').slice(0, 20),
+            email: currentUserEmail,
             score: st.score,
             level: st.level || 1,
             updatedAt: new Date().toISOString()
@@ -1862,8 +1891,9 @@ async function fetchCloudScores() {
         snap.forEach(d => {
             const v = d.data() || {};
             rows.push({
+                uid: v.uid || d.id,
                 name: v.name || 'Player',
-                email: d.id,
+                email: v.email || '',
                 score: v.score || 0,
                 level: v.level || 1,
                 cloud: true
@@ -1888,16 +1918,19 @@ async function buildLeaderboard() {
     if (canUseCloudLB()) cloud = await fetchCloudScores();
     if (!cloud || !cloud.length) cloud = getLBCache();
 
-    // dono ko jodo (email ke hisaab se unique), best score rakho
+    // dono ko jodo — uid (cloud) ya email (local) ke hisaab se unique.
+    // Same player ka sirf BEST score rakha jata hai.
     const map = {};
     function add(r) {
-        if (!r || !r.email) return;
-        const key = r.email;
+        if (!r) return;
+        const key = r.uid ? ('u:' + r.uid) : (r.email ? ('e:' + r.email) : null);
+        if (!key) return;
         const ex = map[key];
         if (!ex || (r.score || 0) > (ex.score || 0)) {
             map[key] = {
+                uid: r.uid || '',
                 name: r.name || 'Player',
-                email: key,
+                email: r.email || '',
                 score: r.score || 0,
                 level: r.level || 1,
                 cloud: !!r.cloud
@@ -1919,13 +1952,24 @@ function lbSourceTag() {
 }
 
 // ===== CLOUD SAVE =====
+// ------------------------------------------------------------
+// CLOUD SAVE (progress) — ab UID-based
+// ------------------------------------------------------------
+// Pehle email doc id thi, par rules uid chahte hain (email me unsafe
+// characters ho sakte hain). Isliye:
+//   1. Naya data UID par save hota hai
+//   2. Purana data (email par) MILNE PAR apne aap UID par migrate ho jata hai
 async function saveProgressToCloud() {
     if (!currentUserEmail || currentUserEmail.indexOf('guest_') === 0) return;
+    const uid = lbDocId();
+    if (!uid) return;
     try {
         const db = window.firebaseDb, docFn = window.firebaseDoc, setDoc = window.firebaseSetDoc;
         if (!db || !docFn || !setDoc) return;
-        const userRef = docFn(db, 'users', currentUserEmail);
+        const userRef = docFn(db, 'users', uid);
         await setDoc(userRef, {
+            uid: uid,
+            email: currentUserEmail,
             name: currentUserName,
             level: st.level || 1,
             score: st.score || 0,
@@ -1937,13 +1981,44 @@ async function saveProgressToCloud() {
 
 async function loadProgressFromCloud() {
     if (!currentUserEmail || currentUserEmail.indexOf('guest_') === 0) return null;
+    const uid = lbDocId();
     try {
         const db = window.firebaseDb, docFn = window.firebaseDoc, getDocFn = window.firebaseGetDoc;
         if (!db || !docFn || !getDocFn) return null;
-        const docSnap = await getDocFn(docFn(db, 'users', currentUserEmail));
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            return { level: data.level || 1, score: data.score || 0, lives: data.lives || 3 };
+
+        // 1) UID par dekho
+        if (uid) {
+            const snap = await getDocFn(docFn(db, 'users', uid));
+            if (snap.exists()) {
+                const d = snap.data();
+                return { level: d.level || 1, score: d.score || 0, lives: d.lives || 3 };
+            }
+        }
+
+        // 2) Purana data email par ho sakta hai — usse UID par migrate karo
+        //    (rules ke hisaab se ab email par likhna allowed nahi hai)
+        if (currentUserEmail && currentUserEmail !== uid) {
+            const oldSnap = await getDocFn(docFn(db, 'users', currentUserEmail));
+            if (oldSnap.exists()) {
+                const d = oldSnap.data();
+                const data = { level: d.level || 1, score: d.score || 0, lives: d.lives || 3 };
+                // UID par migrate karo
+                if (uid && window.firebaseSetDoc) {
+                    try {
+                        await window.firebaseSetDoc(docFn(db, 'users', uid), {
+                            uid: uid,
+                            email: currentUserEmail,
+                            name: d.name || currentUserName,
+                            level: data.level,
+                            score: data.score,
+                            lives: data.lives,
+                            updatedAt: new Date().toISOString()
+                        }, { merge: true });
+                        console.log('☁️ Purana progress UID par migrate ho gaya');
+                    } catch (e) {}
+                }
+                return data;
+            }
         }
         return null;
     } catch (e) { return null; }

@@ -348,10 +348,11 @@
     }));
 
     // login screen hatao aur game me le jao
+    // uid bhi pass karo — cloud leaderboard doc id isi se banta hai
     const ls = document.getElementById('loginScreen');
     if (ls) ls.style.display = 'none';
     if (typeof window.enterGame === 'function') {
-      window.enterGame(user.displayName, user.email);
+      window.enterGame(user.displayName, user.email, user.uid);
     } else {
       console.error("enterGame function not found.");
     }
