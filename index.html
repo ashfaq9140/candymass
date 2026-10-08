@@ -294,18 +294,34 @@
 <!-- ===== FIREBASE MODULAR SDK ===== -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-  import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+  import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+  // ------------------------------------------------------------
+  // authDomain: SAME-ORIGIN chahiye (warna Chrome/Firefox login tod dete hain)
+  // ------------------------------------------------------------
+  // `firebaseapp.com` third-party domain hai. Jab site apne domain
+  // (massgms.com) par chalti hai, to auth handler bhi usi domain par hona
+  // chahiye — tabhi cookies save hoti hain aur login kaam karta hai.
+  //
+  // Isliye hostname ke hisaab se authDomain chunte hain:
+  //   massgms.com                     -> authDomain: massgms.com
+  //   candy-mass-game.web.app         -> authDomain: candy-mass-game.firebaseapp.com
+  //   candy-mass-game.firebaseapp.com -> authDomain: candy-mass-game.firebaseapp.com
+  const HOST = (location.hostname || '').toLowerCase();
+  const CUSTOM_DOMAINS = ['massgms.com', 'www.massgms.com'];
+  const useCustomAuth = CUSTOM_DOMAINS.indexOf(HOST) !== -1;
 
   const firebaseConfig = {
     apiKey: "AIzaSyA-hXKp2HGziVW4_qn5uv8M4pD43K41cqw",
-    authDomain: "candy-mass-game.firebaseapp.com",
+    authDomain: useCustomAuth ? HOST : "candy-mass-game.firebaseapp.com",
     projectId: "candy-mass-game",
     storageBucket: "candy-mass-game.firebasestorage.app",
     messagingSenderId: "36669342554",
     appId: "1:36669342554:web:b3908c1a5b7c234ed2a963",
     measurementId: "G-1FERW0XRGR"
   };
+  console.log('🔐 [login] authDomain =', firebaseConfig.authDomain, '| host =', HOST);
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -337,32 +353,54 @@
   } catch (e) {}
 
   // Login ke baad ka common kaam — popup aur redirect dono yahi use karte hain
+  let loginDone = false;   // ek hi baar game me jaana hai
   function finishLogin(user) {
     if (!user) return;
-    console.log("User signed in:", user.displayName);
+    console.log("✅ [login] finishLogin chala:", user.displayName, user.email);
+    try {
+      const users = JSON.parse(localStorage.getItem('cr_users_v2') || '[]');
+      if (!users.find(u => u.email === user.email)) {
+        users.push({ name: user.displayName, email: user.email, via: 'google', id: user.uid });
+      }
+      localStorage.setItem('cr_users_v2', JSON.stringify(users));
 
-    const users = JSON.parse(localStorage.getItem('cr_users_v2') || '[]');
-    if (!users.find(u => u.email === user.email)) {
-      users.push({ name: user.displayName, email: user.email, via: 'google', id: user.uid });
+      const SESSION_KEY = 'cr_session_v4';
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        email: user.email,
+        name: user.displayName,
+        uid: user.uid || '',
+        via: 'google'
+      }));
+    } catch (e) {
+      console.warn('[login] localStorage save fail:', e && e.message);
     }
-    localStorage.setItem('cr_users_v2', JSON.stringify(users));
 
-    const SESSION_KEY = 'cr_session_v4';
-    localStorage.setItem(SESSION_KEY, JSON.stringify({
-      email: user.email,
-      name: user.displayName,
-      via: 'google'
-    }));
-
-    // login screen hatao aur game me le jao
-    // uid bhi pass karo — cloud leaderboard doc id isi se banta hai
-    const ls = document.getElementById('loginScreen');
-    if (ls) ls.style.display = 'none';
-    if (typeof window.enterGame === 'function') {
-      window.enterGame(user.displayName, user.email, user.uid);
-    } else {
-      console.error("enterGame function not found.");
+    // login screen hatao aur game me le jao.
+    // script.js pehle load hota hai, par safety ke liye 10 baar tak
+    // retry karte hain (agar enterGame abhi tak ready na ho).
+    function goIn(attempt) {
+      const ls = document.getElementById('loginScreen');
+      const fn = window.enterGame;
+      if (typeof fn === 'function') {
+        if (ls) ls.style.display = 'none';
+        loginDone = true;
+        console.log('✅ [login] enterGame chala — game khul raha hai');
+        try { fn(user.displayName, user.email, user.uid); }
+        catch (e) { console.error('❌ [login] enterGame me error:', e); }
+        return;
+      }
+      if (attempt >= 10) {
+        console.error('❌ [login] enterGame 1 second me load nahi hua — login screen par hi ruk gaya');
+        const box = document.getElementById('loginErr');
+        if (box) {
+          box.innerHTML = '⚠️ Game engine load nahi hua.<br><span style="color:rgba(255,255,255,0.6)">Page refresh karo (Ctrl+Shift+R).</span>';
+          box.style.display = 'block';
+        }
+        return;
+      }
+      setTimeout(function () { goIn(attempt + 1); }, 100);
     }
+    goIn(0);
   }
   window.finishLogin = finishLogin;
 
@@ -373,21 +411,58 @@
     const box = document.getElementById('loginErr');
     if (box) { box.style.display = 'none'; box.innerHTML = ''; }
 
-    // poora page Google par jaata hai, phir wapas aata hai
-    signInWithRedirect(auth, provider).catch(function (error) {
-      console.error("Google login error:", error);
+    // ------------------------------------------------------------
+    // DO tareeke: pehle POPUP, fail hone par REDIRECT
+    // ------------------------------------------------------------
+    // Kyun: Chrome ab `firebaseapp.com` (third-party) ke cookies block karta
+    // hai, jisse redirect wapas aane par session nahi bachti aur player
+    // wapas login screen par chala jata hai. Popup ka user-gesture chain
+    // strong hota hai, isliye wo aksar chal jata hai. Popup block ho ya
+    // band ho jaye to redirect fallback chalta hai.
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    console.log('🔐 [login] shuru — mobile?', isMobile, '| authDomain =', auth.config.authDomain);
+
+    function tryRedirect(reason) {
+      console.log('🔐 [login] redirect par ja rahe hain. Wajah:', reason);
+      return signInWithRedirect(auth, provider);
+    }
+
+    const attempt = isMobile
+      ? tryRedirect('mobile device')
+      : signInWithPopup(auth, provider).then(function (result) {
+          console.log('✅ [login] popup se login ho gaya:', result.user.email);
+          finishLogin(result.user);
+        });
+
+    attempt.catch(function (error) {
+      const code = (error && error.code) || '';
+      console.warn('⚠️ [login] pehla tareeka fail:', code, error && error.message);
+
+      // Popup block hua / band hua / support nahi -> redirect try karo
+      if (/popup-blocked|popup-closed-by-user|cancelled-popup-request|operation-not-supported|web-storage-unsupported/i.test(code)) {
+        return tryRedirect(code).catch(function (e2) {
+          console.error('❌ [login] redirect bhi fail:', e2 && e2.code, e2 && e2.message);
+          if (btn) { btn.disabled = false; btn.textContent = '🔐 Sign in with Google'; }
+          showLoginError(e2);
+        });
+      }
+      console.error('❌ [login] login fail:', code, error && error.message);
       if (btn) { btn.disabled = false; btn.textContent = '🔐 Sign in with Google'; }
       showLoginError(error);
     });
   };
 
   // Redirect se wapas aane par result pakdo (error bhi yahin milta hai)
+  console.log('🔐 [login] page load hua — URL check kar rahe hain:', location.href.slice(0, 120));
   getRedirectResult(auth).then(function (result) {
     if (result && result.user) {
+      console.log('✅ [login] redirect result mila:', result.user.email);
       finishLogin(result.user);
+    } else {
+      console.log('ℹ️ [login] redirect result khaali (normal load, ya cookie block)');
     }
   }).catch(function (error) {
-    console.error("Redirect login error:", error);
+    console.error("❌ [login] getRedirectResult FAIL:", error && error.code, error && error.message);
     showLoginError(error);
   });
 
@@ -424,30 +499,22 @@
       box.style.display = 'block';
     }
     if (retry) retry.style.display = 'block';
+    alertUser(msg, code);
+  }
+
+  // Exact technical error ko console me saaf dikhao (debug ke liye)
+  function alertUser(msg, code) {
+    console.error('❌ [login] ASLI ERROR → code:', code, '| message:', msg);
   }
   window.showLoginError = showLoginError;
 
   onAuthStateChanged(auth, (user) => {
     if (user) {
-      console.log("User already signed in:", user.displayName);
-      const SESSION_KEY = 'cr_session_v4';
-      const session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
-      if (!session || session.email !== user.email) {
-        const users = JSON.parse(localStorage.getItem('cr_users_v2') || '[]');
-        if (!users.find(u => u.email === user.email)) {
-          users.push({ name: user.displayName, email: user.email, via: 'google', id: user.uid });
-        }
-        localStorage.setItem('cr_users_v2', JSON.stringify(users));
-        localStorage.setItem(SESSION_KEY, JSON.stringify({
-          email: user.email,
-          name: user.displayName,
-          via: 'google'
-        }));
-      }
-      document.getElementById('loginScreen').style.display = 'none';
-      if (typeof window.enterGame === 'function') {
-        window.enterGame(user.displayName, user.email);
-      }
+      console.log("✅ [login] onAuthStateChanged — user mila:", user.displayName, user.email);
+      // finishLogin hi session save + game me le jaane ka kaam karta hai
+      finishLogin(user);
+    } else {
+      console.log("ℹ️ [login] onAuthStateChanged — koi user nahi (logged out)");
     }
   });
 
