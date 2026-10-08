@@ -238,6 +238,25 @@ input:checked + .slider:before { transform: translateX(22px); background-color: 
   color: #fff;
   font-size: 12px;
 }
+
+/* Help/FAQ list scroll kare — warna 9 items screen se bahar nikal jate the */
+.faq-scroll {
+  max-height: 52vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 4px;
+  margin-bottom: 10px;
+  text-align: left;
+}
+/* patli scrollbar (mobile-friendly) */
+.faq-scroll::-webkit-scrollbar { width: 4px; }
+.faq-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.06); border-radius: 4px; }
+.faq-scroll::-webkit-scrollbar-thumb { background: rgba(255,215,0,0.55); border-radius: 4px; }
+/* Help card thoda chaudi, taaki text 2-3 lines me fit ho */
+#helpOv .ov-card { max-width: 340px; padding: 14px 12px; }
+#helpOv .faq-item { font-size: 11.5px; padding: 7px 8px; margin-bottom: 6px; line-height: 1.35; }
+#helpOv .ov-title { font-size: 17px; margin-bottom: 8px; }
+#helpOv .gbtn { margin-top: 2px; }
 #lbContent {
   background: rgba(0,0,0,0.85);
   border-radius: 16px;
