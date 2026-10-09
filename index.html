@@ -137,6 +137,9 @@
       <div class="setting-item"><span>✨ Pocket Effects</span><label class="switch"><input type="checkbox" id="setPocket"><span class="slider"></span></label></div>
       <div class="setting-item"><span>🚪 Logout</span><button id="settingsLogoutBtn" style="background:#FF4466; border:none; border-radius:20px; padding:5px 12px; color:white;">Logout</button></div>
       <div class="setting-item"><span>❌ Exit Game</span><button id="exitGameBtn" style="background:#444; border:none; border-radius:20px; padding:5px 12px; color:white;">Exit</button></div>
+      <div class="setting-item" id="removeAdsRow"><span>🚫 Remove Ads</span><button id="removeAdsBtn" style="background:#00B050; border:none; border-radius:20px; padding:5px 14px; color:white; font-weight:700;">₹79</button></div>
+      <div class="setting-item"><span>⭐ Rate this game</span><button id="rateUsBtn" style="background:#FFD700; border:none; border-radius:20px; padding:5px 12px; color:#1a0033; font-weight:700;">Rate</button></div>
+      <div class="setting-item"><span>📤 Share with friends</span><button id="shareBtn" style="background:#4285F4; border:none; border-radius:20px; padding:5px 12px; color:white;">Share</button></div>
       <button class="gbtn gbtn-gold" id="closeSettingsBtn">Save & Close</button>
     </div>
   </div>
@@ -185,6 +188,7 @@
       <div class="ov-title" id="lvTitle">Level Complete!</div>
       <div class="ov-stat" id="lvScore"></div>
       <div class="ov-sub" id="lvSub"></div>
+      <button class="gbtn gbtn-ad" id="lvAdCoinsBtn" style="display:none;">🎁 Watch ad · Double coins</button>
       <button class="gbtn gbtn-gold" id="nextLevelBtn">Next Level →</button>
     </div>
   </div>
@@ -278,6 +282,7 @@
       <div class="ov-stat" id="goScore"></div>
       <div class="ov-sub" id="goSub">-</div>
       <div class="ov-sub" id="goBest" style="font-size:12px; color:#FFD700;"></div>
+      <button class="gbtn gbtn-ad" id="goAdLifeBtn" style="display:none;">🎁 Watch ad · Get +1 ❤️</button>
       <button class="gbtn gbtn-gold" id="goContinueBtn">Continue from Saved</button>
       <button class="gbtn gbtn-red" id="goRestartBtn">Restart</button>
     </div>
@@ -286,12 +291,31 @@
 </div>
 </div>
 
+<!-- ===== ADSENSE (H5 Games Ads) ==============================
+     Abhi BAND hai. AdSense account approve hone ke baad:
+       1. niche wala <script> uncomment karo
+       2. XXXX ki jagah apna client ID daalo (ca-pub-...)
+       3. script.js me ADS_CLIENT bhi wahi ID set karo
+     Tab reward ads asli chalne lagenge.
+============================================================ -->
+<!--
+<script async data-ad-frequency-hint="30s"
+  src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
+  crossorigin="anonymous"></script>
+-->
+
 <!-- ===== GAME ENGINE ===== -->
 <!-- script.js PEHLE load hota hai, kyunki Firebase wala module
      window.enterGame() use karta hai. Pehle module load hota tha,
      isliye login ke baad enterGame "not found" ho jata tha aur
      player wapas login screen par chala jata tha. -->
 <script src="script.js?v=4.9"></script>
+
+<!-- ===== MONETIZATION (ads + remove-ads + rate + share) =====
+     Ye ALAG file hai. HATANI HO TO: bas niche wali line delete kar do.
+     Game bilkul waise hi chalega, koi ads nahi honge.
+============================================================ -->
+<script src="ads.js?v=4.9"></script>
 
 <!-- ===== FIREBASE MODULAR SDK ===== -->
 <script type="module">

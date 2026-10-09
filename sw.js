@@ -11,11 +11,13 @@
 const CACHE_NAME = 'candymass-v4-9';
 
 // Ye files pehli baar install par cache ho jati hain.
+// ads.js optional hai — agar file na ho to cache.add chupchap skip kar deta hai.
 const CORE_ASSETS = [
     './',
     './index.html',
     './style.css',
     './script.js',
+    './ads.js',
     './manifest.json'
 ];
 

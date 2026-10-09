@@ -2303,6 +2303,13 @@ function onLevelComplete() {
     saveProgressToCloud();
     saveLB();
     submitScoreToCloud();     // global leaderboard par bhejo
+
+    // Monetization (ads.js) ko khabar do — agar wo file na ho to kuch nahi hota
+    try {
+        document.dispatchEvent(new CustomEvent('cm:levelcomplete', {
+            detail: { level: st.level, coins: st.lastCoinReward || 0 }
+        }));
+    } catch (e) {}
     sfxLevelUp();
 
     if (isTaskLevel(st.level) && !st.taskDone) {
@@ -2434,6 +2441,11 @@ function endGame(isBomb) {
     saveProgressToCloud();
     saveLB();
     submitScoreToCloud();     // global leaderboard par bhejo
+    try {
+        document.dispatchEvent(new CustomEvent('cm:gameover', {
+            detail: { level: st.level, score: st.score }
+        }));
+    } catch (e) {}
     showOv('goOv');
 }
 

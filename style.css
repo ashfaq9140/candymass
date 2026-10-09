@@ -174,6 +174,20 @@ body {
 .gbtn-gold { background: linear-gradient(135deg, #FFD700, #FF8C00); color: #2A1000; }
 .gbtn-purple { background: linear-gradient(135deg, #845EF7, #5C3DCF); color: #fff; }
 .gbtn-blue { background: linear-gradient(135deg, #00E0FF, #0088CC); color: #fff; }
+/* Reward-ad button — hari, "muft inaam" wali feel */
+.gbtn-ad {
+  background: linear-gradient(135deg, #00B050, #00FFB0);
+  color: #05261a;
+  font-weight: 800;
+  border: none;
+  animation: adPulse 2.2s ease-in-out infinite;
+}
+@keyframes adPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,255,176,0.45); }
+  50% { box-shadow: 0 0 0 8px rgba(0,255,176,0); }
+}
+/* Reward ad ke baad button disable dikhe */
+.gbtn-ad[data-used="1"] { display: none !important; }
 .icon-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
