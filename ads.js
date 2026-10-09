@@ -36,6 +36,18 @@
     const ADS_FREE_KEY = 'cm_ads_free';
     const STORE_URL = 'https://play.google.com/store/apps/details?id=com.massgms.candymass';
 
+    // ---- INTERSTITIAL (level complete ke baad ka forced ad) ----
+    // Yahi ad "Remove Ads ₹79" ko bikwata hai.
+    // Google policy ka dhyan rakha gaya hai:
+    //   • gameplay ke DAURAN nahi — sirf natural break (level complete) par
+    //   • level 1-2 par NAHI (naye player ko pareshan nahi karte)
+    //   • har 3rd level par
+    //   • 2 minute ka gap (frequency cap)
+    const INTERSTITIAL_EVERY = 3;
+    const INTERSTITIAL_GAP_MS = 120000;
+    const INTERSTITIAL_MIN_LEVEL = 3;
+    let lastInterstitialAt = 0;
+
     let adsFree = false;
     let adsReady = false;
     let lastAdShownAt = 0;
@@ -163,6 +175,37 @@
     }
 
     // ------------------------------------------------------------
+    // INTERSTITIAL ad — level complete ke baad
+    // ------------------------------------------------------------
+    function showInterstitial(name) {
+        if (adsFree) return;                 // ₹79 liya hai to koi forced ad nahi
+        if (!ADS_ENABLED) return;            // Adsense ID nahi hai to chup raho
+        if (typeof window.adBreak !== 'function') return;
+        const now = Date.now();
+        if (now - lastInterstitialAt < INTERSTITIAL_GAP_MS) return;
+        lastInterstitialAt = now;
+        try {
+            window.adBreak({
+                type: 'next',
+                name: name || 'level-end',
+                beforeAd: function () { /* level-complete overlay already khula hai */ },
+                afterAd: function () { },
+                adBreakDone: function () { }
+            });
+            console.log('📺 [ads] interstitial dikhaya:', name);
+        } catch (e) {
+            console.warn('⚠️ [ads] interstitial fail:', e && e.message);
+        }
+    }
+
+    function maybeShowInterstitial(level) {
+        if (!level || level < INTERSTITIAL_MIN_LEVEL) return;
+        if (level % INTERSTITIAL_EVERY !== 0) return;
+        // overlay pehle render ho jaye, phir ad
+        setTimeout(function () { showInterstitial('level-' + level); }, 600);
+    }
+
+    // ------------------------------------------------------------
     // REWARD 1: extra life (game over par)
     // ------------------------------------------------------------
     function giveExtraLife() {
@@ -264,6 +307,7 @@
         updateUI();
         const lvl = (ev && ev.detail && ev.detail.level) || 0;
         maybeAskRate(lvl);
+        maybeShowInterstitial(lvl);     // har 3rd level par forced ad
     });
 
     // Cloud se ₹79 purchase mila (naya device) — ads turant band karo
@@ -319,6 +363,8 @@
         setAdsFree: setAdsFree,
         enabled: function () { return ADS_ENABLED; },
         showRewardedAd: showRewardedAd,
+        showInterstitial: showInterstitial,
+        maybeShowInterstitial: maybeShowInterstitial,
         buyRemoveAds: buyRemoveAds,
         openRateUs: openRateUs,
         shareGame: shareGame,
