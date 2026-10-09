@@ -1991,7 +1991,21 @@ async function loadProgressFromCloud() {
             const snap = await getDocFn(docFn(db, 'users', uid));
             if (snap.exists()) {
                 const d = snap.data();
-                return { level: d.level || 1, score: d.score || 0, lives: d.lives || 3 };
+                const out = { level: d.level || 1, score: d.score || 0, lives: d.lives || 3 };
+                // ₹79 purchase cloud me hai to naye device par bhi restore karo
+                if (d.adsFree) {
+                    out.adsFree = true;
+                    try { localStorage.setItem('cm_ads_free', '1'); } catch (e) {}
+                    try {
+                        const life = getLifetime();
+                        life.adsFree = true;
+                        setLifetime(life);
+                    } catch (e) {}
+                    try {
+                        document.dispatchEvent(new CustomEvent('cm:adsfree'));
+                    } catch (e) {}
+                }
+                return out;
             }
         }
 
@@ -2877,9 +2891,16 @@ function toast(msg, color, ms) {
 function getLifetime() {
     try {
         const d = JSON.parse(localStorage.getItem('cm_lifetime') || 'null');
-        if (d) return { bestScore: d.bestScore || 0, bestLevel: d.bestLevel || 1, totalCoins: d.totalCoins || 0 };
+        if (d) return {
+            bestScore: d.bestScore || 0,
+            bestLevel: d.bestLevel || 1,
+            totalCoins: d.totalCoins || 0,
+            // adsFree preserve karna ZARURI hai — warna ₹79 purchase har
+            // reload par ud jata tha (pehle yahi bug tha)
+            adsFree: !!d.adsFree
+        };
     } catch (e) {}
-    return { bestScore: 0, bestLevel: 1, totalCoins: 0 };
+    return { bestScore: 0, bestLevel: 1, totalCoins: 0, adsFree: false };
 }
 function setLifetime(d) { localStorage.setItem('cm_lifetime', JSON.stringify(d)); }
 

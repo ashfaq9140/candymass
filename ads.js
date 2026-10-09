@@ -266,6 +266,12 @@
         maybeAskRate(lvl);
     });
 
+    // Cloud se ₹79 purchase mila (naya device) — ads turant band karo
+    document.addEventListener('cm:adsfree', function () {
+        adsFree = true;
+        updateUI();
+    });
+
     // ------------------------------------------------------------
     // BUTTONS
     // ------------------------------------------------------------
