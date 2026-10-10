@@ -29,7 +29,7 @@
     // ------------------------------------------------------------
     // CONFIG
     // ------------------------------------------------------------
-    const ADS_CLIENT = '';              // TODO: 'ca-pub-XXXXXXXXXXXXXXXX'
+    const ADS_CLIENT = 'ca-pub-7547034880840405';   // AdSense Publisher ID
     const ADS_ENABLED = ADS_CLIENT.length > 10;
     const AD_COOLDOWN_MS = 20000;       // do reward ads ke beech kam se kam 20s
     const RATE_KEY = 'cm_rated_v1';
