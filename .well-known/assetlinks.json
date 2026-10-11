@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.massgms.candymass",
+    "sha256_cert_fingerprints": ["F7:0B:07:10:21:AA:1E:5D:94:EC:88:0E:21:EA:9A:B9:64:EA:D2:1A:D9:EB:1F:40:76:CF:90:15:A8:0B:EF:F2"]
+  }
+}]
