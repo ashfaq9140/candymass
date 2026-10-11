@@ -9,8 +9,7 @@
       ".gitignore",
       "**/node_modules/**",
       "**/*.md",
-      "firestore.rules",
-      "robots.txt"
+      "firestore.rules"
     ],
     "headers": [
       {
