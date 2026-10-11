@@ -478,6 +478,7 @@ function rawTargetCurve(lvl) {
 }
 
 function getLevelTarget(lvl) {
+    lvl = safeLevel(lvl);
     if (lvl <= 1) return 10;
     if (lvl >= 10000) return MAX_TARGET;   // sirf level 10000 par 120
     const raw = rawTargetCurve(Math.min(lvl, 9999));
@@ -488,8 +489,18 @@ function getLevelTarget(lvl) {
 // Pehle ye 8.6 tak jaati thi jo bahut tez thi.
 const SPEED_MIN = 2.7;
 const SPEED_MAX = 6.0;
+
+// Level ko hamesha 1..10000 ke andar rakho.
+// Agar kabhi NaN, negative ya kharab value aa jaye (corrupt save / tampering),
+// to game freeze hone ke bajaye level 1 maan lo.
+function safeLevel(lvl) {
+    const n = Number(lvl);
+    if (!Number.isFinite(n)) return 1;
+    return Math.max(1, Math.min(10000, Math.floor(n)));
+}
+
 function getSpeedForLevel(lvl) {
-    const t = Math.min(lvl, 10000) / 10000;
+    const t = safeLevel(lvl) / 10000;
     return SPEED_MIN + Math.pow(t, 0.62) * (SPEED_MAX - SPEED_MIN);
 }
 
@@ -500,6 +511,7 @@ function getSpawnIntervalForLevel(lvl) {
     // Pehle 40 level = "tutorial rush": shuru me aaram (L1 par 2 candy/level
     // type feel), phir tez hone lagta hai (L20 tak peak), phir normal curve
     // me smoothly mil jata hai — koi jump nahi.
+    lvl = safeLevel(lvl);
     if (lvl <= 40) {
         const peak = 26;                     // sabse tez spawn (frames)
         if (lvl <= 20) {
@@ -509,7 +521,7 @@ function getSpawnIntervalForLevel(lvl) {
         // L21 -> L40: 26 frames se wapas 62 frames (normal curve se milne ke liye)
         return Math.round(peak + (lvl - 20) * (62 - peak) / 20);
     }
-    const t = Math.min(lvl, 10000) / 10000;
+    const t = lvl / 10000;
     return Math.round(SPAWN_MAX - (SPAWN_MAX - SPAWN_MIN) * Math.pow(t, 0.70));
 }
 
@@ -637,11 +649,12 @@ function makeWave(lvl) {
 
 // Bomb probability: L1 1% ... L10000 12%
 function getBombChance(lvl) {
-    const t = Math.min(lvl, 10000) / 10000;
+    const t = safeLevel(lvl) / 10000;
     return 0.01 + Math.pow(t, 0.95) * 0.11;
 }
 
 function getBasketScale(level) {
+    level = safeLevel(level);
     if (level < 3000) return 1.0;
     if (level < 5000) return 0.97;
     if (level < 7000) return 0.94;
@@ -695,7 +708,7 @@ function taskTargetCount(lvl) {
     return 5 + Math.round(Math.pow(t, 0.85) * 17);
 }
 
-function isTaskLevel(lvl) { return lvl % 5 === 0 && lvl > 0; }
+function isTaskLevel(lvl) { return safeLevel(lvl) % 5 === 0; }
 
 // Task ke liye special candy: aate-aate poori candy pool unlock hoti hai.
 // Isse guarantee hai ki task wali candy sheet me maujood hai (bomb nahi).
@@ -1728,7 +1741,11 @@ function loadProgress() {
         const r = localStorage.getItem(saveKey(currentUserEmail));
         if (r) {
             const data = JSON.parse(r);
-            return { level: data.level || 1, score: data.score || 0, lives: data.lives || 3 };
+            return {
+                level: safeLevel(data.level),
+                score: Math.max(0, Number(data.score) || 0),
+                lives: Math.max(1, Math.min(5, Number(data.lives) || 3))
+            };
         }
         return null;
     } catch (e) { return null; }
@@ -2175,8 +2192,10 @@ function handleBombEffect(bombType) {
 // ============================================================
 function initLevel(lvl, score, lives) {
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = 0; }
+    // Level hamesha 1..10000 ke andar — corrupt save / tampering se bachne ke liye
+    lvl = safeLevel(lvl);
     // save se aaya level? (basket unlock aur missions ke liye zaruri)
-    if (typeof lvl === 'number' && lvl > 0) st.level = lvl;
+    st.level = lvl;
     const cfg = getLevelConfig(lvl);
     syncWorld(lvl);
 
