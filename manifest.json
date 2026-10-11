@@ -1,8 +1,9 @@
 {
+  "id": "/",
   "name": "Candy Mass",
   "short_name": "Candy Mass",
   "description": "Catch the falling candy wave! Travel through the Candy Kingdom, dive into the Deep Sea and finish with Premium Coffee. Beat bonus task levels, dodge bombs, unlock baskets and complete missions.",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "fullscreen",
   "display_override": ["fullscreen", "standalone"],
