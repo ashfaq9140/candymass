@@ -104,7 +104,8 @@
 
     function updateUI() {
         const row = document.getElementById('removeAdsRow');
-        if (row) row.style.display = adsFree ? 'none' : '';
+        // Billing ready nahi hai to "Remove Ads" row hi chhupao
+        if (row) row.style.display = (!BILLING_READY || adsFree) ? 'none' : '';
         ['goAdLifeBtn', 'lvAdCoinsBtn'].forEach(function (id) {
             const b = document.getElementById(id);
             if (b) b.style.display = (!adsFree && b.dataset.used !== '1') ? '' : 'none';
@@ -248,16 +249,37 @@
     }
 
     // ------------------------------------------------------------
-    // ₹79 remove ads (Play Billing ke liye placeholder)
     // ------------------------------------------------------------
+    // ₹79 "Remove Ads" — Play Billing
+    //
+    // ⚠️ BILLING_READY = false hone par button DIKHEGA HI NAHI.
+    // Pehle ek BUG tha: button dabane par bina paisa liye ads hat jate the.
+    // Play Billing (Digital Goods API) lagane ke baad ise true karo.
+    // ------------------------------------------------------------
+    const BILLING_READY = false;
+
     function buyRemoveAds() {
         if (adsFree) { say('✅ Ads already removed', '#00FFB0'); return; }
-        // TODO Play Billing:
-        //   billingClient.launchBillingFlow('remove_ads')
-        //   -> success par setAdsFree(true, true)
-        setAdsFree(true, true);
-        safe(function () { sfxUnlock(); });
-        say('🚫 Ads removed! Thank you ❤️', '#00FFB0', 3000);
+
+        // Bina payment ke KABHI ads-free na karo
+        if (!BILLING_READY) {
+            say('🚧 Coming soon!', '#FFD700', 2400);
+            return;
+        }
+
+        // Yahan Play Billing (Digital Goods API) lagega:
+        //
+        //   const svc = await getDigitalGoodsService('https://play.google.com/billing');
+        //   const details = await svc.getDetails(['remove_ads']);
+        //   const req = new PaymentRequest(
+        //       [{ supportedMethods: 'https://play.google.com/billing',
+        //          data: { sku: 'remove_ads' } }], { total: { label: 'Remove Ads',
+        //          amount: { currency: details[0].price.currency,
+        //                    value: details[0].price.value } } });
+        //   const resp = await req.show();
+        //   await svc.consume(resp.details.token);   // ya acknowledge
+        //   setAdsFree(true, true);                  // <- SIRF payment ke baad
+        say('🚧 Coming soon!', '#FFD700', 2400);
     }
 
     // ------------------------------------------------------------
