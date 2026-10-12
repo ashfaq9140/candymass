@@ -21,6 +21,38 @@ body {
   font-family: 'Segoe UI', system-ui, sans-serif;
 }
 
+/* ============================================================
+   SAFE AREA — notch / punch-hole / gesture bar
+   ------------------------------------------------------------
+   index.html me viewport-fit=cover hai, matlab page notch ke
+   neeche tak chala jata hai. Isliye notch wale phones (iPhone,
+   Samsung S23/S24, Pixel, OnePlus, Redmi...) par top bar kat
+   jata tha, aur gesture-bar wale phones par niche ke button
+   overlap kar jate the.
+   Ye padding har device par UI ko safe area ke andar rakhti hai.
+   env() support na hone par fallback 0px hai (purane browsers).
+   ============================================================ */
+#gameWrap {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  box-sizing: border-box;
+}
+.auth-screen {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  box-sizing: border-box;
+}
+/* Modal overlays bhi safe area ke andar rahein */
+.ov {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
+}
+
 /* Main container */
 #app {
   width: 100%;
