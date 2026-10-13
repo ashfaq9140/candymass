@@ -1880,6 +1880,28 @@ async function submitScoreToCloud() {
     try {
         const db = window.firebaseDb;
         const ref = window.firebaseDoc(db, 'scores', lbDocId());
+
+        // ------------------------------------------------------------
+        // Pehle cloud wala score dekho. Firestore rules monotonic hain —
+        // naya score purane se KAM bheja to "Missing or insufficient
+        // permissions" aata hai (aur console me warning chhapti hai).
+        //
+        // Ye tab hota hai jab player apna browser data clear kare, ya
+        // naye device par khele — local best 0 ho jata hai par cloud me
+        // purana high score pada rehta hai. Isliye pehle compare karo.
+        // ------------------------------------------------------------
+        try {
+            const snap = await window.firebaseGetDoc(ref);
+            if (snap && snap.exists && snap.exists()) {
+                const d = snap.data() || {};
+                const cloudScore = Number(d.score) || 0;
+                const cloudLevel = Number(d.level) || 1;
+                if (cloudScore >= st.score && cloudLevel >= (st.level || 1)) {
+                    return;   // cloud me already behtar hai — chup raho
+                }
+            }
+        } catch (e) { /* read fail ho to seedha write try karo */ }
+
         await window.firebaseSetDoc(ref, {
             uid: lbDocId(),
             name: (currentUserName || 'Player').slice(0, 20),
@@ -1890,7 +1912,14 @@ async function submitScoreToCloud() {
         }, { merge: true });
         console.log('☁️ Score cloud par bheja:', st.score);
     } catch (e) {
-        console.warn('Cloud score submit fail:', e && e.message);
+        const msg = (e && e.message) || '';
+        // Permission error yahan normal hai (cloud me behtar score hai).
+        // Isliye warning ke bajaye chup-chaap ignore karo — console saaf rahe.
+        if (/permission|insufficient/i.test(msg)) {
+            console.log('ℹ️ Cloud par already behtar score hai — skip');
+        } else {
+            console.warn('Cloud score submit fail:', msg);
+        }
     }
 }
 
