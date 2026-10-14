@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Designing a Difficulty Curve That Never Spikes | Candy Mass Blog</title>
+<meta name="description" content="Most casual games get harder in steps. Here is how Candy Mass uses four independent curves — speed, spawn rate, target size and bomb frequency — to ramp difficulty smoothly.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0A001E">
+<link rel="stylesheet" href="content.css?v=1">
+</head>
+<body>
+
+<nav class="nav"><div class="nav-in">
+  <a class="nav-logo" href="index.html">🍬 Candy Mass</a>
+  <div class="nav-links">
+    <a href="index.html">Play</a>
+    <a href="how-to-play.html">How to Play</a>
+    <a href="tips.html">Tips</a>
+    <a href="faq.html">FAQ</a>
+    <a href="blog.html" class="on">Blog</a>
+    <a href="about.html">About</a>
+  </div>
+</div></nav>
+
+<div class="wrap">
+
+<div class="hero">
+  <h1>Designing a difficulty curve that never spikes</h1>
+  <p class="lead">9 October 2026 · 7 min read</p>
+</div>
+
+
+<p>Almost every casual game gets harder in steps. You clear level 12 and level 13 is noticeably harder than level 12 was. That is easy to build and easy to understand, and players are used to it.</p>
+
+<p>Candy Mass does it differently. Difficulty rises continuously across ten thousand rounds, with four separate curves working together. No single round is dramatically harder than the one before it. Here is how those curves are built, and why the design is harder than it looks.</p>
+
+<h2>The four curves</h2>
+
+<h3>1. Falling speed</h3>
+<p>How fast candy falls. This starts at 2.7 units per frame and rises to a hard cap of 6.0. The shape matters more than the endpoints:</p>
+
+<p><strong>speed = 2.7 + (round/10000)<sup>0.62</sup> × 2.7</strong></p>
+
+<p>The exponent of 0.62 means speed climbs quickly at first and then flattens out. Most of the increase happens in the first few hundred rounds, which is where new players need to feel progress. By round 3000 the curve is nearly flat, so late rounds are not terrifyingly fast — they are just consistently demanding.</p>
+
+<h3>2. Spawn rate</h3>
+<p>How often candy appears. This is where the game has its most unusual design decision. Rather than holding spawn rate constant and letting speed do all the work, there is a deliberate early "rush": spawn rate starts relaxed, peaks around round 20, then eases back and joins the main curve by round 40.</p>
+
+<p>The effect is that the first twenty rounds get steadily busier — more candy, more catches, faster progress — and then settle. New players feel momentum immediately without ever being asked to move faster than they can.</p>
+
+<h3>3. Target size</h3>
+<p>How many catches a round requires. This rises from 10 to 120 across the full curve, but it does not rise in a straight line. The early rounds are generously short so that the first few minutes are a stream of completions, and the late rounds stretch out so that a single round feels like an achievement.</p>
+
+<p>The very last round is deliberately special: it is the only round in the game that requires the maximum 120 catches.</p>
+
+<h3>4. Bomb frequency</h3>
+<p>What proportion of falling objects are bombs. This rises from about 1% at the start to 12% by the end. It is the slowest-moving curve of the four, and deliberately so — bombs are the main source of tension, and tension is the one thing that should not ramp up quickly in a game meant to be relaxing.</p>
+
+<h2>Why smooth beats stepped</h2>
+
+<p>Stepped difficulty is easier to build but has two problems. The first is that the hardest moment of every level is its start, before you have found the rhythm. The second is that a step is a wall: players who cannot clear level 13 get stuck at level 13 forever, and stuck players stop playing.</p>
+
+<p>A continuous ramp removes both. There is no wall to hit because there is no step. A player who is struggling is struggling with a curve that has been creeping up for dozens of rounds, which means the difficulty they are facing is exactly the difficulty they have been gradually adapting to.</p>
+
+<p>It also makes "one more round" feel reasonable. Nothing about the next round looks harder than the last one, so there is no reason not to try it.</p>
+
+<h2>The constraint that keeps it honest</h2>
+
+<p>There is a physics constraint buried in the wave movement — the sideways sway that makes falling candy drift — that interacts with all of this. The candy sways left and right as it falls, and if the sideways speed ever exceeds the falling speed, the candy effectively stops falling. Rounds become unwinnable.</p>
+
+<p>So amplitude is capped so that peak sideways speed always stays below falling speed. As rounds get faster, the sway has to be constrained more tightly. Every one of the four difficulty curves above has to respect that limit, which is why the wave parameters are computed rather than authored by hand.</p>
+
+<h2>How it is verified</h2>
+
+<p>A curve this long cannot be checked by playing it. Ten thousand rounds is not something a person can evaluate by hand, so the entire thing is tested programmatically: every round from 1 to 10,000 is evaluated for valid target, speed, spawn interval, bomb chance and basket scale, and the largest jump between consecutive rounds is measured.</p>
+
+<p>The current maximum jump in speed between adjacent rounds is under 0.006 units. There is no step anywhere in the curve — not one that was authored, and not one that crept in later.</p>
+
+<p>That is the difference between a difficulty curve you design and one you hope you designed.</p>
+
+<p style="text-align:center;margin-top:30px"><a href="blog.html">← Back to all articles</a></p>
+
+
+<div class="cta-wrap">
+  <a class="cta" href="index.html">▶ Play Candy Mass</a>
+</div>
+
+<div class="foot">
+  <div class="foot-links">
+    <a href="index.html">Play</a>
+    <a href="how-to-play.html">How to Play</a>
+    <a href="tips.html">Tips &amp; Strategy</a>
+    <a href="faq.html">FAQ</a>
+    <a href="blog.html">Blog</a>
+    <a href="about.html">About</a>
+    <a href="contact.html">Contact</a>
+    <a href="privacy.html">Privacy</a>
+  </div>
+  <div>© 2026 Mass Interactive Games · <a href="mailto:massinteractivegames@gmail.com">massinteractivegames@gmail.com</a></div>
+</div>
+
+</div>
+</body>
+</html>

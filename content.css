@@ -1,0 +1,160 @@
+/* ============================================================
+   Candy Mass — content pages ka shared style
+   (game page se alag — ye text-heavy pages ke liye hai)
+   ============================================================ */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #0A0018;
+  color: #E8E6F0;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  line-height: 1.75;
+  -webkit-text-size-adjust: 100%;
+}
+
+a { color: #00E0FF; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.wrap { max-width: 780px; margin: 0 auto; padding: 0 20px 70px; }
+
+/* ---------- top nav ---------- */
+.nav {
+  background: linear-gradient(90deg, #14002E, #2A0050);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 14px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding-top: calc(14px + env(safe-area-inset-top, 0px));
+}
+.nav-in {
+  max-width: 780px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+}
+.nav-logo {
+  font-weight: 800; font-size: 17px; color: #FFD700;
+  display: flex; align-items: center; gap: 7px;
+}
+.nav-links { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13.5px; }
+.nav-links a { color: rgba(255,255,255,0.82); }
+.nav-links a:hover { color: #FFD700; }
+.nav-links a.on { color: #FFD700; font-weight: 700; }
+
+/* ---------- hero ---------- */
+.hero {
+  padding: 44px 0 28px;
+  text-align: center;
+}
+.hero h1 {
+  font-size: 34px; line-height: 1.2; margin: 0 0 12px;
+  color: #fff; font-weight: 800;
+}
+.hero h1 .gold { color: #FFD700; }
+.hero .lead {
+  font-size: 16.5px; color: rgba(255,255,255,0.72);
+  max-width: 620px; margin: 0 auto;
+}
+
+/* ---------- headings ---------- */
+h2 {
+  font-size: 22px; color: #FFD700; margin: 40px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+h3 { font-size: 17px; color: #00FFB0; margin: 26px 0 8px; }
+
+p, li { font-size: 15.5px; color: rgba(255,255,255,0.84); }
+ul, ol { padding-left: 22px; }
+li { margin-bottom: 7px; }
+strong { color: #fff; }
+
+/* ---------- cards ---------- */
+.card {
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 16px;
+  padding: 20px 22px;
+  margin: 18px 0;
+}
+.card h3 { margin-top: 0; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 20px 0; }
+.grid .card { margin: 0; }
+
+/* ---------- CTA button ---------- */
+.cta {
+  display: inline-block;
+  background: linear-gradient(135deg, #FFD700, #FF8C00);
+  color: #2A1000 !important;
+  font-weight: 800;
+  font-size: 16px;
+  padding: 14px 34px;
+  border-radius: 40px;
+  margin: 8px 0;
+  text-decoration: none !important;
+  box-shadow: 0 6px 20px rgba(255,150,0,0.25);
+}
+.cta:hover { transform: translateY(-1px); }
+.cta-wrap { text-align: center; margin: 28px 0; }
+
+/* ---------- FAQ ---------- */
+.faq-item {
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 16px 0;
+}
+.faq-item:last-child { border-bottom: none; }
+.faq-item .q {
+  font-size: 16px; font-weight: 700; color: #fff;
+  margin: 0 0 8px;
+}
+.faq-item .a { margin: 0; color: rgba(255,255,255,0.8); }
+
+/* ---------- article list ---------- */
+.post {
+  display: block;
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin: 14px 0;
+  text-decoration: none !important;
+}
+.post:hover { border-color: rgba(255,215,0,0.4); }
+.post .t { font-size: 17px; font-weight: 700; color: #FFD700; margin: 0 0 6px; }
+.post .d { font-size: 12.5px; color: rgba(255,255,255,0.45); margin: 0 0 8px; }
+.post .e { font-size: 14.5px; color: rgba(255,255,255,0.75); margin: 0; }
+
+/* ---------- footer ---------- */
+.foot {
+  border-top: 1px solid rgba(255,255,255,0.09);
+  margin-top: 50px; padding: 26px 0 0;
+  font-size: 13.5px; color: rgba(255,255,255,0.5);
+  padding-bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+}
+.foot-links { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.foot-links a { color: rgba(255,255,255,0.66); }
+
+/* ---------- table ---------- */
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14.5px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.09); }
+th { color: #FFD700; font-weight: 700; }
+td { color: rgba(255,255,255,0.82); }
+
+/* ---------- back link ---------- */
+.back {
+  display: inline-block; margin-top: 30px;
+  font-size: 14px; color: #FFD700;
+}
+
+@media (max-width: 480px) {
+  .hero h1 { font-size: 27px; }
+  .hero .lead { font-size: 15px; }
+  h2 { font-size: 19.5px; }
+  p, li { font-size: 15px; }
+  .wrap { padding: 0 16px 60px; }
+  .nav-in { gap: 8px; }
+  .nav-links { gap: 11px; font-size: 12.5px; }
+}

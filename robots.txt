@@ -1,7 +1,11 @@
 # Candy Mass — robots.txt
-# GitHub Pages ke root me daalo (index.html ke saath).
+# Google ko sab public pages crawl karne do.
+
 User-agent: *
 Allow: /
+
+# Internal config files (inhe crawl karne ki zarurat nahi)
 Disallow: /firestore.rules
+Disallow: /firebase.json
 
 Sitemap: https://massgms.com/sitemap.xml

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>We Built a 10,000-Round Game With No Game Engine | Candy Mass Blog</title>
+<meta name="description" content="No Unity, no Godot, no framework. How Candy Mass is built with plain HTML, CSS, JavaScript and a canvas element — and the trade-offs that come with it.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0A001E">
+<link rel="stylesheet" href="content.css?v=1">
+</head>
+<body>
+
+<nav class="nav"><div class="nav-in">
+  <a class="nav-logo" href="index.html">🍬 Candy Mass</a>
+  <div class="nav-links">
+    <a href="index.html">Play</a>
+    <a href="how-to-play.html">How to Play</a>
+    <a href="tips.html">Tips</a>
+    <a href="faq.html">FAQ</a>
+    <a href="blog.html" class="on">Blog</a>
+    <a href="about.html">About</a>
+  </div>
+</div></nav>
+
+<div class="wrap">
+
+<div class="hero">
+  <h1>We built a 10,000-round game with no game engine</h1>
+  <p class="lead">12 October 2026 · 8 min read</p>
+</div>
+
+
+<p>Most mobile games are built in an engine. Unity, Godot, Unreal, or one of the smaller 2D frameworks. Engines solve an enormous number of problems for you: asset pipelines, physics, animation, input handling, and the build process that turns your project into something an app store will accept.</p>
+
+<p>Candy Mass uses none of them. It is a handful of files — HTML, CSS, JavaScript and one canvas element — served from a static host. There is no build step. The file you edit is the file that runs.</p>
+
+<p>That was a deliberate choice, and like most deliberate choices it came with real costs. Here is what we gained and what it cost us.</p>
+
+<h2>What we gained</h2>
+
+<h3>An absurdly small download</h3>
+<p>The entire game, including all artwork, is a few hundred kilobytes. That matters more than it sounds: in markets where data is expensive and phones are modest, download size is one of the biggest predictors of whether someone actually installs a game. A 4 MB game gets installed where a 90 MB game does not.</p>
+
+<h3>No build pipeline to break</h3>
+<p>Engines come with toolchains. Toolchains break. A Unity project that compiled last month can stop compiling after an editor update, and suddenly a week disappears into dependency resolution. With plain files there is nothing to resolve. If the code has a syntax error, the browser tells you on line one.</p>
+
+<h3>Instant iteration</h3>
+<p>Editing a difficulty constant and seeing the result takes about two seconds. That speed changes how you work: you tune more, because tuning is cheap. A huge amount of the difficulty curve in Candy Mass exists because changing a number and immediately playing it was frictionless.</p>
+
+<h3>It runs everywhere, including the web</h3>
+<p>The same code runs as a website and, wrapped in a Trusted Web Activity, as an Android app. There is no second codebase, no "mobile port", and no divergence between what a browser player sees and what an app player sees.</p>
+
+<h2>What it cost us</h2>
+
+<h3>We had to write everything ourselves</h3>
+<p>There is no <code>Rigidbody</code>. There is no animation system, no sprite batcher, no timeline, no particle editor. Every one of those had to be written by hand, and several of them took longer than the game itself.</p>
+
+<p>The basket had to be drawn programmatically. Particles had to be managed manually, with pooling to avoid allocating during gameplay. The sprite sheet loader had to be written, and then rewritten when we discovered that one of our sheets shipped without an alpha channel.</p>
+
+<h3>No visual editor</h3>
+<p>There is no scene view. If we want to know how something looks, we run the game and look at it. For a game this simple that is fine. For anything with a level editor or a 3D world it would be completely impractical.</p>
+
+<h3>Testing becomes your safety net</h3>
+<p>This is the big one. Without a typed language or an engine's runtime checks, a typo in a rarely-executed branch can sit in production for months. We compensate with an unusually large test suite — hundreds of assertions covering the difficulty curve, the wave physics, the cloud save logic, the sprite loader, and the layout across twenty different phone screen sizes.</p>
+
+<p>The tests run in Node with a fake DOM, which means the game logic can be exercised without a browser at all. When we changed the wave movement to be frame-rate independent, the tests caught three separate regressions before they shipped.</p>
+
+<h3>Device compatibility is entirely on you</h3>
+<p>A canvas game has to handle every screen shape itself. Notches, punch-holes, gesture bars, extreme aspect ratios, and device pixel ratios from 1 to 3.5 all have to be dealt with explicitly, because nothing does it for you.</p>
+
+<p>We ended up writing a compatibility test that simulates twenty real devices — an iPhone SE through to a Galaxy Fold and a desktop browser — and checks that the canvas sizes, the basket lands on screen, and nothing is clipped. It is the least glamorous code in the project and it has caught more real bugs than anything else in it.</p>
+
+<h2>Would we do it again?</h2>
+
+<p>For this game, yes. The constraints matched the project: small scope, 2D, no physics, no 3D, and a strong desire to ship something small and fast.</p>
+
+<p>For a project with a level editor, character animation, or 3D, no. The time saved by an engine is enormous once the game gets complicated, and writing those systems yourself is not a badge of honour — it is just slower.</p>
+
+<p>The honest summary is that the engine question is a scope question. Pick the option that matches the size of the thing you are actually making, not the size of the thing you might make later.</p>
+
+<p style="text-align:center;margin-top:30px"><a href="blog.html">← Back to all articles</a></p>
+
+
+<div class="cta-wrap">
+  <a class="cta" href="index.html">▶ Play Candy Mass</a>
+</div>
+
+<div class="foot">
+  <div class="foot-links">
+    <a href="index.html">Play</a>
+    <a href="how-to-play.html">How to Play</a>
+    <a href="tips.html">Tips &amp; Strategy</a>
+    <a href="faq.html">FAQ</a>
+    <a href="blog.html">Blog</a>
+    <a href="about.html">About</a>
+    <a href="contact.html">Contact</a>
+    <a href="privacy.html">Privacy</a>
+  </div>
+  <div>© 2026 Mass Interactive Games · <a href="mailto:massinteractivegames@gmail.com">massinteractivegames@gmail.com</a></div>
+</div>
+
+</div>
+</body>
+</html>

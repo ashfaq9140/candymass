@@ -104,6 +104,18 @@ body {
 .auth-divider hr { flex: 1; border: none; border-top: 1px solid rgba(255,255,255,0.1); }
 .guest-btn { width: 100%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,215,0,0.3); border-radius: 60px; padding: 12px; font-size: 16px; font-weight: 600; color: #FFD700; cursor: pointer; }
 .studio-credit { font-size: 10px; color: rgba(255,255,255,0.2); margin-top: 20px; text-align: center; }
+/* Content pages ke links — login screen par (Google crawl + player ke liye) */
+.credit-links {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 4px 10px; margin-top: 7px;
+}
+.credit-links a {
+  color: rgba(255,255,255,0.45);
+  text-decoration: none;
+  font-size: 10px;
+  padding: 2px 0;
+}
+.credit-links a:hover { color: rgba(255,215,0,0.9); text-decoration: underline; }
 
 /* ===== GAME WRAP ===== */
 #gameWrap { 
