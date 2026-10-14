@@ -161,18 +161,48 @@
             console.log('ℹ️ [ads] AdSense client ID nahi — ads band, reward turant milega');
             return;
         }
+
+        // ------------------------------------------------------------
+        // ⚠️ ZARURI ORDER: pehle adsbygoogle + adBreak set karo, PHIR script
+        // inject karo. Pehle script inject hota tha aur uske baad adBreak set
+        // hota tha — agar script banane me koi bhi error aata (setAttribute
+        // fail, head missing, CSP block...) to adBreak set hi nahi hota tha
+        // aur SAARE ads chup-chaap band ho jate, bina koi error dikhaye.
+        // Ab adBreak hamesha set hota hai, chahe script inject fail ho jaye.
+        // ------------------------------------------------------------
+        try {
+            window.adsbygoogle = window.adsbygoogle || [];
+            if (typeof window.adBreak !== 'function') {
+                window.adBreak = window.adConfig = function (o) { window.adsbygoogle.push(o); };
+            }
+        } catch (e) {
+            console.warn('⚠️ [ads] adBreak set nahi ho paya:', e && e.message);
+            return;
+        }
+
+        // Ab AdSense script inject karo (best-effort — fail ho to bhi ads ki
+        // request queue me chali jayegi).
         try {
             const sc = document.createElement('script');
             sc.async = true;
-            sc.setAttribute('data-ad-frequency-hint', '30s');
+            if (typeof sc.setAttribute === 'function') {
+                sc.setAttribute('data-ad-frequency-hint', '30s');
+            }
             sc.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + ADS_CLIENT;
             sc.crossOrigin = 'anonymous';
-            document.head.appendChild(sc);
-            window.adsbygoogle = window.adsbygoogle || [];
-            window.adBreak = window.adConfig = function (o) { window.adsbygoogle.push(o); };
+            if (document.head && typeof document.head.appendChild === 'function') {
+                document.head.appendChild(sc);
+            }
+        } catch (e) {
+            console.warn('⚠️ [ads] AdSense script inject fail:', e && e.message);
+        }
+
+        try {
             window.adConfig({ preloadAdBreaks: 'on', sound: 'on', onReady: function () { adsReady = true; } });
             console.log('✅ [ads] AdSense load ho raha hai:', ADS_CLIENT);
-        } catch (e) { console.warn('[ads] load fail:', e && e.message); }
+        } catch (e) {
+            console.warn('⚠️ [ads] adConfig fail:', e && e.message);
+        }
     }
 
     // ------------------------------------------------------------
