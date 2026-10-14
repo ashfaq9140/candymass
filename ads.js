@@ -249,16 +249,50 @@
     }
 
     // ------------------------------------------------------------
+    // ₹79 "Remove Ads" — Google Play Billing
     // ------------------------------------------------------------
-    // ₹79 "Remove Ads" — Play Billing
+    // TWA me Play Billing Digital Goods API + Payment Request API se chalti hai.
+    // Ref: developer.chrome.com/docs/android/trusted-web-activity/receive-payments-play-billing
     //
-    // ⚠️ BILLING_READY = false hone par button DIKHEGA HI NAHI.
-    // Pehle ek BUG tha: button dabane par bina paisa liye ads hat jate the.
-    // Play Billing (Digital Goods API) lagane ke baad ise true karo.
+    // SETUP (Play Console ban jaane ke baad):
+    //   1. Play Console -> Monetize -> In-app products
+    //        Product ID : remove_ads
+    //        Type       : One-time (non-consumable / durable)
+    //        Price      : ₹79
+    //        Status     : Active
+    //   2. AAB dobara banao (PWABuilder me "Play Billing" ON karke)
+    //   3. Neeche BILLING_READY = true karo
+    //   4. Licensed test account se test karo
+    //
+    // ⚠️ BILLING_READY = false hone par "Remove Ads" button DIKHEGA HI NAHI.
+    //    (Pehle ek bug tha: button dabane par bina paisa liye ads hat jate the.)
     // ------------------------------------------------------------
     const BILLING_READY = false;
+    const BILLING_SKU = 'remove_ads';
+    const BILLING_SERVICE = 'https://play.google.com/billing';
 
-    function buyRemoveAds() {
+    // Digital Goods API available hai? (TWA + Chrome 101+ me hoti hai)
+    function billingSupported() {
+        return ('getDigitalGoodsService' in window) &&
+            (typeof window.PaymentRequest === 'function');
+    }
+
+    // App khulte hi: pehle se kharida hua hai? (naye device / reinstall ke liye)
+    async function restorePurchase() {
+        if (!BILLING_READY || !billingSupported()) return;
+        try {
+            const svc = await window.getDigitalGoodsService(BILLING_SERVICE);
+            const purchases = await svc.listPurchases();
+            if (purchases && purchases.some(function (p) { return p.itemId === BILLING_SKU; })) {
+                setAdsFree(true, true);
+                console.log('✅ [billing] pehle se kharida hua mila — ads hata diye');
+            }
+        } catch (e) {
+            console.log('ℹ️ [billing] restore skip:', e && e.message);
+        }
+    }
+
+    async function buyRemoveAds() {
         if (adsFree) { say('✅ Ads already removed', '#00FFB0'); return; }
 
         // Bina payment ke KABHI ads-free na karo
@@ -267,19 +301,48 @@
             return;
         }
 
-        // Yahan Play Billing (Digital Goods API) lagega:
-        //
-        //   const svc = await getDigitalGoodsService('https://play.google.com/billing');
-        //   const details = await svc.getDetails(['remove_ads']);
-        //   const req = new PaymentRequest(
-        //       [{ supportedMethods: 'https://play.google.com/billing',
-        //          data: { sku: 'remove_ads' } }], { total: { label: 'Remove Ads',
-        //          amount: { currency: details[0].price.currency,
-        //                    value: details[0].price.value } } });
-        //   const resp = await req.show();
-        //   await svc.consume(resp.details.token);   // ya acknowledge
-        //   setAdsFree(true, true);                  // <- SIRF payment ke baad
-        say('🚧 Coming soon!', '#FFD700', 2400);
+        if (!billingSupported()) {
+            say('Play Store se app update karo', '#FFB8D0', 3000);
+            return;
+        }
+
+        try {
+            const svc = await window.getDigitalGoodsService(BILLING_SERVICE);
+
+            // 1) Product details (price Play Console se aata hai)
+            const details = await svc.getDetails([BILLING_SKU]);
+            if (!details || !details.length || !details[0].price) {
+                say('❌ Product available nahi hai', '#FF8080', 3000);
+                return;
+            }
+            const price = details[0].price;
+
+            // 2) Payment flow — Play Store ka apna checkout khulega
+            const req = new window.PaymentRequest(
+                [{ supportedMethods: BILLING_SERVICE, data: { sku: BILLING_SKU } }],
+                { total: { label: 'Remove Ads', amount: { currency: price.currency, value: price.value } } }
+            );
+            const resp = await req.show();
+            await resp.complete('success');
+
+            // 3) "remove_ads" durable product hai — isliye consume() NAHI karte.
+            //    resp.complete('success') acknowledgment bhi kar deta hai.
+            //    Purchase listPurchases() me hamesha rahegi (restore ke liye).
+
+            setAdsFree(true, true);
+            safe(function () { sfxUnlock(); });
+            say('🚫 Ads removed! Thank you ❤️', '#00FFB0', 3200);
+            console.log('✅ [billing] purchase success:', BILLING_SKU);
+
+        } catch (e) {
+            const name = (e && e.name) || '';
+            if (name === 'AbortError') {
+                say('Purchase cancel kar diya', '#FFB8D0', 2200);   // user ne band kiya
+                return;
+            }
+            console.warn('❌ [billing] purchase fail:', e && e.message);
+            say('❌ Purchase fail — dobara try karo', '#FF8080', 3000);
+        }
     }
 
     // ------------------------------------------------------------
@@ -372,6 +435,8 @@
     function boot() {
         wireButtons();
         initAds();
+        // Play Billing ready ho to dekho ki pehle se kharida hua hai kya
+        restorePurchase();
     }
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', boot);
@@ -390,6 +455,11 @@
         buyRemoveAds: buyRemoveAds,
         openRateUs: openRateUs,
         shareGame: shareGame,
-        init: initAds
+        init: initAds,
+        // ---- billing (debug) ----
+        billingReady: function () { return BILLING_READY; },
+        billingSupported: billingSupported,
+        restorePurchase: restorePurchase,
+        sku: BILLING_SKU
     };
 })();
