@@ -3,6 +3,9 @@
   "target": {
     "namespace": "android_app",
     "package_name": "com.massgms.candymass",
-    "sha256_cert_fingerprints": ["09:47:47:DE:3C:7A:C4:E0:7E:0E:C7:32:03:EF:41:02:68:F9:86:18:65:E1:5F:24:66:1D:3D:31:12:28:5C:A0"]
+    "sha256_cert_fingerprints": [
+      "41:1D:7C:18:F7:F9:4F:66:F2:BE:85:6D:CE:C4:43:4B:4C:D6:93:2A:5C:A6:59:48:C0:0B:42:FB:68:C6:0E:16",
+      "09:47:47:DE:3C:7A:C4:E0:7E:0E:C7:32:03:EF:41:02:68:F9:86:18:65:E1:5F:24:66:1D:3D:31:12:28:5C:A0"
+    ]
   }
 }]
